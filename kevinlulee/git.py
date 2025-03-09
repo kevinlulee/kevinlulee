@@ -22,7 +22,7 @@ class GitRepo:
         self.cmd('push', remote, branch)
 
     def commit(self, message):
-        self.cmd('commit', '-m', message)
+        self.cmd('commit', '-m', f'"{message}"')
 
     def create_branch(self, branch_name):
         self.cmd('branch', branch_name)
