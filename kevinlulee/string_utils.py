@@ -102,7 +102,7 @@ def mget(s: str, pattern: str, flags: int = 0) -> Tuple[str, Union[str, None]]:
     return re.sub(pattern, '', s, 1, flags=flags), match
 
 
-def getindent(text: str) -> int:
+def get_indent(text: str) -> int:
     """
     Gets the indentation level of the first non-empty line in the text.
     Each level corresponds to 4 spaces (e.g., 0 for no indentation, 1 for 4 spaces, etc.).

@@ -59,6 +59,7 @@ def bash(*args, cwd=None):
 
     if 'log' in cmd:
         return subprocess.check_output(cmd, text=True, cwd=cwd).strip()
+    # return subprocess.check_output(cmd, text=True, cwd=cwd).strip()
 
     cmd = ' '.join(args)
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=cwd)

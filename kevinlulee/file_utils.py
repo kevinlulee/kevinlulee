@@ -4,6 +4,7 @@ import yaml
 import toml
 from typing import Any
 
+
 def get_extension(file_path: str) -> str:
     """Extracts and formats the file extension from a given file path.
        Files like .env and .vimrc will result in no extension.
@@ -17,6 +18,7 @@ def get_extension(file_path: str) -> str:
         Returns an empty string if no extension is found.
     """
     return os.path.splitext(file_path)[1].lstrip(".").lower()
+
 
 def writefile(filepath: str, data: Any) -> str:
     """Writes data to a file, serializing it based on the file extension.
@@ -53,8 +55,11 @@ def writefile(filepath: str, data: Any) -> str:
                 return yaml.dump(data, indent=2)
             case "toml":
                 import toml
+
                 return toml.dumps(data)
             case "json":
+                return json.dumps(data, indent=2)
+            case "txt":
                 return json.dumps(data, indent=2)
             case _:
                 raise ValueError(f"Unsupported file extension: {file_extension}")
@@ -71,6 +76,7 @@ def writefile(filepath: str, data: Any) -> str:
         file.write(value)
 
     return expanded_file_path
+
 
 def readfile(path: str) -> Any:
     """Reads a file and returns its content.
@@ -96,13 +102,26 @@ def readfile(path: str) -> Any:
             return json.load(f)
         elif extension in ("yaml", "yml"):
             p = yaml.safe_load(f)
-            if isinstance(p, str): # wasnt able to parse the input
+            if isinstance(p, str):  # wasnt able to parse the input
                 return None
             return p
         elif extension == "toml":
             return toml.load(f)
         else:
             return f.read()
+
+
+def find_git_directory(path):
+    root = os.path.expanduser("~/")
+    assert root in path, f'{path} does not contain "{root}"'
+
+    while path != root:
+        if os.path.exists(os.path.join(path, ".git")):
+            return path
+        path = os.path.dirname(path)
+    return None
+
+
 
 class File:
     def __init__(self, file):
@@ -135,3 +154,24 @@ class File:
     @property
     def modified_at(self):
         return os.path.getmtime(self.file)
+
+    @property
+    def git_directory(self):
+        return find_git_directory(self.file)
+
+def get_most_recent_file(directory, pattern="*"):
+    # Get a list of files in the directory that match the pattern
+    import glob
+    files = glob.glob(os.path.join(os.path.expanduser(directory), pattern))
+    
+    if not files:
+        return None
+    
+    most_recent = max(files, key=os.path.getmtime)
+    return most_recent
+
+def clip(s):
+    file = os.path.expanduser('~/.kdog3682/scratch/clip.txt')
+    writefile(file, s)
+    import webbrowser
+    webbrowser.open(file)

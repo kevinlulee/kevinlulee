@@ -6,8 +6,7 @@ def trim_lines(s):
 
 class GitRepo:
     def cmd(self, *args):
-        p = bash('git', *args, cwd = self.cwd)
-        print(p)
+        return bash('git', *args, cwd = self.cwd)
 
     def __init__(self, cwd):
         self.cwd = os.path.expanduser(cwd)

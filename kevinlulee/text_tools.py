@@ -150,7 +150,7 @@ class Templater:
         # print(groups)
         spaces, callable_expr, bracket_expr, word, comma, start_index, end_index, fallback = groups
         self.spacing = spaces or ''
-        self.comma = comma or ':
+        self.comma = comma or ''
         
         try:
             if callable_expr:
