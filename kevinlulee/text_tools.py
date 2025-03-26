@@ -203,4 +203,17 @@ class Templater:
         return re.sub(TEMPLATER_PATTERN, self.replace, input_text)
 
 templater = Templater().format
-__all__ = ['toggle_comment', 'templater']
+
+def join_text(contents):
+    o = ''
+    for content in contents:
+        s = content.strip()
+        if '\n' in s:
+            if o.endswith('\n\n'):
+                o += f'{s}\n\n'
+            else:
+                o += f'\n{s}\n\n'
+        else:
+            o += f'{s}\n'
+    return o
+__all__ = ['toggle_comment', 'templater', 'join_text']

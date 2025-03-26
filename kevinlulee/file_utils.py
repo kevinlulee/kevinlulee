@@ -42,6 +42,7 @@ def writefile(filepath: str, data: Any) -> str:
     assert data, "Data must be existant. Empty strings or None are not allowed."
     assert os.path.splitext(filepath)[1], "Filepath must have an extension."
 
+
     def serialize(data: Any) -> str:
         if isinstance(data, (int, bool)):
             raise TypeError("Only strings, arrays, and dictionaries are allowed.")
@@ -64,7 +65,7 @@ def writefile(filepath: str, data: Any) -> str:
             case _:
                 raise ValueError(f"Unsupported file extension: {file_extension}")
 
-    expanded_file_path = os.path.abspath(filepath)
+    expanded_file_path = os.path.expanduser(filepath)
 
     # Create the directory if it doesn't exist
     dir_path = os.path.dirname(expanded_file_path)
@@ -121,23 +122,21 @@ def find_git_directory(path):
         path = os.path.dirname(path)
     return None
 
-
-
-class File:
+class FileContext:
     def __init__(self, file):
-        self.file = os.path.expanduser(file)
+        self.path = os.path.expanduser(file)
 
     @property
     def size(self):
-        return os.path.getsize(self.file)
+        return os.path.getsize(self.path)
 
     @property
     def filename(self):
-        return os.path.basename(self.file)
+        return os.path.basename(self.path)
 
     @property
     def directory(self):
-        return os.path.dirname(self.file)
+        return os.path.dirname(self.path)
 
     @property
     def name(self):
@@ -145,19 +144,19 @@ class File:
 
     @property
     def ext(self):
-        return get_extension(self.file)
+        return get_extension(self.path)
 
     @property
     def content(self):
-        return readfile(self.file)
+        return readfile(self.path)
 
     @property
     def modified_at(self):
-        return os.path.getmtime(self.file)
+        return os.path.getmtime(self.path)
 
     @property
     def git_directory(self):
-        return find_git_directory(self.file)
+        return find_git_directory(self.path)
 
 def get_most_recent_file(directory, pattern="*"):
     # Get a list of files in the directory that match the pattern
