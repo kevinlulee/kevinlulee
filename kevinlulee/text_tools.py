@@ -1,6 +1,77 @@
 import re
+import yaml
 import textwrap
 
+def bracket_wrap(
+    items, bracket_type: str = "()", indent: int = 4, delimiter=", "
+) -> str:
+    brackets = {
+        "()": ("(", ")"),
+        "[]": ("[", "]"),
+        "[[]]": ("[[", "]]"),
+        "{}": ("{", "}"),
+        '"': ('"', '"'),
+        "'": ("'", "'"),
+        "'''": ("'''", "'''"),
+        '"""': ('"""', '"""'),
+        "``": ("`", "`"),
+        "```": ("```", "```"),
+        "({})": ("({", "})"),
+        "([])": ("([", "])"),
+    }
+
+    open_bracket, close_bracket = brackets[bracket_type]
+    text = delimiter.join(str(el) for el in to_array(items))
+    if re.search("^[\(\{\[]\n", text):
+        return open_bracket + text + close_bracket
+    indented_text = textwrap.indent(text, " " * indent)
+    return f"{open_bracket}\n{indented_text}\n{close_bracket}"
+
+
+def extract_frontmatter(text: str):
+    """
+    Extracts YAML frontmatter from the beginning of a text and returns it as a dictionary,
+    along with the remaining content.
+
+    Frontmatter must start at the beginning and follow YAML format (key-value pairs or lists).
+    It ends at the first empty line or a non-matching line.
+
+    Returns:
+        tuple[str, dict]: (content, frontmatter_dict)
+
+    Edge Cases:
+    - If no valid frontmatter is found, returns the full text as content and an empty dictionary.
+    - If improperly formatted, YAML parsing may fail or return unexpected results.
+    """
+    frontmatter_pattern = re.compile(r'^\s*\w+:|^\s+-')
+    
+    lines = text.split('\n')
+    if not lines or not frontmatter_pattern.match(lines[0]):
+        return text, {}
+    
+    frontmatter_lines = []
+    content_start = 0
+    
+    for i, line in enumerate(lines):
+        if not line.strip():  # Empty line breaks frontmatter
+            content_start = i + 1
+            break
+        if frontmatter_pattern.match(line):
+            frontmatter_lines.append(line)
+        else:
+            content_start = i
+            break
+    
+    frontmatter_text = '\n'.join(frontmatter_lines)
+    frontmatter = yaml.safe_load(frontmatter_text) if frontmatter_text else {}
+    
+    content = '\n'.join(lines[content_start:])
+    return content, frontmatter
+
+
+
+def tabs_to_spaces(s):
+    return s.replace('\t', '    ')
 def _toggle_comment(text: str, filetype: str) -> str:
     """
     Toggle comments in code text based on the file type.
@@ -119,8 +190,7 @@ def toggle_comment(text: str, filetype: str) -> str:
 
 TEMPLATER_PATTERN = re.compile(r'''
     # ([ \t]*(?:[-*•] *)?)? # Optional leading whitespace and indentation
-    # ((?:^|\n)[ \t]+(?:[-*•] +)?)?   
-    ((?:^|\n)[ \t]+(?:[-*•][\t ]+)?)?   
+    ((?:^|\n)\s*(?:[-*•]\s+)?)?   
     \$                  # Literal $ symbol to start template variable
     (?:
         (\w+\(.*?\))    # Callable function with arguments
@@ -166,6 +236,10 @@ class Templater:
 
     def _handle_callable(self, expr):
         try:
+            a, b = re.split('(?=\()', expr, maxsplit=1)
+            g = self.getter(a)
+            if g:
+                return g + b
             return str(eval(expr, {}, self.scope))
         except Exception as e:
             return f"Error evaluating callable: {e}"
@@ -177,9 +251,10 @@ class Templater:
             return f"Error evaluating bracket expression: {e}"
     
     def _handle_word(self, word, start_index, end_index, fallback):
-        value = self.scope.get(word, fallback)
+        value = self.getter(word, fallback)
         if isinstance(value, (list, tuple)):
-            return ''.join([f'{self.spacing}{item}{self.comma}' for item in value])
+            spacing = self.spacing or '\n'
+            return ''.join([f'{spacing}{item}{self.comma}' for item in value])
             prefix = ''
             # print([self.spacing])
             if self.spacing.strip().startswith('-'):
@@ -195,10 +270,16 @@ class Templater:
             # print(args) # TEMPORARY_PRINT_LOG
             return ''.join(args)
 
+        if "\n" in self.spacing:
+            spaces = self.spacing[1:]
+            return  '\n' + tabs_to_spaces(textwrap.indent(str(value), spaces))
         return str(value)
+        print([self.spacing])
+        return self.spacing + str(value)
     
     def format(self, s, scope=None):
         self.scope = scope or {}
+        self.getter = self.scope.get if isinstance(self.scope, dict) else lambda x,y = None: getattr(self.scope, x, y)
         input_text = textwrap.dedent(s).strip()
         return re.sub(TEMPLATER_PATTERN, self.replace, input_text)
 
@@ -216,4 +297,59 @@ def join_text(contents):
         else:
             o += f'{s}\n'
     return o
-__all__ = ['toggle_comment', 'templater', 'join_text']
+
+def dash_split(text, delim_length=3, trim=True, filter=True):
+    """
+    Splits text on a delimiter of dashes spanning an entire line.
+    
+    Parameters:
+        text (str): The input text to split.
+        delim_length (int): The minimum number of dashes required to split the text.
+        trim (bool | tuple): If True, trims both sides. If a tuple, the first element trims left, the second trims right.
+        filter (bool): If True, filters out empty parts after processing.
+    
+    Returns:
+        list: List of split text segments.
+    """
+    split_chunks = re.split(rf"^\-{{{delim_length},}}$", text, flags=re.MULTILINE)
+    
+    if isinstance(trim, bool):
+        trim_left, trim_right = trim, trim
+    else:
+        trim_left, trim_right = trim
+    
+    def process_chunk(chunk):
+        chunk = chunk.lstrip() if trim_left else chunk
+        chunk = chunk.rstrip() if trim_right else chunk
+        
+        if filter and not chunk.strip():
+            return None
+        
+        return chunk
+    
+    result_chunks = [process_chunk(chunk) for chunk in split_chunks]
+    
+    return [chunk for chunk in result_chunks if chunk is not None]
+# __all__ = ['toggle_comment', 'templater', 'join_text', 'dash_split']
+
+template = """
+    try:
+        abc 
+
+
+        $expr
+    except Exception as e:
+        error_handler(e)
+"""
+
+# print(templater(template, {'expr': 'def foo()\n\thi\n\tbye'}))
+
+arguments = ['hiii', 'byeee']
+template =f'''
+            please provide {len(arguments)} arguments separated by commas'
+            ---
+            - $arguments
+        '''
+# print(templater(template, {'arguments': arguments}))
+
+# print(re.search(TEMPLATER_PATTERN, "- $arguments").groups())

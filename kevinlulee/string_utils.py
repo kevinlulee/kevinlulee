@@ -11,6 +11,7 @@ Functions:
 
 from typing import List, Tuple, Union, Any
 import re
+import textwrap
 
 def group(items: List[Tuple[str, Any]]) -> dict:
     """Groups items by their first element.
@@ -124,3 +125,42 @@ def get_indent(text: str) -> int:
     return 0  # Default to 0 if all lines are empty
 
 
+
+def capitalize(s):
+    if not s:
+        return s
+    return s[0].upper() + s[1:]
+
+def uncapitalize(s):
+    return s[0].lower() + s[1:]
+
+def camel_case(s):
+    parts = filter(re.split("[\W_]+", s))
+    return uncapitalize("".join([capitalize(part) for part in parts]))
+
+
+def pascal_case(s):
+    if not s: return ''
+    return capitalize(camel_case(s))
+
+
+def snake_case(s):
+    if "_" in s:
+        return s
+    s = re.sub("(?<=[a-z])(?=[A-Z])", "_", s)
+    s = re.sub("\W+", "_", s)
+    s = s.lower()
+    return s
+
+def trimdent(s):
+    return textwrap.dedent(s).strip()
+
+
+def dash_case(s):
+    s = re.sub(r"([a-z])([A-Z])", r"\1-\2", s)  # Convert camelCase to kebab-case
+    s = re.sub(r"[\s_]+", "-", s)  # Replace spaces and underscores with dashes
+    return s.lower()  # Convert to lowercase
+
+def split(s, r="\s+", flags=0, maxsplit = 0):
+    base = re.split(r, s.strip(), flags=flags, maxsplit = maxsplit)
+    return [s.strip() for s in base if s.strip()]

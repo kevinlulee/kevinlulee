@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 
 from .file_utils import find_git_directory
+from .base import display
 
 GLOBAL_COMMON_IGNORE_DIRS = [
     ".config",
@@ -40,9 +41,12 @@ GLOBAL_COMMON_IGNORE_DIRS = [
 ]
 
 
-def bash(*args, cwd=None, on_error=None, silent=True):
+def bash(*args, cwd=None, on_error=None, silent=True, debug = False):
     cwd = os.path.expanduser(cwd) if cwd else None
-    result = subprocess.run(list(args), text=True, cwd=cwd, capture_output=True)
+    args = [arg for arg in args if arg.strip()]
+    if debug:
+        return print(' '.join(args))
+    result = subprocess.run(args, text=True, cwd=cwd, capture_output=True)
 
     err = result.stderr.strip()
     success = result.stdout.strip()
@@ -233,7 +237,6 @@ def typst(inpath=None, outpath=None, open=False, mode="compile", on_error = None
         mode: `compile` or `watch` (compile)
     """
 
-    outpath = outpath or "~/scratch/test.pdf"
     inpath = os.path.expanduser(inpath)
     outpath = os.path.expanduser(outpath)
 
@@ -246,7 +249,8 @@ def python3(file, *args, as_module=False, on_error = None):
         cwd = find_git_directory(file)
         abs_path = Path(file).resolve()
         relative_path = abs_path.relative_to(cwd).with_suffix("")
-        path = ".".join(relative_path.parts)
-        return bash("python3", "-m", path, *args, cwd=cwd, on_error=on_error)
+        module_path = ".".join(relative_path.parts)
+        display(module_path = module_path, cwd = cwd)
+        return bash("python3", "-m", module_path, *args, cwd=cwd, on_error=on_error, silent=False)
     else:
-        return bash("python3", file, *args, on_error=on_error)
+        return bash("python3", file, *args, on_error=on_error, silent=False)

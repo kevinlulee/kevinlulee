@@ -1,15 +1,21 @@
 import os
+import textwrap
 from .bash import bash
 
 def trim_lines(s):
     return [line.strip() for line in s.splitlines()]
 
 class GitRepo:
+    def is_git_directory(self):
+        return os.path.isdir(os.path.join(self.cwd, ".git"))
+    def diff(self):
+        return self.cmd('diff')
     def cmd(self, *args):
-        return bash('git', *args, cwd = self.cwd)
+        return bash('git', *args, cwd = self.cwd, debug = self.debug)
 
     def __init__(self, cwd):
         self.cwd = os.path.expanduser(cwd)
+        self.debug = False
 
     def init(self):
         self.cmd('init')
@@ -21,7 +27,8 @@ class GitRepo:
         self.cmd('push', remote, branch)
 
     def commit(self, message):
-        self.cmd('commit', '-m', f'"{message}"')
+        # message = textwrap.wrap(message, width = 60)
+        self.cmd('commit', '-m', message)
 
     def create_branch(self, branch_name):
         self.cmd('branch', branch_name)

@@ -1,8 +1,64 @@
 import os
+from kevinlulee.string_utils import mget
 import json
 import yaml
 import toml
 from typing import Any
+
+EXT_REFERENCE_MAP = {
+  # File type to canonical extension
+  "python": "py",
+  "javascript": "js",
+  "typescript": "ts",
+  "html": "html",
+  "css": "css",
+  "json": "json",
+  "xml": "xml",
+  "java": "java",
+  "c": "c",
+  "cpp": "cpp",
+  "ruby": "rb",
+  "go": "go",
+  "php": "php",
+
+  # Canonical extensions mapping to themselves
+  "py": "py",
+  "js": "js",
+  "ts": "ts",
+  "html": "html",
+  "css": "css",
+  "json": "json",
+  "xml": "xml",
+  "java": "java",
+  "c": "c",
+  "cpp": "cpp",
+  "rb": "rb",
+  "go": "go",
+  "php": "php",
+  "jpg": "jpg",
+  "tif": "tif",
+  "md": "md",
+
+  # Extension aliases mapping to canonical extensions
+  "pyw": "py",
+  "jsx": "js",
+  "tsx": "ts",
+  "htm": "html",
+  "jpeg": "jpg",
+  "jpe": "jpg",
+  "tiff": "tif",
+  "mjs": "js",
+  "cxx": "cpp",
+  "cc": "cpp",
+  "c++": "cpp",
+  "markdown": "md",
+  "mdown": "md",
+  "typst": "typ",
+  "pdf": "pdf",
+  "typ": "typ",
+
+}
+
 
 
 def get_extension(file_path: str) -> str:
@@ -17,6 +73,8 @@ def get_extension(file_path: str) -> str:
         The file extension in lowercase without the leading dot (string).
         Returns an empty string if no extension is found.
     """
+    if not '.' in file_path:
+        return EXT_REFERENCE_MAP[file_path]
     return os.path.splitext(file_path)[1].lstrip(".").lower()
 
 
@@ -174,3 +232,70 @@ def clip(s):
     writefile(file, s)
     import webbrowser
     webbrowser.open(file)
+
+
+def symlink(source, destination):
+    source = os.path.expanduser(source)
+    destination = os.path.expanduser(destination)
+    assert os.path.exists(source)
+    assert not os.path.exists(destination), f"destination '{destination}' already exists"
+    os.symlink(source, destination)
+    print(f'Symlink created from {source} to {destination}')
+
+def copy_directory_contents(src, dest):
+    import shutil
+    import os
+    src = os.path.expanduser(src)
+    dest = os.path.expanduser(dest)
+    if not os.path.exists(dest):
+        os.makedirs(dest)
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dest, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d, dirs_exist_ok=True)
+        else:
+            shutil.copy2(s, d)
+
+        print('copied', s)
+
+def resolve_dotted_path(path, reference):
+
+    reference = os.path.expanduser(reference)
+    if os.path.isfile(reference):
+        reference = os.path.dirname(reference)
+
+    assert os.path.isdir(reference), "to resolve the dotted path, the reference must be a directory"
+
+    if path.startswith("../"):
+        path, m = mget(path, "^(?:../)+")
+        upwards = len(m) // 3
+        r = "(?<!^)/(?!$)"
+        parts = re.split(r, reference)
+        parts = parts[:-upwards]
+        return os.path.join(*parts, path)
+
+    if path.startswith("./"):
+        return os.path.join(reference, path[2:])
+
+    if path.startswith("/") or path.startswith("~"):
+        return path
+
+    return os.path.join(reference, path)
+
+
+def fnamemodify(file, dir = None, name = None, ext = None):
+
+    _dir = os.path.dirname(file)
+    _ext = get_extension(file)
+    _name = os.path.basename(file)
+    if has_extension(name):
+        _ext = get_extension(name)
+    
+
+    if dir: _dir = dir(_dir) if is_function(dir) else dir
+    if ext: _ext = ext(_ext) if is_function(ext) else ext
+    if name: _name = name(_name) if is_function(name) else name
+    return os.path.join(_dir, f"{_name}.{_ext}")
+
+
