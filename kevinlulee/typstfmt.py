@@ -3,6 +3,8 @@ from kevinlulee.text_tools import bracket_wrap
 from kevinlulee.string_utils import dash_case
 from kevinlulee.base import real, strcall
 
+import re
+
 css_unit_re = r"(-\d*\.?\d+)(px|em|rem|vh|vw|vmin|vmax|%|cm|mm|in|pt|pc|ex|ch)$"
 
 class TypstArgumentFormatter:
@@ -30,6 +32,8 @@ class TypstArgumentFormatter:
                 return value
             if re.search(css_unit_re, value):
                 return value
+            if "\n" in value:
+                return bracket_wrap(value, bracket_type='[]')
             return f'"{value}"'
         return str(value)
 
@@ -41,7 +45,7 @@ class TypstArgumentFormatter:
     def _format_raw_dict(self, dct, level=0, coerce_integers=False):
         def callback(el):
             k, v = el
-            prefix = f'"{k}"' if isinstance(k, (int, float)) else dashcase(k)
+            prefix = f'"{k}"' if isinstance(k, (int, float)) else dash_case(k)
             if not v:
                 return prefix + ": none"
                 return
@@ -73,7 +77,10 @@ class TypstArgumentFormatter:
 
     def _format_collection(self, args, level=0, comma=""):
         sample = f"({', '.join(args)}{comma})"
-        if len(sample) < self.max_width - (level * self.indentation):
+        if any(["\n" in arg for arg in args]):
+            return bracket_wrap(args, "()", indent=self.indentation, newlines = True)
+            
+        elif len(sample) < self.max_width - (level * self.indentation):
             return sample
         else:
             return bracket_wrap(args, "()", indent=self.indentation)
@@ -81,34 +88,22 @@ class TypstArgumentFormatter:
     def decl(self, name, value, toplevel = False):
         hash = '#' if toplevel else ''
         return f'{hash}let {name} = {self.format(value)}'
-    def call(self, _name, *args, reverse=True, toplevel = False, **kwargs):
+    def call(self, _name, *args, reverse=True, toplevel = False, real = False, **kwargs):
         name = _name
         a = len(args)
         k = len(kwargs)
-        args = [self.format(v) for v in args]
+        if not real:
+            args = [self.format(v) for v in args]
         kwargs = self._format_raw_dict(kwargs, coerce_integers=True)
-
-        s = name + "("
-        if reverse:
-            if kwargs:
-                s += ", ".join(kwargs)
-            if args:
-                if kwargs:
-                    s += ", "
-                s += ", ".join(args)
-        else:
-            if args:
-                s += ", ".join(args)
-            if kwargs:
-                if args:
-                    s += ", "
-                s += ", ".join(kwargs)
-
-        s += ')'
         hash = '#' if toplevel else ''
-        return hash + s
+        return hash + strcall(name, args, kwargs)
+
+    def include(self, s, toplevel = False):
+        hash = '#' if toplevel else ''
+        return f'{hash}include "{s}"'
+
+    def comment(self, s):
+        return '// ' + s
 
 
 typstfmt = TypstArgumentFormatter()
-
-# print(typst.format({'a': None}))

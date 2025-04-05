@@ -1,5 +1,5 @@
-from pprint import pprint
-from kevinlulee import fdfind, clip
+# from pprint import pprint
+# from kevinlulee import fdfind, clip
 
 # python3('/home/kdog3682/projects/python/kevinlulee/kevinlulee/__main__.py', as_module=True)
 # this would be recursive
@@ -70,15 +70,16 @@ forms = [
         "/home/kdog3682/dotfiles/.git/",
 ]
 
-from kevinlulee.git import GitRepo
+# from kevinlulee.git import GitRepo
 
-for form in forms:
-    repo = GitRepo(form.replace('.git/', ''))
-    repo.add('.')
-    repo.commit('safetypush')
-    try:
-        repo.cmd('push')
-        print('success!', form)
-    except Exception as e:
-        print(e, 'error', form)
-
+# for form in forms:
+#     repo = GitRepo(form.replace('.git/', ''))
+#     repo.add('.')
+#     repo.commit('safetypush')
+#     try:
+#         repo.cmd('push')
+#         print('success!', form)
+#     except Exception as e:
+#         print(e, 'error', form)
+#
+print('kevinlulee.__main__')

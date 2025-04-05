@@ -1,6 +1,4 @@
-import subprocess
 from typing import List
-import subprocess
 import os
 
 import re
@@ -9,8 +7,11 @@ from typing import List, Optional
 import os
 from pathlib import Path
 
+from kevinlulee.string_utils import split
+
 from .file_utils import find_git_directory
 from .base import display
+import subprocess
 
 GLOBAL_COMMON_IGNORE_DIRS = [
     ".config",
@@ -40,10 +41,16 @@ GLOBAL_COMMON_IGNORE_DIRS = [
     "build",
 ]
 
+def empty(x):
+    if x == 0:
+        return False
+    if x:
+        return False
+    return True
 
 def bash(*args, cwd=None, on_error=None, silent=True, debug = False):
     cwd = os.path.expanduser(cwd) if cwd else None
-    args = [arg for arg in args if arg.strip()]
+    args = list(args)
     if debug:
         return print(' '.join(args))
     result = subprocess.run(args, text=True, cwd=cwd, capture_output=True)

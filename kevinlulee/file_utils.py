@@ -78,7 +78,7 @@ def get_extension(file_path: str) -> str:
     return os.path.splitext(file_path)[1].lstrip(".").lower()
 
 
-def writefile(filepath: str, data: Any) -> str:
+def writefile(filepath: str, data: Any, debug = True) -> str:
     """Writes data to a file, serializing it based on the file extension.
     Creates the directory if it doesn't exist.
 
@@ -103,25 +103,27 @@ def writefile(filepath: str, data: Any) -> str:
 
     def serialize(data: Any) -> str:
         if isinstance(data, (int, bool)):
-            raise TypeError("Only strings, arrays, and dictionaries are allowed.")
-        if isinstance(data, str):
+            raise TypeError("Only strings, arrays, dictionaries, customs are allowed.")
+        elif isinstance(data, str):
             return data
 
-        file_extension = get_extension(filepath)
+        elif isinstance(data, (dict, list, tuple)):
+            file_extension = get_extension(filepath)
+            match file_extension:
+                case "yml" | "yaml":
+                    return yaml.dump(data, indent=2)
+                case "toml":
+                    import toml
 
-        match file_extension:
-            case "yml" | "yaml":
-                return yaml.dump(data, indent=2)
-            case "toml":
-                import toml
-
-                return toml.dumps(data)
-            case "json":
-                return json.dumps(data, indent=2)
-            case "txt":
-                return json.dumps(data, indent=2)
-            case _:
-                raise ValueError(f"Unsupported file extension: {file_extension}")
+                    return toml.dumps(data)
+                case "json":
+                    return json.dumps(data, indent=2)
+                case "txt":
+                    return json.dumps(data, indent=2)
+                case _:
+                    raise ValueError(f"Unsupported file extension: {file_extension}")
+        else:
+            return str(data)
 
     expanded_file_path = os.path.expanduser(filepath)
 
@@ -131,8 +133,16 @@ def writefile(filepath: str, data: Any) -> str:
         os.makedirs(dir_path, exist_ok=True)
 
     value = serialize(data)
-    with open(expanded_file_path, "w") as file:
-        file.write(value)
+    if debug:
+        print('-' * 20)
+        print(value)
+        print('-' * 20)
+        print(f'path: "{expanded_file_path}"')
+        print()
+        print()
+    else:
+        with open(expanded_file_path, "w") as file:
+            file.write(value)
 
     return expanded_file_path
 
@@ -172,12 +182,17 @@ def readfile(path: str) -> Any:
 
 def find_git_directory(path):
     root = os.path.expanduser("~/")
-    assert root in path, f'{path} does not contain "{root}"'
+    path = os.path.expanduser(path)
 
-    while path != root:
+    count = 0
+    while count < 10:
+        count += 1
         if os.path.exists(os.path.join(path, ".git")):
             return path
-        path = os.path.dirname(path)
+        new_path = os.path.dirname(path)
+        if new_path in (root, path):
+            return 
+        path = new_path
     return None
 
 class FileContext:
@@ -299,3 +314,4 @@ def fnamemodify(file, dir = None, name = None, ext = None):
     return os.path.join(_dir, f"{_name}.{_ext}")
 
 
+# print(find_git_directory('/home/kdog3682/scratch/scratch.py'))

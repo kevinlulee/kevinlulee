@@ -1,3 +1,11 @@
+import inspect
+
+
+def get_parameters(func):
+    return list(inspect.signature(func).parameters.keys())
+
+
+
 def display(**kwargs):
     if not kwargs:
         return 
@@ -49,16 +57,15 @@ def yes(*args, **kwargs):
     return True
 
 
-def stop(x):
-    print(x)
+def stop(*args, **kwargs):
+    if args:
+        for arg in args:
+            print(arg)
+    display(**kwargs)
     raise Exception("__EXIT__")
-
-
-import inspect
 
 def each(items, fn, *args, **kwargs):
     params = get_parameters(fn)
-    params = list(inspect.signature(func).parameters.keys())
     if len(params) > 1 and params[1] == "index":
         return [
             fn(item, index, *args, **kwargs)
@@ -120,7 +127,7 @@ def strcall(name, args, kwargs, max_length = 80):
 
         s += ')'
 
-        if len(s) < max_length:
+        if len(s) < max_length and not "\n" in s:
             return s
 
         s = name + "("

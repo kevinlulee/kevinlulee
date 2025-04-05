@@ -1,9 +1,10 @@
 import re
 import yaml
 import textwrap
+from .ao import to_array
 
 def bracket_wrap(
-    items, bracket_type: str = "()", indent: int = 4, delimiter=", "
+    items, bracket_type: str = "()", indent: int = 4, delimiter=", ", newlines = False,
 ) -> str:
     brackets = {
         "()": ("(", ")"),
@@ -20,12 +21,14 @@ def bracket_wrap(
         "([])": ("([", "])"),
     }
 
+    if newlines and delimiter == ', ':
+        delimiter = ',\n'
     open_bracket, close_bracket = brackets[bracket_type]
     text = delimiter.join(str(el) for el in to_array(items))
     if re.search("^[\(\{\[]\n", text):
         return open_bracket + text + close_bracket
     indented_text = textwrap.indent(text, " " * indent)
-    return f"{open_bracket}\n{indented_text}\n{close_bracket}"
+    return f"{open_bracket}\n{indented_text}{close_bracket}"
 
 
 def extract_frontmatter(text: str):

@@ -32,10 +32,10 @@ from .text_tools import (
 
 from .bash import ripgrep, bash, fdfind, typst, python3
 from .git import GitRepo
-from .configurable import myenv
+# from .configurable import myenv
 from .base import *
 from .validation import *
-from .ao import dotaccess, mapfilter, find_index
+from .ao import dotaccess, mapfilter, find_index, modular_increment
 from .pythonfmt import pythonfmt
 from .typstfmt import typstfmt
 
@@ -67,6 +67,5 @@ def yamload(x):
         return {}
 
     return m
-
 
 
