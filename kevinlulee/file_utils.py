@@ -1,9 +1,11 @@
 import os
-from kevinlulee.string_utils import mget
+import shutil
+import os
 import json
 import yaml
 import toml
 from typing import Any
+from kevinlulee.string_utils import mget
 
 EXT_REFERENCE_MAP = {
   # File type to canonical extension
@@ -61,6 +63,11 @@ EXT_REFERENCE_MAP = {
 
 
 
+
+def is_extf(extensions):
+    def check(el):
+        return get_extension(el) in extensions
+    return check
 def get_extension(file_path: str) -> str:
     """Extracts and formats the file extension from a given file path.
        Files like .env and .vimrc will result in no extension.
@@ -78,7 +85,7 @@ def get_extension(file_path: str) -> str:
     return os.path.splitext(file_path)[1].lstrip(".").lower()
 
 
-def writefile(filepath: str, data: Any, debug = True) -> str:
+def writefile(filepath: str, data: Any, debug = False) -> str:
     """Writes data to a file, serializing it based on the file extension.
     Creates the directory if it doesn't exist.
 
@@ -98,7 +105,7 @@ def writefile(filepath: str, data: Any, debug = True) -> str:
                         does not have an extension.
     """
     assert data, "Data must be existant. Empty strings or None are not allowed."
-    assert os.path.splitext(filepath)[1], "Filepath must have an extension."
+    assert os.path.splitext(filepath)[1], f"Filepath must have an extension: {filepath}"
 
 
     def serialize(data: Any) -> str:
@@ -126,21 +133,21 @@ def writefile(filepath: str, data: Any, debug = True) -> str:
             return str(data)
 
     expanded_file_path = os.path.expanduser(filepath)
-
-    # Create the directory if it doesn't exist
     dir_path = os.path.dirname(expanded_file_path)
-    if dir_path and not os.path.exists(dir_path):
-        os.makedirs(dir_path, exist_ok=True)
 
     value = serialize(data)
     if debug:
         print('-' * 20)
+        print('[DEBUGGING] writefile')
+        print(f'[PATH] "{expanded_file_path}"')
+        print('[CONTENT]')
+        print()
         print(value)
         print('-' * 20)
-        print(f'path: "{expanded_file_path}"')
-        print()
         print()
     else:
+        if dir_path and not os.path.exists(dir_path):
+            os.makedirs(dir_path, exist_ok=True)
         with open(expanded_file_path, "w") as file:
             file.write(value)
 
@@ -179,6 +186,31 @@ def readfile(path: str) -> Any:
         else:
             return f.read()
 
+import os
+
+def find_project_root(start_path):
+    """
+    Search upward from start_path for a directory containing .git or any *.egg-info.
+    """
+    current_dir = os.path.expanduser(start_path)
+
+    count = 0
+    while count < 15:
+        count += 1
+        if os.path.isdir(os.path.join(current_dir, '.git')):
+            return current_dir
+
+        entries = os.listdir(current_dir) if os.path.isdir(current_dir) else []
+        if any(entry.endswith('.egg-info') for entry in entries):
+            return current_dir
+
+        parent_dir = os.path.dirname(current_dir)
+        if parent_dir == current_dir:
+            break
+
+        current_dir = parent_dir
+
+    return None
 
 def find_git_directory(path):
     root = os.path.expanduser("~/")
@@ -258,8 +290,6 @@ def symlink(source, destination):
     print(f'Symlink created from {source} to {destination}')
 
 def copy_directory_contents(src, dest):
-    import shutil
-    import os
     src = os.path.expanduser(src)
     dest = os.path.expanduser(dest)
     if not os.path.exists(dest):
@@ -314,4 +344,18 @@ def fnamemodify(file, dir = None, name = None, ext = None):
     return os.path.join(_dir, f"{_name}.{_ext}")
 
 
-# print(find_git_directory('/home/kdog3682/scratch/scratch.py'))
+def cpfile(source, dest, debug=False):
+    source = os.path.abspath(os.path.expanduser(source))
+    dest = os.path.abspath(os.path.expanduser(dest))
+    assert os.path.isfile(source), f"the provided source: {source} is not a file"
+
+    if os.path.isdir(dest):
+        dest = os.path.join(dest, os.path.basename(source))
+
+    if debug:
+        print(f"[cpfile] Would copy:\n  from: {source}\n    to: {dest}")
+        return
+
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    shutil.copy2(source, dest)
+

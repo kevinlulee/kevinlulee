@@ -2,6 +2,7 @@ import re
 import yaml
 import textwrap
 from .ao import to_array
+from .templater import templater
 
 def bracket_wrap(
     items, bracket_type: str = "()", indent: int = 4, delimiter=", ", newlines = False,
@@ -28,7 +29,9 @@ def bracket_wrap(
     if re.search("^[\(\{\[]\n", text):
         return open_bracket + text + close_bracket
     indented_text = textwrap.indent(text, " " * indent)
-    return f"{open_bracket}\n{indented_text}{close_bracket}"
+    ending_newline = "\n" if newlines else ''
+    # print([indented_text, ending_newline])
+    return f"{open_bracket}\n{indented_text}{ending_newline}{close_bracket}"
 
 
 def extract_frontmatter(text: str):
@@ -191,102 +194,6 @@ def toggle_comment(text: str, filetype: str) -> str:
 
 
 
-TEMPLATER_PATTERN = re.compile(r'''
-    # ([ \t]*(?:[-*•] *)?)? # Optional leading whitespace and indentation
-    ((?:^|\n)\s*(?:[-*•]\s+)?)?   
-    \$                  # Literal $ symbol to start template variable
-    (?:
-        (\w+\(.*?\))    # Callable function with arguments
-        |               # OR
-        ({.*?})         # Bracket expression
-        |               # OR
-        (\w+)           # Simple word variable
-        (,?)            # optional comma
-        (?:             # Optional non-capturing group
-            \[(\d+)(?::(\d+))?\]   # Bracket indexing [index] or slicing [start:end]
-        )?
-        (?:             # Optional non-capturing group
-            :(\w+)      # Fallback value after :
-        )?
-    )
-''', flags=re.VERBOSE)
-
-
-class Templater:
-    def __init__(self):
-        self.scope = {}
-        self.spacing = ''
-    
-    def replace(self, match):
-        groups = match.groups()
-        # print(match)
-        # print(groups)
-        spaces, callable_expr, bracket_expr, word, comma, start_index, end_index, fallback = groups
-        self.spacing = spaces or ''
-        self.comma = comma or ''
-        
-        try:
-            if callable_expr:
-                return self._handle_callable(callable_expr)
-            elif bracket_expr:
-                return self._handle_bracket(bracket_expr)
-            elif word:
-                return self._handle_word(word, start_index, end_index, fallback)
-        except Exception as e:
-            return fallback if fallback is not None else str(e)
-        
-        return ''
-
-    def _handle_callable(self, expr):
-        try:
-            a, b = re.split('(?=\()', expr, maxsplit=1)
-            g = self.getter(a)
-            if g:
-                return g + b
-            return str(eval(expr, {}, self.scope))
-        except Exception as e:
-            return f"Error evaluating callable: {e}"
-
-    def _handle_bracket(self, expr):
-        try:
-            return str(eval(expr.strip('{}'), {}, self.scope))
-        except Exception as e:
-            return f"Error evaluating bracket expression: {e}"
-    
-    def _handle_word(self, word, start_index, end_index, fallback):
-        value = self.getter(word, fallback)
-        if isinstance(value, (list, tuple)):
-            spacing = self.spacing or '\n'
-            return ''.join([f'{spacing}{item}{self.comma}' for item in value])
-            prefix = ''
-            # print([self.spacing])
-            if self.spacing.strip().startswith('-'):
-                prefix = '- '
-            elif self.spacing.strip().startswith('•'):
-                prefix = '• '
-            indent = self.spacing.replace('-', '').replace('•', '') 
-            # the indent has a newline ... thats why this works
-            if not indent.startswith("\n"):
-                indent = "\n" + indent
-            # print()
-            args = [f"{indent}{prefix}{item}" for item in value]
-            # print(args) # TEMPORARY_PRINT_LOG
-            return ''.join(args)
-
-        if "\n" in self.spacing:
-            spaces = self.spacing[1:]
-            return  '\n' + tabs_to_spaces(textwrap.indent(str(value), spaces))
-        return str(value)
-        print([self.spacing])
-        return self.spacing + str(value)
-    
-    def format(self, s, scope=None):
-        self.scope = scope or {}
-        self.getter = self.scope.get if isinstance(self.scope, dict) else lambda x,y = None: getattr(self.scope, x, y)
-        input_text = textwrap.dedent(s).strip()
-        return re.sub(TEMPLATER_PATTERN, self.replace, input_text)
-
-templater = Templater().format
 
 def join_text(contents):
     o = ''
@@ -335,24 +242,3 @@ def dash_split(text, delim_length=3, trim=True, filter=True):
     return [chunk for chunk in result_chunks if chunk is not None]
 # __all__ = ['toggle_comment', 'templater', 'join_text', 'dash_split']
 
-template = """
-    try:
-        abc 
-
-
-        $expr
-    except Exception as e:
-        error_handler(e)
-"""
-
-# print(templater(template, {'expr': 'def foo()\n\thi\n\tbye'}))
-
-arguments = ['hiii', 'byeee']
-template =f'''
-            please provide {len(arguments)} arguments separated by commas'
-            ---
-            - $arguments
-        '''
-# print(templater(template, {'arguments': arguments}))
-
-# print(re.search(TEMPLATER_PATTERN, "- $arguments").groups())

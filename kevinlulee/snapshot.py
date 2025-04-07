@@ -119,3 +119,15 @@ class SnapshotCache:
         else:
             print(f"[not found] no snapshots for '{func_name}'")
 
+# ====================================== 
+# simple case:
+# ====================================== 
+# templater(1,2,3)
+#
+# --------------------------------------
+#
+# resulthere
+
+
+
+

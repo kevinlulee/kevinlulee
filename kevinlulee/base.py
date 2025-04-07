@@ -76,40 +76,7 @@ def each(items, fn, *args, **kwargs):
 
 
 
-def get_caller(offset=0, skippable=[]) -> inspect.FrameInfo:
-    KNOWN_IMPLICIT_CALLERS = [
-        "get_caller",
-    ]
-    backwards = ["must"]
-    skippableA = [
-        "log",
-        "log_error",
-        "__init__",
-        "handler",
-        "decorator",
-        "wrapper",
-    ]
 
-    items: list = inspect.stack()
-
-    # find_index
-    start = find_index(
-        items,
-        lambda x: x.function in KNOWN_IMPLICIT_CALLERS,
-    )
-    if start == -1:
-        return
-    start += 1
-    length = len(items)
-    skip = skippable + skippableA
-    while start < length:
-        next = items[start]
-        if next.function in backwards:
-            return items[start - 1]
-        if next.function in skip:
-            start += 1
-            continue
-        return next
 
 
 def strcall(name, args, kwargs, max_length = 80):

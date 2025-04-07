@@ -9,8 +9,9 @@ from pathlib import Path
 
 from kevinlulee.string_utils import split
 
-from .file_utils import find_git_directory
+from .file_utils import find_git_directory, find_project_root
 from .base import display
+from .validation import empty
 import subprocess
 
 GLOBAL_COMMON_IGNORE_DIRS = [
@@ -41,18 +42,11 @@ GLOBAL_COMMON_IGNORE_DIRS = [
     "build",
 ]
 
-def empty(x):
-    if x == 0:
-        return False
-    if x:
-        return False
-    return True
-
-def bash(*args, cwd=None, on_error=None, silent=True, debug = False):
+def bash(*args, cwd=None, on_error=None, silent=True, debug = False, strict = False):
     cwd = os.path.expanduser(cwd) if cwd else None
-    args = list(args)
+    args = [a for arg in args if (a := str(arg).strip())]
     if debug:
-        return print(' '.join(args))
+        return print('[DEBUG]', ' '.join(args))
     result = subprocess.run(args, text=True, cwd=cwd, capture_output=True)
 
     err = result.stderr.strip()
@@ -61,9 +55,12 @@ def bash(*args, cwd=None, on_error=None, silent=True, debug = False):
     if success and not silent:
         print(success)
 
-    if result.returncode:
+    if err and result.returncode:
+            
         if on_error:
             return on_error(err)
+        elif strict:
+            raise err
         else:
             print(err)
             return err
@@ -253,7 +250,9 @@ def typst(inpath=None, outpath=None, open=False, mode="compile", on_error = None
 
 def python3(file, *args, as_module=False, on_error = None):
     if as_module:
-        cwd = find_git_directory(file)
+        cwd = find_project_root(file)
+        if not cwd:
+            return bash("python3", file, *args, on_error=on_error, silent=False)
         abs_path = Path(file).resolve()
         relative_path = abs_path.relative_to(cwd).with_suffix("")
         module_path = ".".join(relative_path.parts)

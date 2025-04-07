@@ -163,4 +163,38 @@ def dash_case(s):
 
 def split(s, r="\s+", flags=0, maxsplit = 0):
     base = re.split(r, s.strip(), flags=flags, maxsplit = maxsplit)
-    return [s.strip() for s in base if s.strip()]
+    items = [s.strip() for s in base if s.strip()]
+
+def split_once(s, r="\s+"):
+    a = split(s, r)
+    return a + [""] if len(a) ==  1 else a
+
+
+def testf(x, flags=0, anti=0, key=0):
+    if not x:
+        return None
+    fn = x
+
+    if isinstance(x, (int, float)):
+        fn = lambda s: s == x
+    elif isinstance(x, str):
+        regex = re.compile(x)
+        fn = lambda s: test(s, regex, flags=flags)
+            
+    elif isinstance(x, re.Pattern):
+        fn = lambda s: test(s, x, flags=flags)
+
+    elif isinstance(x, (list, tuple)):
+        fn = lambda s: s in x
+
+    if anti and key:
+        return lambda x: not fn(x[key])
+    elif anti:
+        return lambda x: not fn(x)
+    elif key:
+        return lambda x: fn(x[key])
+    else:
+        return fn
+
+def test(s, r, flags=0):
+    return bool(re.search(r, str(s), flags))

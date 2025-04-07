@@ -6,11 +6,11 @@ import json
 import textwrap
 import yaml
 
-from kevinlulee import writefile, myenv
+from kevinlulee import writefile
 from google import genai
 from google.genai import types
 load_dotenv()
-DEBUG_OUTPUT_DIR = myenv("generative.debugging.output_directory")
+# DEBUG_OUTPUT_DIR = myenv("generative.debugging.output_directory")
 
 def gemini(
     query="How does AI work?",
@@ -34,15 +34,15 @@ def gemini(
         config.temperature = temperature
 
     r = client.models.generate_content(model=model, contents=[query], config=config)
-    if DEBUG_OUTPUT_DIR:
-        store = {
-            'instruct': system_instruction,
-            'query': query,
-            'response': r.text,
-        }
-        file = os.path.join(DEBUG_OUTPUT_DIR, f'{time.time()}.json')
-        writefile(file, store)
 
+    # if DEBUG_OUTPUT_DIR:
+    #     store = {
+    #         'instruct': system_instruction,
+    #         'query': query,
+    #         'response': r.text,
+    #     }
+    #     file = os.path.join(DEBUG_OUTPUT_DIR, f'{time.time()}.json')
+    #     writefile(file, store)
 
     if capture:
         return capture_output(r)

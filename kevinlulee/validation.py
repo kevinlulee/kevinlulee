@@ -1,3 +1,12 @@
+def empty(x):
+    if x == 0:
+        return False
+    if x:
+        return False
+    return True
+
+
+
 def is_string(value):
     return isinstance(value, str)
 
