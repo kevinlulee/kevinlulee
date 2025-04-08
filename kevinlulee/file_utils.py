@@ -359,3 +359,103 @@ def cpfile(source, dest, debug=False):
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     shutil.copy2(source, dest)
 
+def writefile(filepath: str, data: Any, debug = False) -> str:
+    """Writes data to a file, serializing it based on the file extension.
+    Creates the directory if it doesn't exist.
+
+    Args:
+        filepath: The path to the file to write to. The path must have an extension.
+        data: The data to write to the file. Supported types include int, float, str,
+              bool, dict, and list. Data will be serialized to YAML, TOML, or JSON
+              format based on the file extension.
+
+    Returns:
+        The absolute path to the file that was written to.
+
+    Raises:
+        ValueError: If the file extension is not supported or data is None.
+        TypeError: If the data cannot be serialized to the specified format.
+        AssertionError: If the data is None or has no value or if the file path
+                        does not have an extension.
+    """
+    assert data, "Data must be existant. Empty strings or None are not allowed."
+    assert os.path.splitext(filepath)[1], f"Filepath must have an extension: {filepath}"
+
+
+    def serialize(data: Any) -> str:
+        if isinstance(data, (int, bool)):
+            raise TypeError("Only strings, arrays, dictionaries, customs are allowed.")
+        elif isinstance(data, str):
+            return data
+
+        elif isinstance(data, (dict, list, tuple)):
+            file_extension = get_extension(filepath)
+            match file_extension:
+                case "yml" | "yaml":
+                    return yaml.dump(data, indent=2)
+                case "toml":
+                    import toml
+
+                    return toml.dumps(data)
+                case "json":
+                    return json.dumps(data, indent=2)
+                case "txt":
+                    return json.dumps(data, indent=2)
+                case _:
+                    raise ValueError(f"Unsupported file extension: {file_extension}")
+        else:
+            return str(data)
+
+    expanded_file_path = os.path.expanduser(filepath)
+    dir_path = os.path.dirname(expanded_file_path)
+
+    value = serialize(data)
+    if debug:
+        print('-' * 20)
+        print('[DEBUGGING] writefile')
+        print(f'[PATH] "{expanded_file_path}"')
+        print('[CONTENT]')
+        print()
+        print(value)
+        print('-' * 20)
+        print()
+    else:
+        if dir_path and not os.path.exists(dir_path):
+            os.makedirs(dir_path, exist_ok=True)
+        with open(expanded_file_path, "w") as file:
+            file.write(value)
+
+    return expanded_file_path
+
+def appendfile(path, data, debug = False):
+    e = get_extension(path)
+
+    def get(path, data):
+        as_array = isinstance(data, (list, tuple))
+        prev = readfile(path) or ([] if as_array else {})
+        prev.extend(data) if as_array else prev.update(data)
+        return prev
+
+    if e == "json":
+        payload = get(path, data)
+        with open(path, "w") as f:
+            json.dump(payload, f, indent=4, ensure_ascii=False)
+
+    elif e == "yml":
+        payload = get(path, data)
+        yaml.dump(path, payload)
+
+    else:
+        with open(path, "a") as f:
+            if e == "yml.txt" and not is_string(data):
+                dashes = hr(20) + "\n"
+                if is_object(data):
+                    data = dashes + myam2(data)
+
+                if not test(data, "^\s*---"):
+                    data = dashes + data
+
+            if is_file(path):
+                data = "\n" + data
+
+            f.write(data)

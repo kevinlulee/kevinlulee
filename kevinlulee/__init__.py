@@ -4,7 +4,8 @@ from .string_utils import *
 from .text_tools import *
 from .module_utils import *
 
-from .bash import ripgrep, bash, fdfind, typst, python3
+from .bash import bash, fdfind, typst, python3
+from .ripgrep import ripgrep
 from .git import GitRepo
 # from .configurable import myenv
 from .base import *
@@ -84,3 +85,17 @@ def get_caller(offset=0, skippable=[]) -> inspect.FrameInfo:
 
 def join_spaces(*args):
     return ' '.join(flat(args))
+
+
+
+def uncomment(s):
+    r = '^( *)(?:#+|//+|"|--+) +'
+    return re.sub(r , lambda x: x.group(1), s, flags = re.M)
+class Singleton(type):
+    """Metaclass for creating Singleton classes"""
+    _instances = {}
+    
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super().__call__(*args, **kwargs)
+        return cls._instances[cls]

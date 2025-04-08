@@ -13,32 +13,6 @@ from typing import List, Tuple, Union, Any
 import re
 import textwrap
 
-def group(items: List[Tuple[str, Any]]) -> dict:
-    """Groups items by their first element.
-
-    Args:
-        items: A list of tuples to group. Each tuple should be of the form (key, value).
-
-    Returns:
-        A dict mapping the key to lists of grouped values.
-
-    Raises:
-        AssertionError: If input is not a list or tuple.
-        ValueError: If items in list are not tuples.
-
-    Example:
-        >>> group([('a', 1), ('b', 1), ('c', 2)])
-        {'a': [1], 'b': [1], 'c': [2]}
-    """
-    assert isinstance(items, (list, tuple)), "Input must be a list or tuple."
-
-    result = {}
-    for item in items:
-        if not isinstance(item, (tuple, list)) or len(item) != 2:
-            raise ValueError("Items in the list must be tuples/lists of length 2.")
-        iden, value = item
-        result.setdefault(iden, []).append(value)
-    return result
 
 def matchstr(s: str, reg: str, flags: int = 0) -> Union[str, Tuple[str, ...], None]:
     """Extracts the string match from a regex search on a string.
@@ -164,6 +138,7 @@ def dash_case(s):
 def split(s, r="\s+", flags=0, maxsplit = 0):
     base = re.split(r, s.strip(), flags=flags, maxsplit = maxsplit)
     items = [s.strip() for s in base if s.strip()]
+    return items
 
 def split_once(s, r="\s+"):
     a = split(s, r)

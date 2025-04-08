@@ -106,4 +106,34 @@ def flat(*items):
     runner(items)
     return store
 
-# print(find_index([1,2,3], '2'))
+from typing import Any, Union, Callable
+
+def group(
+    items: Union[list[tuple[str, Any]], list[dict]],
+    key: Union[Callable[[Any], str], str, None] = None
+) -> dict[str, list[Any]]:
+    """Groups items by a specified key or callable.
+
+    Args:
+        items: A list of 2-element tuples/lists or dicts.
+        key: A string key (for dicts) or a callable to extract the grouping key.
+
+    Returns:
+        A dict mapping keys to lists of grouped values.
+    """
+    assert isinstance(items, (list, tuple)), "Input must be a list or tuple."
+
+    result = {}
+    for item in items:
+        if isinstance(item, dict):
+            if key is None:
+                raise ValueError("Must provide a key (str or callable) when grouping dicts.")
+            iden = item[key] if isinstance(key, str) else key(item)
+            result.setdefault(iden, []).append(item)
+        elif isinstance(item, (tuple, list)) and len(item) == 2:
+            iden, value = item
+            result.setdefault(iden, []).append(value)
+        else:
+            raise ValueError("Items must be 2-element tuple/list or dict.")
+    return result
+

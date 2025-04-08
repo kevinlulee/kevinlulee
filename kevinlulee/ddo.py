@@ -1,20 +1,7 @@
-from .file_utils import writefile, readfile
-from .validation import is_array
-
 class DynamicDataObject:
-    def __init__(self, file = None, debug = False):
-        self._file = file
-        self._debug = debug
-        self._data = readfile(self._file) if self._file else None
+    def __init__(self, data = None):
+        self._data = data
 
-    def _update(self):
-        if self._debug:
-            print("writing")
-            print(self._data)
-        elif self._file:
-            writefile(self._file, self._data)
-        else:
-            print(self._data)
     def __len__(self):
         if self._data:
             return len(self._data)
@@ -22,7 +9,7 @@ class DynamicDataObject:
             return 0
 
     def __iter__(self):
-        if is_array(self._data):
+        if isinstance(self._data, (list, tuple)):
             for arg in self._data:
                 yield arg
 
@@ -45,7 +32,6 @@ class DynamicDataObject:
                 self._data = {}
             if isinstance(self._data, dict):
                 self._data[name] = value
-                self._update()
             else:
                 raise AttributeError(
                     "Cannot use attribute assignment on non-dict data."
@@ -56,7 +42,6 @@ class DynamicDataObject:
             self._data = []
         if isinstance(self._data, list):
             self._data.append(value)
-            self._update()
         else:
             raise TypeError("Cannot append to non-list data.")
 
@@ -72,26 +57,14 @@ class DynamicDataObject:
             else:
                 self._data = {}
         self._data[key] = value
-        self._update()
-
-    def __str__(self):
-        return self.__repr__(self._data)
-
-    def __repr__(self):
-        if self._data is None:
-            return ""
-        else:
-            return json.dumps(self._data, indent=2)
 
     def clear(self):
         if self._data == None:
             return
         self._data = None
-        self._update()
 
     def pop(self, key=-1):
         self._data.pop(key)
-        self._update()
 
     def extend(self, iterable):
         if not iterable:
@@ -100,7 +73,6 @@ class DynamicDataObject:
             self._data = []
         if isinstance(self._data, list):
             self._data.extend(iterable)
-            self._update()
         else:
             raise TypeError("Cannot extend non-list data.")
 
@@ -111,17 +83,8 @@ class DynamicDataObject:
             self._data = {}
         if isinstance(self._data, dict):
             self._data.update(other)
-            self._update()
         else:
             raise TypeError("Cannot update non-dict data.")
-
-# ddo = DynamicDataObject()
-# ddo.append('hi')
-# ddo.append('hi')
-# ddo.append('hi')
-# ddo.clear()
-# ddo['asd'] = 'a'
-# ddo.asdf = 1
-# ddo.append('hi')
-
-# 
+    @property
+    def value(self):
+        return self._data

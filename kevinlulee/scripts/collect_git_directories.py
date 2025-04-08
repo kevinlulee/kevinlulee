@@ -3,7 +3,7 @@ from kevinlulee import fdfind, myenv
 
 def collect_git_directories():
     return fdfind(
-        directories=['~/'],
+        dirs=['~/'],
         query=".git",
         ignore_dirs=myenv("grep.directories.ignored"),
         only_directories=True,
