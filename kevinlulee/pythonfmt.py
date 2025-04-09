@@ -1,6 +1,6 @@
 from kevinlulee.ao import mapfilter
-from kevinlulee.text_tools import bracket_wrap
-from kevinlulee.base import real, strcall
+from kevinlulee.text_tools import bracket_wrap, strcall
+from kevinlulee.base import real
 
 
 
@@ -35,7 +35,8 @@ class PythonArgumentFormatter:
         delimiter = "=" if as_argument else ": "
         def callback(el):
             k, v = el
-            return f'"{k}"{delimiter}{self.format(v, level + 1, real = real)}'
+            prefix = k if as_argument else f'"{k}"'
+            return f'{prefix}{delimiter}{self.format(v, level + 1, real = real)}'
 
         return mapfilter(dct.items(), callback)
 

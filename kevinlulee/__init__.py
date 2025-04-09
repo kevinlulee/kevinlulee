@@ -4,20 +4,18 @@ from .string_utils import *
 from .text_tools import *
 from .module_utils import *
 
-from .bash import bash, fdfind, typst, python3
-from .ripgrep import ripgrep
-from .git import GitRepo
+from .bash import bash, typst, python3
+from .ripgrep import ripgrep, fdfind
 # from .configurable import myenv
 from .base import *
 from .validation import *
 from .ao import *
 from .pythonfmt import pythonfmt
 from .typstfmt import typstfmt
+from .git import GitRepo
 
 
 def representative(self, *args, **kwargs):
-    if not kwargs:
-        kwargs = self.__dict__
     return pythonfmt.call(nameof(self), *args, **kwargs)
 
 
@@ -86,8 +84,6 @@ def get_caller(offset=0, skippable=[]) -> inspect.FrameInfo:
 def join_spaces(*args):
     return ' '.join(flat(args))
 
-
-
 def uncomment(s):
     r = '^( *)(?:#+|//+|"|--+) +'
     return re.sub(r , lambda x: x.group(1), s, flags = re.M)
@@ -99,3 +95,4 @@ class Singleton(type):
         if cls not in cls._instances:
             cls._instances[cls] = super().__call__(*args, **kwargs)
         return cls._instances[cls]
+

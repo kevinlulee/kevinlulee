@@ -1,3 +1,12 @@
+# aicmp 
+# here are the changes id like
+# capture output should return a dataclass generative result with 3 fields. code, summary, response. (the initial response)
+# change capture output to a better name
+# have function claude be similar to that of gemini
+# both claude and gemini should return the generative result
+# have their models be global constants MODELS
+# write a wrapper that takes the same args/kwargs of claude and gemini called agent with an additional param agent. type of agent is a literal[claude/gemini/deepseek/openai] 
+
 from dotenv import load_dotenv
 import re
 import time
@@ -5,65 +14,69 @@ import os
 import json
 import textwrap
 import yaml
-
-from kevinlulee import writefile
+from kevinlulee import writefile, trimdent
 from google import genai
+import anthropic
 from google.genai import types
 load_dotenv()
-# DEBUG_OUTPUT_DIR = myenv("generative.debugging.output_directory")
+
+# asd = asdf
+def claude(query, system = None, capture = False):
+
+    client = anthropic.Anthropic(api_key = os.getenv('ANTHROPIC_API_KEY'))
+    message = client.messages.create(
+        model="claude-3-7-sonnet-20250219",
+        system=system,
+        messages=[
+            {"role": "user", "content": query}
+        ]
+    )
+    return capture_output(r, capture = capture)
+
 
 def gemini(
     query="How does AI work?",
-    system_instruction=None,
-    max_output_tokens=None,
-    temperature=None,
-    model="gemini-2.0-flash",
+    system=None,
     capture = False,
-    schema = None,
 ) -> types.GenerateContentResponseOrDict:
 
     api_key = os.getenv("GEMINI_API_KEY")
     client = genai.Client(api_key=api_key)
     config = types.GenerateContentConfig()
 
-    if system_instruction:
-        config.system_instruction = textwrap.dedent(system_instruction).strip()
-    if max_output_tokens:
-        config.max_output_tokens = max_output_tokens
-    if temperature is not None:
-        config.temperature = temperature
+    if system:
+        config.system_instruction = trimdent(system)
 
-    r = client.models.generate_content(model=model, contents=[query], config=config)
+    r = client.models.generate_content(model=MODELS['gemini'], contents=[query], config=config)
 
-    # if DEBUG_OUTPUT_DIR:
-    #     store = {
-    #         'instruct': system_instruction,
-    #         'query': query,
-    #         'response': r.text,
-    #     }
-    #     file = os.path.join(DEBUG_OUTPUT_DIR, f'{time.time()}.json')
-    #     writefile(file, store)
+    return capture_output(r, capture = capture)
 
-    if capture:
-        return capture_output(r)
-    return r
 
-def collect_fenced_sections(text):
-    pattern = re.compile(r"```(\w+)?\n(.*?)```", re.DOTALL)
-    matches = pattern.findall(text)
-    return [{"lang": lang or "", "code": code.strip()} for lang, code in matches]
 
-def capture_output(response: types.GenerateContentResponseOrDict):
+def capture_output(response, capture = False):
+    if capture == False: return response
 
-    matches = collect_fenced_sections(response.text)
-    assert len(matches) == 1, "collect_fenced_sections matched more than one chunk. currently, only permitting a single chunk."
-    if matches:
-        base = matches[0]
-        code = base.get("code")
-        lang = base.get("lang")
+    text = getattr(response, 'text', None) or getattr(response, 'content', None)
+    parts = split(text, '^```(\w+)\n(.*?)```', flags = re.M | re.DOTALL)
+    l = len(parts)
+    if l == 3:
+        lang, code, summary = parts
+        return code, summary
+    elif l == 2:
+        lang, code = parts
+
         if lang == 'yaml':
             return yaml.safe_load(code)
         if lang == 'json':
             return json.loads(code)
+
+        return code, '' 
+    elif l == 4:
+        # 2 code blocks
+        return text
+    elif l == 5:
+        # 2 code blocks
+        # one text block
+        return text
     else:
-        return response.text
+        return text

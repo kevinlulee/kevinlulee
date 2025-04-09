@@ -18,6 +18,12 @@ def smallify(arr):
 def to_array(items):
     return items if isinstance(items, (list, tuple)) else [items]
 
+def to_lines(x):
+    if isinstance(x, str):
+        return x.splitlines()
+    else:
+        return list(x)
+
 
 def mapfilter(items, fn, validator = lambda x: x):
     store = []
@@ -126,8 +132,7 @@ def group(
     result = {}
     for item in items:
         if isinstance(item, dict):
-            if key is None:
-                raise ValueError("Must provide a key (str or callable) when grouping dicts.")
+            assert key, "Must provide a key (str or callable) when grouping dicts."
             iden = item[key] if isinstance(key, str) else key(item)
             result.setdefault(iden, []).append(item)
         elif isinstance(item, (tuple, list)) and len(item) == 2:

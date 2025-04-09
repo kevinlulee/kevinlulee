@@ -1,10 +1,14 @@
 from kevinlulee.ao import mapfilter
-from kevinlulee.text_tools import bracket_wrap
+from kevinlulee.text_tools import bracket_wrap, strcall
 from kevinlulee.string_utils import dash_case
-from kevinlulee.base import real, strcall
+from kevinlulee.base import real
 
 import re
 
+from kevinlulee.validation import is_number, is_string
+
+def markup(s):
+    return bracket_wrap(value, bracket_type='[]', newlines=True)
 css_unit_re = r"(-?\d*\.?\d+)(px|em|rem|vh|vw|vmin|vmax|%|cm|mm|in|pt|pc|ex|ch)$"
 
 alignments = ('left', 'right', 'top', 'center', 'bottom', 'horizon')
@@ -16,16 +20,16 @@ class TypstArgumentFormatter:
         self.max_width = max_width
 
     def _coerce_value(self, k, v):
-        if isinstance(v, (int, float)):
+        if is_number(v):
             if k == 'rotate':
-                return deg(v)
+                return real(str(v) + 'deg')
             else:
-                return pt(v)
-        if isinstance(v, str):
+                return real(str(v) + 'pt')
+        if is_string(v):
             if k in typst_keys:
                 return real(v)
             elif k in ('paint', 'fill', 'bg', 'fg'):
-                return Color(v)
+                return real(v)
             elif re.search(css_unit_re, v):
                 return real(v)
             elif v in alignments:
@@ -51,7 +55,7 @@ class TypstArgumentFormatter:
             if value.startswith('`') and value.endswith('`'):
                 return value
             if "\n" in value:
-                return bracket_wrap(value, bracket_type='[]')
+                return markup(value)
             return f'"{value}"'
         return str(value)
 
@@ -63,7 +67,7 @@ class TypstArgumentFormatter:
     def _format_raw_dict(self, dct, level=0, coerce=False):
         def callback(el):
             k, v = el
-            prefix = f'"{k}"' if isinstance(k, (int, float)) else dash_case(k)
+            prefix = f'"{k}"' if not is_number(k) else dash_case(k)
             if not v:
                 return prefix + ": none"
             if coerce:

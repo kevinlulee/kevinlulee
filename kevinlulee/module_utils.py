@@ -4,6 +4,8 @@ import re
 import os
 import importlib
 
+from kevinlulee.file_utils import get_extension
+
 
 def collect_python_paths():
     home = os.path.expanduser('~/')
@@ -18,6 +20,9 @@ PYTHON_MODULE_PATHS = collect_python_paths()
 
 
 def get_modname_from_file(file):
+    if not file.endswith('.py'):
+        return file
+    
     path = os.path.expanduser(file)
     for root in PYTHON_MODULE_PATHS:
         m = path.replace(root, "")
@@ -46,7 +51,7 @@ def get_file_from_modname(modname):
             
 
 def delete_module(key):
-    key = get_modname(key)
+    key = get_modname_from_file(key)
     if key in sys.modules:
         del sys.modules[key]
         return True
@@ -55,10 +60,14 @@ def get_modname(x: Union["path", "package_name"]):
     return get_modname_from_file(x) if os.path.exists(os.path.expanduser(x)) else x
 
 def reload_module(key):
-    return importlib.reload(get_modname(key))
+    return importlib.reload(get_modname_from_file(key))
 
-def load_module(key):
-    key = get_modname(key)
+def load_module(key, reload = False):
+    key = get_modname_from_file(key)
+
+    if reload:
+        if key in sys.modules:
+            del sys.modules[key]
     return __import__(key, fromlist=(key.split(".")))
 
 def load_func(module, func):

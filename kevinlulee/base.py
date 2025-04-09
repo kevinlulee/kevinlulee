@@ -79,31 +79,3 @@ def each(items, fn, *args, **kwargs):
 
 
 
-def strcall(name, args, kwargs, max_length = 80):
-    
-        a = len(args)
-        k = len(kwargs)
-
-        s = name + "("
-        if args:
-            s += ", ".join(args)
-        if kwargs:
-            if args:
-                s += ", "
-            s += ", ".join(kwargs)
-
-        s += ')'
-
-        if len(s) < max_length and not "\n" in s:
-            return s
-
-        s = name + "("
-        if args:
-            s += "\n" + ", ".join(args)
-        if kwargs:
-            if args:
-                s += ", "
-            s += "\n" + "\n, ".join(kwargs)
-
-        s += ')'
-        return s
