@@ -64,9 +64,14 @@ class Templater:
 
     def format(self, s, scope=None):
         self.scope = scope or {}
-        self.getter = self.scope.get if isinstance(self.scope, dict) else lambda x: getattr(self.scope, x)
+        if isinstance(self.scope, dict):
+            self.getter = self.scope.get
+        elif isinstance(self.scope, (list, tuple)):
+            self.getter = lambda x: self.scope[int(x) - 1]
+        else:
+            self.getter = lambda x: getattr(self.scope, x)
+
         text = textwrap.dedent(s).strip()
         return re.sub(TEMPLATER_PATTERN, self.replace, text)
 
 templater = Templater().format
-
