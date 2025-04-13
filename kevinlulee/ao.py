@@ -142,3 +142,7 @@ def group(
             raise ValueError("Items must be 2-element tuple/list or dict.")
     return result
 
+
+def join_spaces(*args):
+    return ' '.join(flat(args))
+
