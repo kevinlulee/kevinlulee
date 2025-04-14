@@ -11,9 +11,10 @@ def collect_python_paths():
     home = os.path.expanduser('~/')
     paths = sys.path
     store = []
-    for p in paths:
-        if p not in store and home in p:
-            store.append(re.sub("/$", "", p))
+    exclude = re.compile(r'site-packages|\.(?:cache|local)')
+    for path in paths:
+        if path not in store and home in path and not re.search(exclude, path):
+            store.append(re.sub("/$", "", path))
     return store
 
 PYTHON_MODULE_PATHS = collect_python_paths()
@@ -27,9 +28,12 @@ def get_modname_from_file(file):
     for root in PYTHON_MODULE_PATHS:
         m = path.replace(root, "")
         if len(m) < len(path):
-            a = m.replace('.py', '').replace("/", ".")
-            b = re.sub("^\.", "", a)
-            return b.replace('__init__', '')
+            b = m
+            b = b[1:] if b[0] == '/' else b
+            b = b.replace('/__init__', '')
+            b = b.replace('/__main__', '')
+            b = b.replace('.py', '').replace("/", ".")
+            return b
 
 
 def get_file_from_modname(modname):

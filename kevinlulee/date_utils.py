@@ -60,3 +60,52 @@ def is_recentf(mode = "after", **opts):
         return lambda x: x >= cutoff
     else:
         return lambda x: x < cutoff
+
+def timeago(time, now=None):
+    def seconds_to_ago_string(seconds):
+        # Define time units in seconds
+        minute = 60
+        hour = 60 * minute
+        day = 24 * hour
+        week = 7 * day
+        month = 30.44 * day  # Average month length
+    
+        # Calculate the time units
+        months, remainder = divmod(seconds, month)
+        weeks, remainder = divmod(remainder, week)
+        days, remainder = divmod(remainder, day)
+        hours, remainder = divmod(remainder, hour)
+        minutes, seconds = divmod(remainder, minute)
+    
+        # Convert to integers
+        units = [
+            ("month", int(months)),
+            ("week", int(weeks)),
+            ("day", int(days)),
+            ("hour", int(hours)),
+            ("minute", int(minutes)),
+            ("second", int(seconds)),
+        ]
+    
+        # Filter out zero values and create the string
+        parts = []
+        for unit, value in units:
+            if value > 0:
+                parts.append(f"{value} {unit}{'s' if value > 1 else ''}")
+    
+        if len(parts) == 0:
+            return "just now"
+        elif len(parts) == 1:
+            return f"{parts[0]} ago"
+        else:
+            return f"{', '.join(parts[:-1])} and {parts[-1]} ago"
+
+    past = to_datetime(time)
+    now = to_datetime(now) if now else datetime.now()
+    td = now - past
+    s = seconds_to_ago_string(td.seconds)
+
+    if td.days:
+        return f"{td.days} days, {s}"
+    else:
+        return s

@@ -5,7 +5,11 @@ import json
 import yaml
 import toml
 from typing import Any
+from pathlib import Path
+import shutil
+
 from kevinlulee.string_utils import mget
+
 
 EXT_REFERENCE_MAP = {
   # File type to canonical extension
@@ -117,8 +121,11 @@ def writefile(filepath: str, data: Any, debug = False) -> str:
         elif isinstance(data, (dict, list, tuple)):
             file_extension = get_extension(filepath)
             match file_extension:
+                case 'yb':
+                    import yb
+                    return yb.dumps(data)
                 case "yml" | "yaml":
-                    return yaml.dump(data, indent=2)
+                    return yaml.dumps(data, indent=2)
                 case "toml":
                     import toml
 
@@ -176,6 +183,8 @@ def readfile(path: str) -> Any:
     with open(expanded_path, mode) as f:
         if extension == "json":
             return json.load(f)
+        if extension == "yb":
+            return yb.load(f)
         elif extension in ("yaml", "yml"):
             p = yaml.safe_load(f)
             if isinstance(p, str):  # wasnt able to parse the input
@@ -249,7 +258,7 @@ class FileContext:
 
     @property
     def ext(self):
-        return get_extension(self.path)
+        return os.path.splitext(self.filename)[1].lstrip('.')
 
     @property
     def content(self):
@@ -263,6 +272,9 @@ class FileContext:
     def git_directory(self):
         return find_git_directory(self.path)
 
+    @property
+    def project_root(self):
+        return find_project_root(self.path)
 def get_most_recent_file(directory, pattern="*"):
     # Get a list of files in the directory that match the pattern
     import glob
@@ -359,7 +371,65 @@ def cpfile(source, dest, debug=False):
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     shutil.copy2(source, dest)
 
-def writefile(filepath: str, data: Any, debug = False) -> str:
+
+def resolve_filetype(filepath):
+    ext = os.path.splitext(filepath)[1].lower()
+    return {
+        '.py': 'python',
+        '.js': 'javascript',
+        '.ts': 'typescript',
+        '.html': 'html',
+        '.typ': 'typst',
+        '.css': 'css',
+        '.vue': 'vue',
+        '.json': 'json',
+        '.md': 'markdown',
+        '.c': 'c',
+        '.cpp': 'cpp',
+        '.java': 'java',
+        '.sh': 'shell',
+        '.rb': 'ruby'
+    }.get(ext, 'text')
+
+def comment(text, filepath):
+    def hash_comment(t):
+        return '\n'.join(f'# {line}' for line in t.splitlines())
+
+    def slash_comment(t):
+        return '\n'.join(f'// {line}' for line in t.splitlines())
+
+    def block_comment(t):
+        return f'/* {t} */'
+
+    def html_comment(t):
+        return f'<!-- {t} -->'
+
+    def markdown_comment(t):
+        return f'> {t}'
+
+    comment_styles = {
+        'python': hash_comment,
+        'shell': hash_comment,
+        'ruby': hash_comment,
+        'javascript': slash_comment,
+        'typescript': slash_comment,
+        'typst': slash_comment,
+        'vue': slash_comment,
+        'java': slash_comment,
+        'c': slash_comment,
+        'cpp': slash_comment,
+        'json': slash_comment,
+        'html': html_comment,
+        'xml': html_comment,
+        'css': block_comment,
+        'markdown': markdown_comment
+    }
+
+    formatter = comment_styles.get(filetype, hash_comment)
+    return formatter(text)
+
+
+def writefile(filepath: str, data: Any, debug = False, verbose = True) -> str:
     """Writes data to a file, serializing it based on the file extension.
     Creates the directory if it doesn't exist.
 
@@ -411,14 +481,17 @@ def writefile(filepath: str, data: Any, debug = False) -> str:
 
     value = serialize(data)
     if debug:
-        print('-' * 20)
-        print('[DEBUGGING] writefile')
-        print(f'[PATH] "{expanded_file_path}"')
-        print('[CONTENT]')
-        print()
-        print(value)
-        print('-' * 20)
-        print()
+        if verbose:
+            print('-' * 20)
+            print('[DEBUGGING] writefile')
+            print(f'[PATH] "{expanded_file_path}"')
+            print('[CONTENT]')
+            print()
+            print(value)
+            print('-' * 20)
+            print()
+        else:
+            return comment(expanded_file_path, resolve_filetype(expanded_file_path)) + "\n" + value
     else:
         if dir_path and not os.path.exists(dir_path):
             os.makedirs(dir_path, exist_ok=True)
@@ -459,3 +532,62 @@ def appendfile(path, data, debug = False):
                 data = "\n" + data
 
             f.write(data)
+
+class FilepathValidator:
+    ignore_dirs = [
+        "__pycache__",
+        "node_modules",
+        ".git",
+    ]
+
+    def __init__(self, pattern="."):
+        self.regex = re.compile(pattern)
+
+    def directory(self, name):
+        if name in self.ignore_dirs or os.path.basename in self.ignore_dirs:
+            return
+        return True
+
+    def file(self, file):
+        if not re.search(self.regex, file):
+            return
+        return True
+
+def getfiles(dir, pattern=".", recursive=False, sort=False) -> list[str]:
+    validate = FilepathValidator(pattern=pattern)
+    dir = os.path.expanduser(dir)
+
+    store = []
+    for root, dirs, files in os.walk(dir):
+        dirs[:] = [dir for dir in dirs if validate.directory(dir)]
+
+        for file in files:
+            path = os.path.join(root, file)
+            if validate.file(path):
+                store.append(path)
+
+        if not recursive:
+            return store
+
+    return store
+
+
+def clear_directory(path):
+    dir_path = Path(path).expanduser()
+    if not dir_path.is_dir():
+        raise ValueError(f"{path} is not a valid directory")
+
+    for item in dir_path.iterdir():
+        print('deleting', item.name)
+        if item.is_dir():
+            shutil.rmtree(item)
+        else:
+            item.unlink()
+ 
+
+
+def is_file(x):
+    return x and os.path.isfile(os.path.expanduser(x))
+
+def is_dir(x):
+    return x and os.path.isdir(os.path.expanduser(x))

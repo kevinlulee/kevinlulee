@@ -9,6 +9,7 @@ from pathlib import Path
 
 from kevinlulee.ao import to_array
 from kevinlulee.string_utils import split
+from kevinlulee.ao import join_spaces
 
 from .file_utils import find_git_directory, find_project_root
 from .base import display
@@ -19,10 +20,10 @@ from typing import TypedDict
 
 def bash(*args, cwd=None, on_error=None, silent=True, debug = False, strict = False):
     cwd = os.path.expanduser(cwd) if cwd else None
-    args = [a for arg in args if (a := str(arg).strip())]
+    s = join_spaces(args)
     if debug:
-        return print('[DEBUG]', ' '.join(args))
-    result = subprocess.run(args, text=True, cwd=cwd, capture_output=True)
+        return print('[DEBUG]', s)
+    result = subprocess.run(s.split(' '), text=True, cwd=cwd, capture_output=True)
 
     err = result.stderr.strip()
     success = result.stdout.strip()

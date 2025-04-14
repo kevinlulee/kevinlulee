@@ -51,6 +51,10 @@ def parse_ripgrep_line(line: str) -> RipgrepLine:
 
     return {"path": path, "lnum": lnum, "excerpt": excerpt.strip()}
 
+
+
+
+
 def ripgrep(
     pattern: str = ".",
     dirs: list = ['.'],
@@ -62,12 +66,17 @@ def ripgrep(
     ignore_file: str = '',
     respect_ignore_file: bool = True,
     show_lnum: bool = True,
+    exclude_dirs: List[str] = [],
+    include_dirs: List[str] = [],
+    exts: List[str] = [],
 ) -> List[RipgrepLine]:
     cmd = ["rg"]
+
     if show_lnum:
         cmd.append("--line-number")
 
     assert isinstance(dirs, (list, tuple)), "dirs must be an array"
+
     if ignore_file:
         cmd += ["--ignore-file", os.path.expanduser(ignore_file)]
     elif not respect_ignore_file:
@@ -83,6 +92,16 @@ def ripgrep(
         cmd.append("--ignore-case")
     if multiline:
         cmd.append("--multiline")
+
+    exclude_dirs = set(GLOBAL_COMMON_IGNORE_DIRS + exclude_dirs or [])
+    include_dirs = set(include_dirs or [])
+    final_ignores = exclude_dirs - include_dirs
+
+    for ignore in final_ignores:
+        cmd += ["--glob", f"!{ignore}/**"]
+
+    for ext in exts:
+        cmd += ["--glob", f"*.{ext}"]
 
     cmd.append(pattern)
 
@@ -107,43 +126,29 @@ def fdfind(
     show_hidden_files: bool = True,
     only_directories: bool = False,
     ignore_file: str = None,
+    exts: List[str] = [],
     debug=False,
 ) -> List[str]:
-    """
-    A Python wrapper for the `fdfind` command.
-
-    Args:
-        directories (list): Directories to search.
-        query (str): Search pattern (default is "." to match all files).
-        ignore_dirs (List[str]): Directories or glob patterns to ignore.
-        include_dirs (List[str]): Directories or patterns to force-include (overrides ignore).
-        respect_gitignore (bool): Whether to respect .gitignore files.
-        respect_ignore (bool): Whether to respect .ignore files.
-        show_hidden_files (bool): Whether to include hidden files.
-        only_directories (bool): Whether to search for directories only.
-
-    Returns:
-        List[str]: A list of paths matching the search criteria.
-    """
     cmd = ["fdfind"]
 
-    # Pattern handling
     if "*" in query:
         cmd.extend(["--glob", query])
     else:
         cmd.extend(["--fixed-strings", query])
-    # Search directories
+
     dirs = [os.path.expanduser(d) for d in dirs]
     cmd.extend(dirs)
-
-    # Normalize ignore/include lists
+    for dir in dirs:
+        assert os.path.isdir(dir), f"the provided dir is not a directory: {dir}"
     exclude_dirs = set(GLOBAL_COMMON_IGNORE_DIRS + exclude_dirs or [])
     include_dirs = set(include_dirs or [])
-
-    # Exclude patterns (minus those in include list)
     final_ignores = exclude_dirs - include_dirs
-    for query in final_ignores:
-        cmd.extend(["--exclude", query])
+
+    for ignore in final_ignores:
+        cmd.extend(["--exclude", ignore])
+
+    for ext in exts:
+        cmd.extend(["--extension", ext])
 
     if not respect_gitignore:
         cmd.append("--no-ignore-vcs")

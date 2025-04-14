@@ -74,4 +74,9 @@ class Templater:
         text = textwrap.dedent(s).strip()
         return re.sub(TEMPLATER_PATTERN, self.replace, text)
 
+def rgetattr(obj, attr):
+    for part in attr.split('.'):
+        obj = getattr(obj, part)
+    return obj
+
 templater = Templater().format

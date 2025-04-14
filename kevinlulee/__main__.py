@@ -57,7 +57,6 @@ temp = [
         "/home/kdog3682/dotfiles/.git/",
 ]
 forms = [
-
         "/home/kdog3682/projects/python/kevinlulee/.git/",
         "/home/kdog3682/projects/python/maelstrom/.git/",
         "/home/kdog3682/projects/python/maelstrom2/.git/",
@@ -70,16 +69,13 @@ forms = [
         "/home/kdog3682/dotfiles/.git/",
 ]
 
-# from kevinlulee.git import GitRepo
+from kevinlulee.git import GitRepo
 
-# for form in forms:
-#     repo = GitRepo(form.replace('.git/', ''))
-#     repo.add('.')
-#     repo.commit('safetypush')
-#     try:
-#         repo.cmd('push')
-#         print('success!', form)
-#     except Exception as e:
-#         print(e, 'error', form)
-#
-print('kevinlulee.__main__')
+def commitall():
+    for form in forms:
+        repo = GitRepo(form.replace('.git/', ''))
+        result = repo.commands.commit_all()
+        print(repo, result)
+        print('---')
+
+commitall()

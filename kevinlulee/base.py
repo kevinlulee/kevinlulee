@@ -1,4 +1,5 @@
 import inspect
+import re
 
 
 def get_parameters(func):
@@ -18,8 +19,8 @@ def display(**kwargs):
 
 
 
-def sayhi(name="Bob", *names, prefix="howdy"):
-    return f"{prefix} from {name}"
+def sayhi(name="Bob", prefix="howdy"):
+    return f"{prefix.capitalize()} from {name.capitalize()}"
 
 
 class real:
@@ -78,4 +79,38 @@ def each(items, fn, *args, **kwargs):
 
 
 
+def to_argument(x):
+    reference = {
+      'true': True,
+      'false': False,
+      'none': None
+    }
+    if isinstance(x, str):
+        if re.search('^\d+\.\d+$', x):
+            return float(x)
+        if re.search('^\d+$', x):
+            return int(x)
+        return reference.get(x, x)
+    return x
 
+def coerce_type(val, expected):
+    if expected == "str":
+        return str(val)
+    if expected == "int":
+        return int(val)
+    if expected == "float":
+        return float(val)
+    if expected == "bool":
+        if val == 'false': return False
+        if val == 'true': return True
+    if expected == "list":
+        if isinstance(val, str):
+            return [x.strip() for x in val.split(',')]
+        if isinstance(val, list):
+            return val
+        raise TypeError(f"Cannot coerce value to list: {val}")
+    if expected == "dict":
+        if isinstance(val, dict):
+            return val
+        raise TypeError(f"Expected dict for value: {val}")
+    raise TypeError(f"Unknown expected type: {expected}")

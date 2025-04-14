@@ -61,3 +61,15 @@ def test_ripgrep_hidden_files(tmp_path):
 
     assert any(".hidden.py" in p for p in paths_with_hidden)
     assert all(".hidden.py" not in p for p in paths_no_hidden)
+
+def test_ripgrep_exts(tmp_path):
+    create_files(
+        tmp_path,
+        {
+            ".hidden.py": "def hidden(): pass\n",
+            "visible.pyl": "def visible(): pass\n",
+        },
+    )
+
+    results = ripgrep(pattern="def", dirs=[str(tmp_path)], exts = ['pyl'])
+    assert len(results) == 1

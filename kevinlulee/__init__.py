@@ -3,15 +3,13 @@ from .file_utils import *
 from .string_utils import *
 from .text_tools import *
 from .module_utils import *
-
-from .bash import bash, typst, python3
-from .ripgrep import ripgrep, fdfind
-# from .configurable import myenv
 from .base import *
 from .validation import *
 from .ao import *
 from .pythonfmt import pythonfmt
 from .typstfmt import typstfmt
+from .bash import bash, typst, python3
+from .ripgrep import ripgrep, fdfind
 from .git import GitRepo
 
 
@@ -81,9 +79,6 @@ def get_caller(offset=0, skippable=[]) -> inspect.FrameInfo:
         return next
 
 
-def join_spaces(*args):
-    return ' '.join(flat(args))
-
 def uncomment(s):
     r = '^( *)(?:#+|//+|"|--+) +'
     return re.sub(r , lambda x: x.group(1), s, flags = re.M)
@@ -95,4 +90,12 @@ class Singleton(type):
         if cls not in cls._instances:
             cls._instances[cls] = super().__call__(*args, **kwargs)
         return cls._instances[cls]
+
+def instantiate(x):
+    return x() if type(x) == type else x
+
+def pycall(*args, **kwargs):
+    return pythonfmt.call(*args, **kwargs)
+
+
 
