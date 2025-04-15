@@ -293,13 +293,53 @@ def clip(s):
     webbrowser.open(file)
 
 
-def symlink(source, destination):
+import os
+import shutil
+
+def symlink(source, destination, force = False):
+    """
+    Creates a symbolic link from source to destination.
+
+    Args:
+        source (str): The path to the source file or directory.
+        destination (str): The path where the symbolic link should be created.
+        force (bool, optional): If True, remove the destination path if it
+                                already exists before creating the symlink.
+                                Defaults to False.
+
+    Raises:
+        AssertionError: If source does not exist.
+        AssertionError: If destination exists and force is False.
+        OSError: If there is an issue removing the existing destination
+                 or creating the symbolic link.
+    """
     source = os.path.expanduser(source)
     destination = os.path.expanduser(destination)
-    assert os.path.exists(source)
-    assert not os.path.exists(destination), f"destination '{destination}' already exists"
-    os.symlink(source, destination)
-    print(f'Symlink created from {source} to {destination}')
+
+    # Ensure the source path exists
+    if not os.path.lexists(source): # Use lexists to handle source being a symlink itself
+        raise AssertionError(f"Source path '{source}' does not exist.")
+
+    if force:
+        # If destination exists, remove it first
+        if os.path.lexists(destination): # Use lexists to check without following links
+            try:
+                if os.path.islink(destination):
+                    os.unlink(destination)
+                    print(f"Removed existing symlink: '{destination}'")
+                elif os.path.isdir(destination):
+                    shutil.rmtree(destination)
+                    print(f"Removed existing directory: '{destination}'")
+                else:
+                    os.remove(destination)
+                    print(f"Removed existing file: '{destination}'")
+            except OSError as e:
+                print(f"Error removing existing destination '{destination}': {e}")
+                raise # Re-raise the exception after printing
+    else:
+        # If not forcing, assert that the destination does not exist
+        if os.path.lexists(destination):
+             raise AssertionError(f"Destination path '{destination}' already exists. Use force=True to overwrite.")
 
 def copy_directory_contents(src, dest):
     src = os.path.expanduser(src)

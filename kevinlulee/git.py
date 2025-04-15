@@ -172,6 +172,7 @@ class GitCommands:
             return 
         repo = os.path.basename(re.sub('/$', '', self.repo.cwd))
         username = self.repo.username
+        print(username)
         return self.repo.cmd('remote', 'add', 'origin', f'git@github.com:{username}/{repo}.git')
 
     def push_to_origin(self):
@@ -182,7 +183,10 @@ class GitCommands:
         if remote not in remotes:
             self.implicitly_create_remote()
 
-        return self.repo.cmd('push', 'origin')
+        # print(self.repo.username)
+        set_git_auth_token_if_author(self.repo)
+        print(self.repo.cmd('push'))
+        # return self.repo.cmd('push')
 
     def commit_all(self, m = 'autocommit'):
         repo = self.repo
@@ -191,3 +195,39 @@ class GitCommands:
 
         repo.add('.')
         return repo.commit(m)
+
+import subprocess
+from dotenv import load_dotenv
+import os
+
+def set_git_auth_token_if_author(self):
+    # Load .env variables
+    load_dotenv()
+    token = os.getenv('KEVINLULEE_GITHUB_API_KEY')
+
+    if not token:
+        print('GITHUB_TOKEN not found in .env')
+        return
+
+    first_author = self.cmd(
+       'log', '--reverse', '--pretty=format:%an', '--max-parents=0'
+    )
+
+    if first_author.lower() == 'kdog3682':
+        # Get the current remote URL
+        origin_url = self.cmd(
+            'remote', 'get-url', 'origin'
+        ).strip()
+
+        # Only modify if using HTTPS
+        if origin_url.startswith('https://'):
+            repo_path = origin_url.replace('https://github.com/', '')
+            new_url = f'https://{token}@github.com/{repo_path}'
+
+            self.cmd('git', 'remote', 'set-url', 'origin', new_url)
+            print(f'Set new origin URL with token for author: {first_author}')
+        else:
+            print('Remote is not HTTPS, skipping token injection.')
+
+    else:
+        print(f'Skipping: first commit author is {first_author}, not kevinlulee')
