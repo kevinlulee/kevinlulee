@@ -56,26 +56,5 @@ temp = [
         "/home/kdog3682/documents/.git/",
         "/home/kdog3682/dotfiles/.git/",
 ]
-forms = [
-        "/home/kdog3682/projects/python/kevinlulee/.git/",
-        "/home/kdog3682/projects/python/maelstrom/.git/",
-        "/home/kdog3682/projects/python/maelstrom2/.git/",
-        "/home/kdog3682/projects/python/pytypst/.git/",
-        "/home/kdog3682/projects/typst/csg5/.git/",
-        "/home/kdog3682/projects/typst/mathbook/.git/",
-        "/home/kdog3682/projects/typst/mathematical/.git/",
-        "/home/kdog3682/projects/typst/typkit/.git/",
-        "/home/kdog3682/documents/.git/",
-        "/home/kdog3682/dotfiles/.git/",
-]
 
-from kevinlulee.git import GitRepo
-
-def commitall():
-    for form in forms:
-        repo = GitRepo(form.replace('.git/', ''))
-        result = repo.commands.commit_all()
-        print(repo, result)
-        print('---')
-
-commitall()
+# moved to maelstrom/plugins

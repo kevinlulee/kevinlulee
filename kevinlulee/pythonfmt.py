@@ -55,7 +55,8 @@ class PythonArgumentFormatter:
         return f'{name} = {self.format(value)}'
 
     def real_decl(self, name, value):
-        return f'{name} = {self.format(value, real = True)}'
+        middle = ' ' if name == 'return' else ' = '
+        return f'{name}{middle}{self.format(value, real = True)}'
 
     def call(self, func_name, *args, **kwargs):
         args = [self.format(v) for v in args]
@@ -74,7 +75,14 @@ class PythonArgumentFormatter:
         return strcall(name, args, kwargs, max_length = 60)
         
 
+    def func_decl(self, name, *args, body='return', **kwargs, ):
+        parts = self.real_call(name, *args, **kwargs)
+        prefix = f'def {parts}'
+        return prefix + bracket_wrap(body, bracket_type=':', delimiter='', newlines=True)
+
+
 pythonfmt = PythonArgumentFormatter()
+# print(pythonfmt.func_decl('asdf', 'xx', body = 'rsfsdfeturn'))
 
 # print(pythonfmt.call('foobar', 'alphalpha', 'xx', [1,2,'hi'], {'a': {'a':1}}))
 # aobj = {

@@ -1,4 +1,5 @@
 from kevinlulee.string_utils import testf
+from kevinlulee.validation import exists, is_array
 
 
 def dotaccess(val, key):
@@ -100,12 +101,12 @@ def pop(items, x, key = None):
         return items.pop(index)
 
 
-def flat(*items):
+def flat(*items, validator = exists):
     def runner(items):
         for item in items:
             if isinstance(item, (list, tuple)):
                 runner(item)
-            elif item is not None or item != 0:
+            elif validator(item):
                 store.append(item)
 
     store = []
@@ -116,7 +117,8 @@ from typing import Any, Union, Callable
 
 def group(
     items: Union[list[tuple[str, Any]], list[dict]],
-    key: Union[Callable[[Any], str], str, None] = None
+    key: Union[Callable[[Any], str], str, None] = None,
+    flatten_array_values = False,
 ) -> dict[str, list[Any]]:
     """Groups items by a specified key or callable.
 
@@ -137,7 +139,10 @@ def group(
             result.setdefault(iden, []).append(item)
         elif isinstance(item, (tuple, list)) and len(item) == 2:
             iden, value = item
-            result.setdefault(iden, []).append(value)
+            if flatten_array_values and is_array(value):
+                result.setdefault(iden, []).extend(value)
+            else:
+                result.setdefault(iden, []).append(value)
         else:
             raise ValueError("Items must be 2-element tuple/list or dict.")
     return result
@@ -145,4 +150,42 @@ def group(
 
 def join_spaces(*args):
     return ' '.join(flat(args))
+
+def merge_dicts_recursively(*dicts):
+    """
+    Creates a dict whose keyset is the union of all the
+    input dictionaries.  The value for each key is based
+    on the first dict in the list with that key.
+
+    dicts later in the list have higher priority
+
+    When values are dictionaries, it is applied recursively
+    """
+    result = dict()
+    all_items = it.chain(*[d.items() for d in dicts])
+    for key, value in all_items:
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = merge_dicts_recursively(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
+def deep_map(obj, callback):
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            updated = deep_map(value, callback)
+            if updated is not None:
+                obj[key] = updated
+    elif isinstance(obj, (list, tuple)):
+        seq_type = type(obj)
+        updated_seq = []
+        changed = False
+        for item in obj:
+            updated = deep_map(item, callback)
+            updated_seq.append(updated if updated is not None else item)
+            changed = changed or updated is not None
+        return seq_type(updated_seq) if changed else None
+    else:
+        return callback(obj)
 

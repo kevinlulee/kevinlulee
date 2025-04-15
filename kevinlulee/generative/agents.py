@@ -11,6 +11,8 @@ import anthropic
 from dataclasses import dataclass
 from typing import Literal, Optional, Any
 
+from kevinlulee.file_utils import clip
+
 load_dotenv()
 
 # --- Constants ---
@@ -55,7 +57,7 @@ def process_llm_response(raw: Any) -> GenerativeResult:
     summary = None
 
     if isinstance(raw, anthropic.types.Message):
-        text = raw.content
+        text = raw.content[0].text
     elif isinstance(raw, genai.types.GenerateContentResponse):
         text = raw.text
 
@@ -88,6 +90,8 @@ def process_llm_response(raw: Any) -> GenerativeResult:
             print(f"Warning: Unexpected number of parts ({l}) after splitting text. Treating full text as summary.")
             summary = text.strip()
             code = None
+            clip(text)
+            return 
     else:
         # Handle cases where text extraction failed
         print("Warning: Could not extract text from the response object.")
@@ -126,6 +130,7 @@ def claude(
             max_tokens=4096 # Adjust max_tokens as needed
         )
         return process_llm_response(raw_response)
+    # except genai.client.
     except anthropic.APIConnectionError as e:
         print(f"Anthropic API connection error: {e}")
         raise
@@ -168,6 +173,7 @@ def agent(
     query: str,
     system: Optional[str] = None,
     agent_type: Literal["claude", "gemini", "deepseek", "openai"] = 'gemini',
+    capture_code: bool = True,
     **kwargs: Any # To allow for future model-specific args
 ) -> GenerativeResult:
     """
@@ -186,6 +192,10 @@ def agent(
         ValueError: If an unsupported agent_type is provided.
         NotImplementedError: If the selected agent is not yet implemented.
     """
+    if capture_code:
+        system += '\n'
+        # system += 'do not write notes or explanations. please focus on code.'
+        system += 'be detailed and meticulous in the code you write.\ndo not write notes or explanations. focus on code'
     if agent_type == "claude":
         # Pass only query and system, ignore extra kwargs for now
         return claude(query=query, system=system)

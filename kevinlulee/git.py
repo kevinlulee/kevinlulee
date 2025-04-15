@@ -96,6 +96,9 @@ class GitRepo(HistoryData, StatusData):
     def init(self):
         return self.cmd('init')
 
+    @property
+    def name(self):
+        return os.path.basename(self.cwd)
     def add(self, *args):
         return self.cmd('add', *args)
 

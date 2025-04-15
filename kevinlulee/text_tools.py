@@ -19,6 +19,7 @@ def bracket_wrap(
         "{}": ("{", "}"),
         '"': ('"', '"'),
         "'": ("'", "'"),
+        ":": (":", ""),
         "'''": ("'''", "'''"),
         '"""': ('"""', '"""'),
         "``": ("`", "`"),
@@ -31,13 +32,17 @@ def bracket_wrap(
         delimiter = ",\n"
     open_bracket, close_bracket = brackets[bracket_type]
     text = delimiter.join(str(el) for el in to_array(items))
+    if not text:
+        return open_bracket + close_bracket
     if re.search("^[\(\{\[]\n", text):
         return open_bracket + text + close_bracket
-    indented_text = textwrap.indent(text, " " * indent)
-    ending_newline = "" if indented_text.endswith("\n") else "\n"
     # print([indented_text, ending_newline])
-    return f"{open_bracket}\n{indented_text}{ending_newline}{close_bracket}"
-
+    if newlines:
+        indented_text = textwrap.indent(text, " " * indent)
+        ending_newline = "" if indented_text.endswith("\n") else "\n"
+        return f"{open_bracket}\n{indented_text}{ending_newline}{close_bracket}"
+    else:
+        return open_bracket + text + close_bracket
 
 def extract_frontmatter(text: str):
     """
@@ -256,6 +261,8 @@ def strcall(name, args, kwargs, max_length=80):
     k = len(kwargs)
 
     s = name + bracket_wrap(args + kwargs, bracket_type="()", newlines=False)
+    if a + k == 1:
+        return s
     if len(s) < max_length and not "\n" in s:
         return s
 

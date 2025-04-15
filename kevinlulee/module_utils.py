@@ -33,6 +33,9 @@ def get_modname_from_file(file):
             b = b.replace('/__init__', '')
             b = b.replace('/__main__', '')
             b = b.replace('.py', '').replace("/", ".")
+            a = re.search('\w+', b).group(0)
+            if b.startswith(a + '.' + a):
+                return b[len(a) + 1:]
             return b
 
 

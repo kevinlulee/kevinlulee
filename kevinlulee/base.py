@@ -80,10 +80,17 @@ def each(items, fn, *args, **kwargs):
 
 
 def to_argument(x):
+    """
+    creates a real python argument
+    foobar('true') -> foobar(True)
+
+    the argument is coerced into a python form
+    """
     reference = {
       'true': True,
       'false': False,
-      'none': None
+      'none': None,
+      'null': None,
     }
     if isinstance(x, str):
         if re.search('^\d+\.\d+$', x):
@@ -114,3 +121,17 @@ def coerce_type(val, expected):
             return val
         raise TypeError(f"Expected dict for value: {val}")
     raise TypeError(f"Unknown expected type: {expected}")
+
+
+
+class Singleton(type):
+    """Metaclass for creating Singleton classes"""
+    _instances = {}
+    
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super().__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+def instantiate(x):
+    return x() if type(x) == type else x

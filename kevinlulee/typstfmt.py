@@ -110,6 +110,12 @@ class TypstArgumentFormatter:
     def comment(self, s):
         return '// ' + s
 
+    def func(self, name, *args, toplevel=False, body='return', **kwargs):
+        hash = '#' if toplevel else ''
+        parts = self.call(name, *args, **kwargs)
+        prefix = f'{hash}let {parts}'
+        return prefix + bracket_wrap(body, bracket_type='{}', delimiter='', newlines=True)
+
 
 typstfmt = TypstArgumentFormatter()
 

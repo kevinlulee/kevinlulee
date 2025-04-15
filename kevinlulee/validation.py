@@ -1,11 +1,16 @@
-def empty(x):
+
+def exists(x):
+    if isinstance(x, (list, tuple, dict)):
+        return len(x) > 0
+    if isinstance(x, str):
+        return len(x.strip()) > 0
     if x == 0:
-        return False
-    if x:
-        return False
-    return True
+        return True
 
+    return bool(x)
 
+def empty(x):
+    return not exists(x)
 
 def is_string(value):
     return isinstance(value, str)

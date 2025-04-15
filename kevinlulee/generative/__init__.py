@@ -1,1 +1,1 @@
-from .agents import agent, gemini
+from .agents import agent, gemini, claude
