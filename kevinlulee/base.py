@@ -1,4 +1,5 @@
 import inspect
+from kevinlulee.typing import Selector
 import re
 
 
@@ -135,3 +136,64 @@ class Singleton(type):
 
 def instantiate(x):
     return x() if type(x) == type else x
+
+
+def get_field_value(obj, field_path, default=None):
+    """
+    Get a field value from a dict or non-dict object (including nested paths).
+    
+    Args:
+        obj: The object (dict, class instance, etc.).
+        field_path (str): Dot-separated path (e.g., "user.address.city").
+        default: Value to return if the field doesn't exist.
+    
+    Returns:
+        The field value or `default` if not found.
+    """
+    if not field_path:
+        return default
+
+    keys = field_path.split('.')
+    current = obj
+
+    for key in keys:
+        if isinstance(current, dict):
+            if key not in current:
+                return default
+            current = current[key]
+        elif hasattr(current, '__dict__'):  # Class instance with __dict__
+            if not hasattr(current, key):
+                return default
+            current = getattr(current, key)
+        else:  # Other objects (e.g., namedtuple, @property)
+            try:
+                current = getattr(current, key)
+            except AttributeError:
+                return default
+    return current
+
+
+
+def testf(selector: Selector, flags=0, anti=0, key=None):
+    if not selector:
+        return None
+
+    fn = selector
+
+    if isinstance(selector, str):
+        pat = re.compile(selector, flags = flags)
+        fn = lambda s: pat.search(s)
+    elif isinstance(selector, re.Pattern):
+        fn = lambda s: selector.search(s, flags = flags)
+        
+    elif isinstance(selector, (list, tuple)):
+        fn = lambda s: s in selector
+
+    if anti and key:
+        return lambda x: not fn(get_field_value(x, key))
+    elif anti:
+        return lambda x: not fn(x)
+    elif key:
+        return lambda x: fn(get_field_value(x, key))
+    else:
+        return fn

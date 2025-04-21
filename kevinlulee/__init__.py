@@ -17,6 +17,7 @@ def representative(self, *args, **kwargs):
     return pythonfmt.call(nameof(self), *args, **kwargs)
 
 
+import inspect
 import yaml
 
 def yamload(x):
@@ -54,7 +55,6 @@ def get_caller(offset=0, skippable=[]) -> inspect.FrameInfo:
         "wrapper",
     ]
 
-    import inspect
     items: list = inspect.stack()
 
     # find_index
@@ -87,4 +87,14 @@ def pycall(*args, **kwargs):
     return pythonfmt.call(*args, **kwargs)
 
 
+def get_required_args(func):
+    p = inspect.getfullargspec(func)
+    delta = len(p.args) - len(p.defaults or [])
+    required_args = p.args[0:delta]
+    return required_args
+
+
+def hashify(key):
+    import hashlib
+    return hashlib.md5(key).hexdigest()
 

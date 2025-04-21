@@ -2,6 +2,11 @@ import os
 import functools
 import pickle
 import hashlib
+
+
+def hashify(key):
+    import hashlib
+    return hashlib.md5(key).hexdigest()
 from pathlib import Path
 
 CACHE_DIR = '~/.kdog3682/snapshots/pickles'

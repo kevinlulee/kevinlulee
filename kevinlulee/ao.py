@@ -1,4 +1,5 @@
-from kevinlulee.string_utils import testf
+from kevinlulee.base import testf
+from kevinlulee.typing import Selector
 from kevinlulee.validation import exists, is_array
 
 
@@ -188,4 +189,13 @@ def deep_map(obj, callback):
         return seq_type(updated_seq) if changed else None
     else:
         return callback(obj)
+
+
+
+def filtered(items, selector: Selector):
+    if not selector:
+        return items
+
+    fn = testf(selector)
+    return [ item for item in items if fn(item) ] 
 

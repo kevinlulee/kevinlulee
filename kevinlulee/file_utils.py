@@ -541,6 +541,7 @@ def writefile(filepath: str, data: Any, debug = False, verbose = True) -> str:
     return expanded_file_path
 
 def appendfile(path, data, debug = False):
+    path = os.path.expanduser(path)
     e = get_extension(path)
 
     def get(path, data):

@@ -31,6 +31,7 @@ def strftime(source=None, mode="iso8601"):
         "human": "%m/%d/%Y",
         "timestamp": "%s",
         "date": "%A %-I:%M%p %m/%d/%Y",
+        "usa": "%m/%d/%Y %I:%M:%S %p",
     }
 
     return to_datetime(source).strftime(templates[mode])

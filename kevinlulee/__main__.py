@@ -58,3 +58,66 @@ temp = [
 ]
 
 # moved to maelstrom/plugins
+
+
+
+s = """
+    
+local params = vim.lsp.util.make_position_params()
+
+vim.g.abcd = vim.fn.json_encode(params)
+vim.lsp.buf_request(0, 'textDocument/references', params, function(err, result, ctx, config)
+  if err then
+    vim.g.abc = err.message
+    return
+  end
+
+  local json = vim.fn.json_encode(result)
+  print(json)
+end)
+
+"""
+
+s = """
+-- Function to go to definition
+local function go_to_definition()
+  local params = vim.lsp.util.make_position_params()
+  
+  vim.lsp.buf_request(0, 'textDocument/definition', params, function(err, result, ctx, config)
+    if err then
+      print("Error: " .. (err.message or "unknown error"))
+      return
+    end
+    
+    if not result or vim.tbl_isempty(result) then
+      print("No definition found")
+      return
+    end
+    
+    -- Handle both single result and array of results
+    if result[1] then
+      -- Multiple results, use the first one
+      vim.lsp.util.jump_to_location(result[1], vim.lsp.get_client_by_id(ctx.client_id).offset_encoding)
+    else
+      -- Single result
+      vim.lsp.util.jump_to_location(result, vim.lsp.get_client_by_id(ctx.client_id).offset_encoding)
+    end
+  end)
+end
+
+-- Call the function to go to definition
+go_to_definition()
+"""
+import vim
+vim.exec_lua(s)
+
+a = 1
+a = 1
+abc = 111
+alphalphalphalphalphalphalpha = abc
+
+b = a
+import time
+time.sleep(0.5)
+print(vim.vars.get('abc'))
+print(vim.vars.get('abcd'))
