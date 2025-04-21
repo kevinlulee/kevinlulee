@@ -176,6 +176,31 @@ def fdfind(
 
     return result.stdout.splitlines()
 
-
+def fd(
+    dir='~/',
+    query: str = ".",
+    exclude_dirs: List[str] = [],
+    include_dirs: List[str] = [],
+    respect_gitignore: bool = False,
+    respect_ignore: bool = False,
+    show_hidden_files: bool = True,
+    only_directories: bool = False,
+    ignore_file: str = None,
+    exts: List[str] = [],
+    debug=False,
+) -> List[str]:
+    return fdfind(
+        dirs = [dir],
+        query=query,
+        exclude_dirs=exclude_dirs,
+        include_dirs=include_dirs,
+        respect_gitignore=respect_gitignore,
+        respect_ignore=respect_ignore,
+        show_hidden_files=show_hidden_files,
+        only_directories=only_directories,
+        ignore_file=ignore_file,
+        exts=exts,
+        debug=debug
+    )
 if __name__ == '__main__':
     print(ripgrep(pattern='def group', dirs = ['/home/kdog3682/projects/python/kevinlulee/kevinlulee/']))

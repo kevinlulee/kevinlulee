@@ -1,4 +1,7 @@
 import os
+import os
+import shutil
+from pathlib import Path
 import shutil
 import os
 import json
@@ -632,3 +635,44 @@ def is_file(x):
 
 def is_dir(x):
     return x and os.path.isdir(os.path.expanduser(x))
+
+
+def mvdir(destination, source, force=False):
+    """
+    Move directory contents from source to destination.
+    
+    Args:
+        destination (str): Path to destination directory
+        source (str): Path to source directory
+        force (bool, optional): If True, overwrite existing files at destination. Defaults to False.
+    
+    Returns:
+        bool: True if operation was successful, False otherwise
+    """
+    dest_path = Path(destination)
+    src_path = Path(source)
+    
+    # Check if source exists
+    if not src_path.exists() or not src_path.is_dir():
+        raise FileNotFoundError(f"Source directory '{source}' does not exist or is not a directory")
+    
+    # Create destination if it doesn't exist
+    dest_path.mkdir(parents=True, exist_ok=True)
+    
+    # Move files from source to destination
+    for item in src_path.glob('*'):
+        dest_item = dest_path / item.name
+        
+        if dest_item.exists() and not force:
+            print(dest_item, 'exists ... skipping')
+            continue
+        
+        if item.is_file():
+            shutil.copy2(item, dest_item)
+        elif item.is_dir():
+            if dest_item.exists() and dest_item.is_dir():
+                mvdir(str(dest_item), str(item), force)
+            else:
+                shutil.copytree(item, dest_item, dirs_exist_ok=force)
+    
+    return True

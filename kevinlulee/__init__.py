@@ -9,12 +9,8 @@ from .ao import *
 from .pythonfmt import pythonfmt
 from .typstfmt import typstfmt
 from .bash import bash, typst, python3
-from .ripgrep import ripgrep, fdfind
+from .ripgrep import ripgrep, fdfind, fd
 from .git import GitRepo
-
-
-def representative(self, *args, **kwargs):
-    return pythonfmt.call(nameof(self), *args, **kwargs)
 
 
 import inspect
@@ -98,3 +94,42 @@ def hashify(key):
     import hashlib
     return hashlib.md5(key).hexdigest()
 
+
+def representative(self, *args, **kwargs):
+    return pycall(nameof(self), *args, **kwargs)
+
+
+
+def breaker(max_iterations=1000):
+    """
+    Function to prevent infinite loops by raising an exception after a certain number of iterations.
+    
+    Args:
+        max_iterations (int): Maximum allowed iterations before raising an exception.
+        
+    Raises:
+        RuntimeError: If the number of iterations exceeds max_iterations.
+
+    Example:
+
+        c = 0
+        while c < 10:
+            c += 1
+            print(c)
+            breaker(max_iterations=5)
+    """
+    # Create or increment counter attribute in the function itself
+    if not hasattr(breaker, "counter"):
+        breaker.counter = 0
+    breaker.counter += 1
+    
+    # Check if iteration limit has been reached
+    if breaker.counter >= max_iterations:
+        breaker.counter = 0  # Reset for next use
+        raise RuntimeError(f"Loop exceeded {max_iterations} iterations - possible infinite loop detected")
+
+def curry(func, *top_args, **top_kwargs):
+    def inner(*args, **kwargs):
+        return func(*args, *top_args, **kwargs, **top_kwargs)
+
+    return inner

@@ -288,7 +288,7 @@ class GitRepo(HistoryData, StatusData, GitProperties):
     def add(self, *args):
         return self.cmd("add", *args)
 
-    def push(self, remote, branch):
+    def push(self, remote = DEFAULT_REMOTE_NAME, branch = None):
         return self.cmd("push", remote, branch)
 
     def commit(self, message):
@@ -420,5 +420,7 @@ if __name__ == '__main__':
         g.debug = False
         # res = g.commands.set_remote(apikey=True)
         # print(res)
-        print(g.commands.commit_all())
-        print(g.commands.commit_all())
+        # print(g.commands.commit_all())
+        # print(g.commands.commit_all())
+        # print(g.status)
+        # print(g.push())
