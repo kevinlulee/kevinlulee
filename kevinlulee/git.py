@@ -2,10 +2,13 @@ import os
 import json
 import re
 import textwrap
+
+from kevinlulee.string_utils import split
 from .bash import bash
 from .ao import filtered
-
-
+from dotenv import load_dotenv
+import os
+DEFAULT_REMOTE_NAME = 'origin'
 def trim_lines(s):
     return [line.strip() for line in s.splitlines()]
 
@@ -237,23 +240,30 @@ class GitProperties:
 
 
 class GitRepo(HistoryData, StatusData, GitProperties):
+
+    @property
+    def address(self):
+        url = self.url
+        if url:
+            return '/'.join(split(url, '/')[-2:])
     def is_git_directory(self):
         return os.path.isdir(os.path.join(self.cwd, ".git"))
 
     def diff(self, *files):
         return self.cmd("diff", *files)
 
-    def on_error(self, err):
+    def on_error(self, err: str):
         if self.strict:
             raise Exception(err)
+        self.errors.append(err)
         return err
 
-    def cmd(self, *args):
+    def cmd(self, *args, debug = False):
         return bash(
             "git",
             *args,
             cwd=self.cwd,
-            debug=self.debug,
+            debug=debug or self.debug,
             silent=True,
             on_error=self.on_error,
         )
@@ -261,12 +271,16 @@ class GitRepo(HistoryData, StatusData, GitProperties):
     def __init__(self, cwd):
         self.cwd = os.path.expanduser(cwd)
         self.debug = False
+        self.errors = []
         self.commands = GitCommands(self)
         self.strict = False
 
     def init(self):
         return self.cmd("init")
 
+    @property
+    def path(self):
+        return self.cwd
     @property
     def name(self):
         return os.path.basename(self.cwd)
@@ -321,8 +335,7 @@ class GitRepo(HistoryData, StatusData, GitProperties):
 
     @property
     def url(self):
-        remote_name = "origin"
-        output = self.cmd("remote", "get-url", remote_name)
+        output = self.cmd("remote", "get-url", DEFAULT_REMOTE_NAME)
         return output
 
     def create_remote(self, name, url):
@@ -333,6 +346,7 @@ class GitRepo(HistoryData, StatusData, GitProperties):
         return self.cmd("config", "user.name")
 
     def is_clean(self):
+        return self.cmd('status', '--porcelain') == ''
         return "nothing to commit, working tree clean" in self.status
 
     def has_remote_repository(self):
@@ -341,6 +355,26 @@ class GitRepo(HistoryData, StatusData, GitProperties):
 
 
 class GitCommands:
+
+    def cmd(self, *args, **kwargs):
+        return self.repo.cmd(*args, **kwargs)
+
+    def set_remote(self, name = 'origin', apikey = None):
+        if apikey == True:
+            load_dotenv()
+            NAME = self.repo.address.split('/')[0].upper()
+            key = NAME + "_GITHUB_API_KEY"
+            apikey = os.getenv(key)
+            assert apikey != None, f"no implicit apikey for {key}"
+
+        prefix = apikey or 'git'
+
+        address = f'https://{prefix}@github.com/{self.repo.address}.git'
+        args = [
+            'remote', 'set-url', name, address
+        ]
+        return self.cmd(*args, debug = False)
+
     def show(self, commit, file = None):
         el = f'{commit}:{file}' if file else commit
         args = ['show', el]
@@ -367,7 +401,7 @@ class GitCommands:
             self.implicitly_create_remote()
 
         # print(self.repo.username)
-        set_git_auth_token_if_author(self.repo)
+        # set_git_auth_token_if_author(self.repo)
         print(self.repo.cmd("push"))
         # return self.repo.cmd('push')
 
@@ -379,40 +413,12 @@ class GitCommands:
         repo.add(".")
         return repo.commit(m)
 
-
-import subprocess
-from dotenv import load_dotenv
-import os
-
-
-def set_git_auth_token_if_author(self):
-    # Load .env variables
-    load_dotenv()
-    token = os.getenv("KEVINLULEE_GITHUB_API_KEY")
-
-    if not token:
-        print("GITHUB_TOKEN not found in .env")
-        return
-
-    first_author = self.cmd(
-        "log", "--reverse", "--pretty=format:%an", "--max-parents=0"
-    )
-
-    if first_author.lower() == "kdog3682":
-        # Get the current remote URL
-        origin_url = self.cmd("remote", "get-url", "origin").strip()
-
-        # Only modify if using HTTPS
-        if origin_url.startswith("https://"):
-            repo_path = origin_url.replace("https://github.com/", "")
-            new_url = f"https://{token}@github.com/{repo_path}"
-
-            self.cmd("git", "remote", "set-url", "origin", new_url)
-            print(f"Set new origin URL with token for author: {first_author}")
-        else:
-            print("Remote is not HTTPS, skipping token injection.")
-
-    else:
-        print(
-            f"Skipping: first commit author is {first_author}, not kevinlulee"
-        )
+if __name__ == '__main__':
+    testing = True
+    if testing:
+        g = GitRepo('~/projects/python/kevinlulee/')
+        g.debug = False
+        # res = g.commands.set_remote(apikey=True)
+        # print(res)
+        print(g.commands.commit_all())
+        print(g.commands.commit_all())
