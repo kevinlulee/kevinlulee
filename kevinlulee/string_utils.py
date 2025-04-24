@@ -108,15 +108,6 @@ def capitalize(s):
 def uncapitalize(s):
     return s[0].lower() + s[1:]
 
-def camel_case(s):
-    parts = filter(re.split("[\W_]+", s))
-    return uncapitalize("".join([capitalize(part) for part in parts]))
-
-
-def pascal_case(s):
-    if not s: return ''
-    return capitalize(camel_case(s))
-
 
 def snake_case(s):
     if "_" in s:
@@ -136,12 +127,12 @@ def dash_case(s):
     return s.lower()  # Convert to lowercase
 
 def split(s, r="\s+", flags=0, maxsplit = 0):
-    base = re.split(r, s.strip(), flags=flags, maxsplit = maxsplit)
+    base = re.split(r, str(s).strip(), flags=flags, maxsplit = maxsplit)
     items = [s.strip() for s in base if s.strip()]
     return items
 
 def split_once(s, r="\s+"):
-    a = split(s, r)
+    a = split(s, r, maxsplit=1)
     return a + [""] if len(a) ==  1 else a
 
 
@@ -173,3 +164,12 @@ def testf(x, flags=0, anti=0, key=0):
 
 def test(s, r, flags=0):
     return bool(re.search(r, str(s), flags))
+
+def camel_case(s):
+    parts = split(s, r"[\W_]+")
+    return uncapitalize("".join([capitalize(part) for part in parts]))
+
+def pascal_case(s):
+    if not s: return ''
+    return capitalize(camel_case(s))
+

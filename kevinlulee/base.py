@@ -124,6 +124,18 @@ def coerce_type(val, expected):
     raise TypeError(f"Unknown expected type: {expected}")
 
 
+def coerce_argument(x):
+        if not isinstance(x, str):
+            return x
+        if x == 'false': return False
+        if x == 'true': return True
+        if re.search('^\d+\.?\d*$', x):
+            if '.' in x:
+                return float(x)
+            else:
+                return int(x)
+
+        return x
 
 class Singleton(type):
     """Metaclass for creating Singleton classes"""

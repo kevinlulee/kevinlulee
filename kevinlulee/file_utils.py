@@ -1,4 +1,5 @@
 import os
+import re
 import os
 import shutil
 from pathlib import Path
@@ -11,7 +12,8 @@ from typing import Any
 from pathlib import Path
 import shutil
 
-from kevinlulee.string_utils import mget
+from kevinlulee.ao import smallify, partition
+from kevinlulee.string_utils import mget, split, split_once
 
 
 EXT_REFERENCE_MAP = {
@@ -70,10 +72,14 @@ EXT_REFERENCE_MAP = {
 
 
 
+extensions = list(set(EXT_REFERENCE_MAP.values()))
 
+
+def has_extension(el):
+        return get_extension(el) in extensions
 def is_extf(extensions):
     def check(el):
-        return get_extension(el) in extensions
+        return has_extension(el)
     return check
 def get_extension(file_path: str) -> str:
     """Extracts and formats the file extension from a given file path.
@@ -148,7 +154,7 @@ def writefile(filepath: str, data: Any, debug = False) -> str:
     value = serialize(data)
     if debug:
         print('-' * 20)
-        print('[DEBUGGING] writefile')
+        print('[DEBUG] writefile')
         print(f'[PATH] "{expanded_file_path}"')
         print('[CONTENT]')
         print()
@@ -399,16 +405,19 @@ def fnamemodify(file, dir = None, name = None, ext = None):
     return os.path.join(_dir, f"{_name}.{_ext}")
 
 
-def cpfile(source, dest, debug=False):
-    source = os.path.abspath(os.path.expanduser(source))
+def cpfile(source, dest, debug=False, soft = False):
     dest = os.path.abspath(os.path.expanduser(dest))
+    if soft and os.path.exists(dest):
+        return 
+    
+    source = os.path.abspath(os.path.expanduser(source))
     assert os.path.isfile(source), f"the provided source: {source} is not a file"
 
     if os.path.isdir(dest):
         dest = os.path.join(dest, os.path.basename(source))
 
     if debug:
-        print(f"[cpfile] Would copy:\n  from: {source}\n    to: {dest}")
+        print(f"[DEBUG] Would copy:\n  from: {source}\n    to: {dest}")
         return
 
     os.makedirs(os.path.dirname(dest), exist_ok=True)
@@ -676,3 +685,159 @@ def mvdir(destination, source, force=False):
                 shutil.copytree(item, dest_item, dirs_exist_ok=force)
     
     return True
+
+
+def readnote(*queries):
+    s = readfile('/home/kdog3682/documents/notes/notes.txt')
+    r = '^\d\d\d\d-\d\d-\d\d'
+    base = split(s, r, flags = re.M)
+    # aggregate it up
+    if queries:
+        store = []
+        for item in reversed(base):
+            a, b = split_once(item, '\n')
+            if a in queries:
+                store.append(b)
+                if len(store) == len(queries):
+                    return smallify(store)
+    else:
+        return base[-1]
+
+
+def mkfile(path, debug = False, soft = False):
+    path = os.path.expanduser(path)
+    if soft and os.path.exists(path):
+        return 
+    
+    if debug:
+        return print('[DEBUG]', 'mkfile', path)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        pass
+
+def mkdir(path, debug = False):
+    
+    if debug:
+        return print('[DEBUG]', 'mkdir', path)
+    os.makedirs(os.path.expanduser(path), exist_ok=True)
+
+
+import os
+import pathspec
+
+def create_gitignore_matcher(rootdir):
+    """
+    Create a function that checks if a file should be ignored based on gitignore rules.
+    
+    Args:
+        gitignore_path (str): Path to the .gitignore file
+        
+    Returns:
+        function: A function that takes a file path and returns True if it should be ignored
+    """
+    # Define root directory
+    root_dir = os.path.expanduser(rootdir)
+    
+    # Read gitignore file
+    try:
+        with open(os.path.join(root_dir, '.gitignore'), 'r') as f:
+            gitignore_content = f.read()
+    except FileNotFoundError:
+        print(f"Warning: {gitignore_path} not found. No files will be ignored.")
+        # Return a function that ignores nothing if gitignore doesn't exist
+        return lambda path: False
+    
+    # Create a spec from gitignore content
+    spec = pathspec.PathSpec.from_lines('gitwildmatch', gitignore_content.splitlines())
+    
+    def is_ignored(file_path):
+        """
+        Check if a file should be ignored according to gitignore rules.
+        
+        Args:
+            file_path (str): Path to the file to check
+            
+        Returns:
+            bool: True if the file should be ignored, False otherwise
+        """
+        # Make path relative to root directory
+        if os.path.isabs(file_path):
+            # If path is absolute, make it relative to root_dir
+            try:
+                rel_path = os.path.relpath(file_path, root_dir)
+            except ValueError:
+                # If file is on a different drive (Windows), it's outside our project
+                return False
+        else:
+            # If path is already relative, use it directly
+            rel_path = file_path
+            
+        # Normalize path separators to forward slashes as git expects
+        rel_path = rel_path.replace(os.path.sep, '/')
+        
+        # Check if the file matches any ignore pattern
+        return spec.match_file(rel_path)
+    
+    return is_ignored
+
+def fancy_filetree(root_dir):
+    """
+    Generates a string representation of the file tree for a given directory,
+    expanding the directory path using os.path.expanduser().
+
+    Args:
+        root_dir (str): The path to the root directory (will be expanded).
+
+    Returns:
+        str: A string representing the fancy file tree. Returns an error message
+             if the provided path is not a valid directory after expansion.
+    """
+    # Expand the root directory path
+    expanded_root = os.path.expanduser(root_dir)
+    
+    # Check if the expanded path is a valid directory
+    if not os.path.isdir(expanded_root):
+        return ''
+    
+    # Initialize the result string with the root directory
+    result = os.path.basename(expanded_root) + "/\n"
+    ignore = create_gitignore_matcher(expanded_root)
+    
+    # Recursively build the tree
+    def build_tree(directory, prefix=""):
+        entries = sorted(os.listdir(directory))
+        count = len(entries)
+        
+        tree_str = ""
+        for i, entry in enumerate(entries):
+            full_path = os.path.join(directory, entry)
+            if ignore(full_path):
+                continue
+            is_last = i == count - 1
+            
+            # Select the appropriate connector
+            connector = "└── " if is_last else "├── "
+            
+            # Determine if entry is a directory
+            if os.path.isdir(full_path):
+                tree_str += f"{prefix}{connector}{entry}/\n"
+                # Determine the new prefix for the next level
+                next_prefix = prefix + ("    " if is_last else "│   ")
+                tree_str += build_tree(full_path, next_prefix)
+            else:
+                tree_str += f"{prefix}{connector}{entry}\n"
+        
+        return tree_str
+    
+    # Start building the tree from the root
+    result += build_tree(expanded_root)
+    return result
+
+
+
+def datawrite(name, content):
+    dir = '~/dotfiles/data'
+    path = name if re.match('[~/]', name) else os.path.join(dir, name)
+    writefile(path, content)
+if __name__ == "__main__":
+    pass

@@ -203,18 +203,26 @@ def toggle_comment(text: str, filetype: str) -> str:
     return "\n".join(result)
 
 
-def join_text(contents):
-    o = ""
-    for content in contents:
-        s = content.strip()
-        if "\n" in s:
-            if o.endswith("\n\n"):
-                o += f"{s}\n\n"
+def join_text(*contents):
+    def runner(contents):
+        o = ""
+        for content in contents:
+            if isinstance(content, (list, tuple)):
+                s = runner(content).strip()
             else:
-                o += f"\n{s}\n\n"
-        else:
-            o += f"{s}\n"
-    return o
+                s = content.strip()
+
+            if "\n" in s:
+                if o.endswith("\n\n"):
+                    o += f"{s}\n\n"
+                else:
+                    o += f"\n{s}\n\n"
+            else:
+                o += f"{s}\n"
+        return o
+
+    contents = contents[0] if len(contents) == 1 else contents
+    return runner(contents)
 
 
 def dash_split(text, delim_length=3, trim=True, filter=True):

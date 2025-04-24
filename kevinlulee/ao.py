@@ -192,10 +192,54 @@ def deep_map(obj, callback):
 
 
 
-def filtered(items, selector: Selector):
+def filtered(items, selector: Selector = exists):
     if not selector:
         return items
 
     fn = testf(selector)
     return [ item for item in items if fn(item) ] 
 
+
+def walk(x, fn):
+    nargs = fn.__code__.co_argcount
+
+    def walker(v, k, parent, depth):
+
+        if isinstance(v, tuple):
+            raise Exception("tuples are not allowed in walk. the reason is because reduce2() uses tuples to decide whether or not keys should be affected.")
+
+        if isinstance(v, list):
+            items = [walker(el, k, v, depth + 1) for el in v]
+            return filtered(items)
+
+        if isinstance(v, dict):
+            return reduce2(v, lambda a, b: walker(b, a, v, depth + 1))
+
+        match nargs:
+            case 1: return fn(v)
+            case 2: return fn(v, k)
+            case 3: return fn(v, k, parent)
+            case 4: return fn(v, k, parent, depth)
+
+    return walker(x, None, None, 0)
+
+def reduce2(items, fn, *args, **kwargs):
+    '''
+        desc: 
+            the callback only takes one argument (v)
+            not the standard (k, v)
+
+            the rest of *args and **kwargs are injected
+            into the callback
+    '''
+    store = {}
+
+    for k, v in items.items():
+        value = fn(k, v, *args, **kwargs)
+        if value is not None:
+            if isinstance(value, tuple):
+                a, b = value
+                store[a] = b
+            else:
+                store[k] = value
+    return store

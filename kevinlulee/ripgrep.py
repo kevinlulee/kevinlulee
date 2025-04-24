@@ -128,14 +128,16 @@ def fdfind(
     ignore_file: str = None,
     exts: List[str] = [],
     debug=False,
+    fixed = False,
 ) -> List[str]:
     cmd = ["fdfind"]
 
     if "*" in query:
         cmd.extend(["--glob", query])
-    else:
+    elif fixed:
         cmd.extend(["--fixed-strings", query])
-
+    else:
+        cmd.append(query)
     dirs = [os.path.expanduser(d) for d in dirs]
     cmd.extend(dirs)
     for dir in dirs:

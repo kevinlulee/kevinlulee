@@ -1,3 +1,4 @@
+import json
 import re
 import yaml
 import textwrap
@@ -31,7 +32,10 @@ class Templater:
                 rendered = self.format(bracket_expr.strip('{}'), self.scope)
                 return str(eval(rendered))
             elif word:
-                return self.getter(word)
+                m = self.getter(word)
+                if isinstance(m, dict):
+                    m = json.dumps(m, indent=2, ensure_ascii=False)
+                return m
 
         def add_spacing(value, newline, ind, bullet, after_spaces, comma):
             if bullet:
@@ -80,3 +84,7 @@ def rgetattr(obj, attr):
     return obj
 
 templater = Templater().format
+
+
+if __name__ == "__main__":
+    print(templater('hi $a\nb', {'a':{'alpha':"1"}}))

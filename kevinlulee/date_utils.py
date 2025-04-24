@@ -34,7 +34,7 @@ def strftime(source=None, mode="iso8601"):
         "usa": "%m/%d/%Y %I:%M:%S %p",
     }
 
-    return to_datetime(source).strftime(templates[mode])
+    return to_datetime(source).strftime(templates.get(mode, mode))
 
 
 def resolve_timedelta(

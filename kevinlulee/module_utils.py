@@ -77,7 +77,21 @@ def load_module(key, reload = False):
             del sys.modules[key]
     return __import__(key, fromlist=(key.split(".")))
 
-def load_func(module, func):
+def load_func(module, func = None):
+    if not func:
+        if isinstance(module, str) and '.' in module:
+            func = module.split('.')[-1]
+        else:
+            raise Exception("func is needed")
     return getattr(load_module(module), func, None)
 
+
+
+
 # print(get_file_from_modname('kevinlulee'))
+
+
+if __name__ == "__main__":
+    # this is super cool
+    # 
+    load_func('kevinlulee.scripts.generate_pytypst_funcs')('abc')

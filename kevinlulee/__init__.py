@@ -133,3 +133,13 @@ def curry(func, *top_args, **top_kwargs):
         return func(*args, *top_args, **kwargs, **top_kwargs)
 
     return inner
+
+
+def tern(*args):
+    l = len(args)
+    if l == 2:
+        a, b = args
+        return a if exists(a) else b
+    if l == 3:
+        a, b, c = args
+        return b if exists(a) else c

@@ -295,7 +295,7 @@ class GitRepo(HistoryData, StatusData, GitProperties):
         return self.cmd("commit", "-m", message)
 
     def create_branch(self, branch_name):
-        return self.cmd("branch", branch_name)
+        return self.cmd("branch", '-M', branch_name)
 
     def checkout(self, branch_name):
         return self.cmd("checkout", branch_name)
@@ -413,10 +413,13 @@ class GitCommands:
         repo.add(".")
         return repo.commit(m)
 
+
 if __name__ == '__main__':
     testing = True
     if testing:
         g = GitRepo('~/projects/python/kevinlulee/')
+        # print(g.create_branch('dev'))
+        # print(g.branch)
         g.debug = False
         # res = g.commands.set_remote(apikey=True)
         # print(res)
