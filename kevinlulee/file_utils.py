@@ -223,11 +223,14 @@ def find_project_root(start_path):
             return current_dir
 
         parent_dir = os.path.dirname(current_dir)
+        if os.path.basename(parent_dir) == 'python':
+            return current_dir
+        
         if parent_dir == current_dir:
+            print('b')
             break
 
         current_dir = parent_dir
-
     return None
 
 def find_git_directory(path):
@@ -533,6 +536,7 @@ def writefile(filepath: str, data: Any, debug = False, verbose = True) -> str:
 
     value = serialize(data)
     if debug:
+        return print(f'[DEBUG] writefile "{expanded_file_path}"')
         if verbose:
             print('-' * 20)
             print('[DEBUGGING] writefile')
@@ -839,5 +843,50 @@ def datawrite(name, content):
     dir = '~/dotfiles/data'
     path = name if re.match('[~/]', name) else os.path.join(dir, name)
     writefile(path, content)
-if __name__ == "__main__":
-    pass
+
+def unexpand(path):
+    home = os.path.expanduser("~/")
+    return path.replace(home, "")
+
+def find_parent_path(input_path, callback):
+    """
+    Traverses up the directory tree from input_path until callback returns a Path or home directory is reached.
+
+    Args:
+        input_path: Starting path as string or Path
+        callback: Function that takes a Path and returns either a Path object or None
+
+    Returns:
+        Path object returned by callback or None if traversal ends without a match
+    """
+
+    path = Path(input_path).expanduser()
+    home = Path.home()
+    count = 0
+    max_iterations = 10
+
+    if path.is_file():
+        path = path.parent
+
+    while path != home and count < max_iterations:
+        result = callback(path)
+        if isinstance(result, Path):
+            return result
+
+        if result == True:
+            return path
+
+        if result == False:
+            return
+        # Move up to parent directory
+        parent = path.parent
+        if parent == path:  # Reached root directory
+            break
+        path = parent
+        count += 1
+
+    return None
+
+
+if __name__ == '__main__':
+    print('hi from file_utils.py')

@@ -1,4 +1,5 @@
 from kevinlulee.base import testf
+import itertools
 from kevinlulee.typing import Selector
 from kevinlulee.validation import exists, is_array
 
@@ -163,7 +164,7 @@ def merge_dicts_recursively(*dicts):
     When values are dictionaries, it is applied recursively
     """
     result = dict()
-    all_items = it.chain(*[d.items() for d in dicts])
+    all_items = itertools.chain(*[d.items() for d in dicts])
     for key, value in all_items:
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = merge_dicts_recursively(result[key], value)

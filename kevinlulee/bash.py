@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 
 from kevinlulee.ao import to_array
+from kevinlulee.module_utils import get_modname_from_file
 from kevinlulee.string_utils import split
 from kevinlulee.ao import join_spaces
 
@@ -18,12 +19,13 @@ import subprocess
 
 from typing import TypedDict
 
-def bash(*args, cwd=None, on_error=None, silent=True, debug = False, strict = False):
+def bash(*args, cwd=None, on_error=None, silent=True, debug = False, strict = False, shell = False):
     cwd = os.path.expanduser(cwd) if cwd else None
     s = join_spaces(args)
     if debug:
         return print('[DEBUG]', s)
-    result = subprocess.run(s.split(' '), text=True, cwd=cwd, capture_output=True)
+    cmd = s if shell else s.split(' ')
+    result = subprocess.run(cmd, text=True, cwd=cwd, capture_output=True, shell = shell, check = True)
 
     err = result.stderr.strip()
     success = result.stdout.strip()
@@ -65,13 +67,17 @@ def typst(inpath=None, outpath=None, open=False, mode="compile", on_error = None
 
 def python3(file, *args, as_module=False, on_error = None):
     if as_module:
-        cwd = find_project_root(file)
-        if not cwd:
-            return bash("python3", file, *args, on_error=on_error, silent=False)
-        abs_path = Path(file).resolve()
-        relative_path = abs_path.relative_to(cwd).with_suffix("")
-        module_path = ".".join(relative_path.parts)
-        display(module_path = module_path, cwd = cwd)
-        return bash("python3", "-m", module_path, *args, cwd=cwd, on_error=on_error, silent=False)
+        module_path = get_modname_from_file(file)
+        cwd = '~/projects/python'
+        if module_path:
+            display(module_path = module_path, cwd = cwd)
+            return bash("python3", "-m", module_path, *args, cwd=cwd, on_error=on_error, silent=False)
+        else:
+            print('could not find a module_path for the current file')
     else:
         return bash("python3", file, *args, on_error=on_error, silent=False)
+
+
+if __name__ == '__main__':
+    pass
+    # bash('python3 -m kevinlulee.experiments.foobar')

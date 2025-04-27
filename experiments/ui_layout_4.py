@@ -1,6 +1,3 @@
-# this file is called geometry
-
-
 from __future__ import annotations
 from typing import List, Self
 import math
@@ -90,30 +87,3 @@ class Frame:
         return self.get(135deg)
 
 
-class Element:
-    id_counter = 0
-
-    @classmethod
-    def generate_id(cls):
-        cls.id_counter += 1
-        return cls.id_counter
-
-    @property
-    def compass(self):
-        return Compass(self.frame)
-
-    def __init__(self, id=None):
-        self.id = id
-        self.uid = self.generate_id()
-        self.frame = Rect()
-
-        self.parent = None
-        self.children: List[Element] = []
-
-    def add(self, *elements: Element) -> Self:
-        for element in elements:
-            self.children.append(element)
-            element.parent = self
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}(id={self.id or self.uid}, frame={self.frame})"
