@@ -60,7 +60,7 @@ class Templater:
                 else:
                     return newline + ind + bullet + after_spaces + str(value) + comma
             else:
-                assert isinstance(value, (str, int, float)), "without bullets, the value must be a primitive"
+                assert isinstance(value, (str, int, float)), f"without bullets, the value must be a primitive. the provided value <<{value}>> does not match."
                 return str(value) + comma
 
         value = get(bracket_expr, word) 

@@ -1,34 +1,8 @@
-import matplotlib.pyplot as plt
 import tempfile
 import webbrowser
 import os
-
-def show():
-    """
-    Saves the current Matplotlib figure to a temporary PNG file
-    and opens it in the default web browser.
-    """
-    # Get the current figure
-    fig = plt.gcf()
-
-    # Create a temporary file with .png extension
-    # delete=False ensures the file is not deleted immediately after closing,
-    # so the browser has time to open it.
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmpfile:
-        # Save the figure to the temporary file
-        fig.savefig(tmpfile.name)
-        temp_filepath = tmpfile.name
-
-    # Close the figure to free up memory and prevent it from being displayed
-    # by a standard backend later if any show calls are made.
-    plt.close(fig)
-
-    # Open the temporary file in the default web browser
-    try:
-        webbrowser.open("file://" + os.path.realpath(temp_filepath))
-    except Exception as e:
-        print(f"Could not open plot in browser: {e}")
-        print(f"Plot saved temporarily to: {temp_filepath}")
+from kevinlulee import writefile
+from kevinlulee.scripts.matplotshow import matplotshow as show
 
 # Example Usage:
 if __name__ == '__main__':
