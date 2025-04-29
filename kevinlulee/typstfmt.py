@@ -2,6 +2,30 @@ from kevinlulee.ao import mapfilter
 from kevinlulee.text_tools import bracket_wrap, strcall
 from kevinlulee.string_utils import dash_case
 from kevinlulee.base import real
+import numpy as np
+
+typst_color_keys = [
+    "fill",
+    "stroke",
+    "paint",
+    "highlight",
+]
+
+typst_length_keys = [
+    "width",
+    "height",
+    "thickness",
+    "inset",
+    "outset",
+    "spacing",
+    "indent",
+    "stroke-width",
+    "radius",
+    "gap",
+    "margin",
+    "padding",
+]
+
 
 import re
 
@@ -14,14 +38,22 @@ css_unit_re = r"(-?\d*\.?\d+)(px|em|rem|vh|vw|vmin|vmax|%|cm|mm|in|pt|pc|ex|ch)$
 alignments = ('left', 'right', 'top', 'center', 'bottom', 'horizon')
 # alignments left right top bottom center horizon
 typst_keys = ('scale','stroke', 'wh', 'width', 'height', 'align')
+
+def is_point_pair(x):
+    return is_array(x) and isinstance(x[0], (float, int)) and len(x) == 2
 class TypstArgumentFormatter:
     def __init__(self, max_width=50, indentation=2):
         self.indentation = indentation
         self.max_width = max_width
 
     def _coerce_value(self, k, v):
-        if is_number(v):
+        if isinstance(v, (np.float32, np.float64, np.integer)):
             if k == 'rotate':
+                return real(str(float(v)) + 'deg')
+            else:
+                return real(str(float(v)) + 'pt')
+        if is_number(v):
+            if k == 'rotate' or k == 'angle':
                 return real(str(v) + 'deg')
             else:
                 return real(str(v) + 'pt')
@@ -36,6 +68,8 @@ class TypstArgumentFormatter:
                 return real(v)
             else:
                 return v
+        if (k == 'args' or k == 'points') and is_array(v) and all(is_point_pair(p) for p in v):
+            return [[real(str(float(v)) + 'pt') for v in el] for el in v]
         return v
 
     def format(self, value, level=0, coerce=False):
@@ -68,12 +102,12 @@ class TypstArgumentFormatter:
         def callback(el):
             k, v = el
             prefix = f'"{k}"' if not is_number(k) else dash_case(k)
-            if not v:
+            if v is None:
                 return prefix + ": none"
             if coerce:
                 v = self._coerce_value(k, v)
             val = self.format(v, level + 1, coerce)
-            if not val:
+            if val is None:
                 return
             return prefix + ": " + val
 
@@ -119,3 +153,47 @@ class TypstArgumentFormatter:
 
 typstfmt = TypstArgumentFormatter()
 
+
+
+data = {
+  "meta": {
+    "debug": True,
+    "topdown": False
+  },
+  "wrapper": {
+    "width": 25.0,
+    "height": 25.0,
+    "inset": 0
+  },
+  "contents": [
+    {
+      "type": "line",
+      "args": [
+        [
+          135.0,
+          115.0
+        ]
+      ],
+      "kwargs": {
+        "angle": 0.0,
+        "length": 60.0
+      }
+    },
+    {
+      "type": "rect",
+      "args": [
+        [
+          135.0,
+          135.0
+        ]
+      ],
+      "kwargs": {
+        "width": 250.0,
+        "height": 250.0
+      }
+    }
+  ]
+}
+
+
+# print(typstfmt.format(data, coerce = True))
