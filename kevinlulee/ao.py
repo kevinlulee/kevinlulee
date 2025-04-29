@@ -206,15 +206,14 @@ def walk(x, fn):
 
     def walker(v, k, parent, depth):
 
-        if isinstance(v, tuple):
-            raise Exception("tuples are not allowed in walk. the reason is because reduce2() uses tuples to decide whether or not keys should be affected.")
-
-        if isinstance(v, list):
+        if isinstance(v, (tuple, list, set)):
             items = [walker(el, k, v, depth + 1) for el in v]
             return filtered(items)
 
         if isinstance(v, dict):
-            return reduce2(v, lambda a, b: walker(b, a, v, depth + 1))
+            return {
+                a: walker(b, a, v, depth + 1) for a, b in v.items()
+            }
 
         match nargs:
             case 1: return fn(v)
@@ -244,3 +243,13 @@ def reduce2(items, fn, *args, **kwargs):
             else:
                 store[k] = value
     return store
+
+
+
+def on_off(state, key, on, off):
+    if getattr(state, key, None):
+        setattr(state, key, 0)
+        off()
+    else:
+        setattr(state, key, 1)
+        on()
