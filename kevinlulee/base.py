@@ -200,6 +200,10 @@ def testf(selector: Selector, flags=0, anti=0, key=None):
         
     elif isinstance(selector, (list, tuple)):
         fn = lambda s: s in selector
+    elif callable(selector):
+        fn = selector
+    else:
+        fn = lambda x: x == fn
 
     if anti and key:
         return lambda x: not fn(get_field_value(x, key))

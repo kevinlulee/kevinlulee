@@ -173,3 +173,10 @@ def pascal_case(s):
     if not s: return ''
     return capitalize(camel_case(s))
 
+
+
+def add_quotes(s):
+    if s[0].isalpha():
+        return f'"{s}"'
+    else:
+        return s

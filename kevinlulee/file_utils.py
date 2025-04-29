@@ -484,6 +484,29 @@ def comment(text, filepath):
     return formatter(text)
 
 
+def serialize_data(data, filepath) -> str:
+    if isinstance(data, (int, bool)):
+        raise TypeError("Only strings, arrays, dictionaries, customs are allowed.")
+    elif isinstance(data, str):
+        return data
+
+    elif isinstance(data, (dict, list, tuple)):
+        file_extension = get_extension(filepath)
+        match file_extension:
+            case "yml" | "yaml":
+                return yaml.dump(data, indent=2)
+            case "toml":
+                import toml
+
+                return toml.dumps(data)
+            case "json":
+                return json.dumps(data, indent=2)
+            case "txt":
+                return json.dumps(data, indent=2)
+            case _:
+                raise ValueError(f"Unsupported file extension: {file_extension}")
+    else:
+        return str(data)
 def writefile(filepath: str, data: Any, debug = False, verbose = True) -> str:
     """Writes data to a file, serializing it based on the file extension.
     Creates the directory if it doesn't exist.
@@ -743,11 +766,13 @@ def create_gitignore_matcher(rootdir):
     root_dir = os.path.expanduser(rootdir)
     
     # Read gitignore file
+    gitignore_path = os.path.join(root_dir, '.gitignore')
     try:
-        with open(os.path.join(root_dir, '.gitignore'), 'r') as f:
+
+        with open(gitignore_path, 'r') as f:
             gitignore_content = f.read()
     except FileNotFoundError:
-        print(f"Warning: {gitignore_path} not found. No files will be ignored.")
+        print(f"{gitignore_path} not found. No files will be ignored.")
         # Return a function that ignores nothing if gitignore doesn't exist
         return lambda path: False
     
@@ -846,7 +871,7 @@ def datawrite(name, content):
 
 def unexpand(path):
     home = os.path.expanduser("~/")
-    return path.replace(home, "")
+    return path.replace(home, "~/")
 
 def find_parent_path(input_path, callback):
     """
@@ -887,6 +912,21 @@ def find_parent_path(input_path, callback):
 
     return None
 
+def absdir(dir):
+    dir = os.path.expanduser(dir)
+    return [os.path.join(dir, path) for path in os.listdir(dir)]
+
+import os
+
+def ensure_directory(path):
+    path = os.path.expanduser(path)  # Expands ~ to the user's home directory
+    
+    if os.path.isfile(path):
+        path = os.path.dirname(path)
+    return path
 
 if __name__ == '__main__':
     print('hi from file_utils.py')
+
+
+

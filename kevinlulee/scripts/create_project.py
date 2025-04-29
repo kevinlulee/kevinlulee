@@ -192,4 +192,6 @@ def init_manimlib(name):
     # message = 'fork of 3b1b/manim'
     repo.commit("first")
 if __name__ == '__main__':
-    init_manimlib('manimlib')
+    # init_manimlib('manimlib')
+    # foobar()
+    # pass

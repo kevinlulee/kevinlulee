@@ -208,9 +208,12 @@ def join_text(*contents):
         o = ""
         for content in contents:
             if isinstance(content, (list, tuple)):
-                s = runner(content).strip()
+                s = runner(content)
             else:
-                s = content.strip()
+                s = content
+
+            if not s:
+                continue
 
             if "\n" in s:
                 if o.endswith("\n\n"):

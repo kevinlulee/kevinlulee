@@ -55,13 +55,17 @@ def resolve_timedelta(
     )
     return cutoff.timestamp()
 
-def is_recentf(mode = "after", **opts):
+def is_recentf(mode = "after", key = None, **opts):
     cutoff = resolve_timedelta(**opts)
-    if mode == "after":
-        return lambda x: x >= cutoff
+    if mode == "after" or mode == "recent":
+        fn = lambda x: x >= cutoff
     else:
-        return lambda x: x < cutoff
+        fn = lambda x: x < cutoff
 
+    if key:
+        return lambda x: fn(x[key])
+    else:
+        return fn
 def timeago(time, now=None):
     def seconds_to_ago_string(seconds):
         # Define time units in seconds

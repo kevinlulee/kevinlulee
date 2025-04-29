@@ -7,7 +7,7 @@ from typing import List, Optional
 import os
 from pathlib import Path
 
-from kevinlulee.ao import to_array
+from kevinlulee.ao import filtered, to_array
 from kevinlulee.module_utils import get_modname_from_file
 from kevinlulee.string_utils import split
 from kevinlulee.ao import join_spaces
@@ -45,6 +45,24 @@ def bash(*args, cwd=None, on_error=None, silent=True, debug = False, strict = Fa
 
     return success
 
+def bash2(*args, cwd=None, on_error=None):
+    cwd = os.path.expanduser(cwd) if cwd else None
+    cmd = filtered(args)
+
+    try:
+        result = subprocess.run(cmd, text=True, cwd=cwd, capture_output=True, check = True)
+        stdout = result.stdout.strip()
+        return stdout
+    except Exception as e:
+
+        if on_error:
+            return on_error(e)
+        else:
+            stdout = e.stdout.strip()
+            stderr = e.stderr.strip()
+
+            print('STDOUT', stdout)
+            print('STDERR', stderr)
 
 
 

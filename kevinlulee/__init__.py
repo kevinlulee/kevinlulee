@@ -8,8 +8,8 @@ from .validation import *
 from .ao import *
 from .pythonfmt import pythonfmt
 from .typstfmt import typstfmt
-from .bash import bash, typst, python3
-from .ripgrep import ripgrep, fdfind, fd
+from .bash import *
+from .ripgrep import *
 from .git import GitRepo
 
 
@@ -143,3 +143,20 @@ def tern(*args):
     if l == 3:
         a, b, c = args
         return b if exists(a) else c
+
+def bartender(s, delimiter = '=', amount = 50):
+    a = delimiter * amount
+    p = a + "\n" + s + "\n" + a
+    print(p)
+
+def comparable(a, b):
+    if a == None:
+        return True
+
+    if a and not b:
+        return False
+
+    if not a and b:
+        return False
+
+    return True
