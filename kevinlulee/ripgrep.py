@@ -49,9 +49,11 @@ def parse_ripgrep_line(line: str) -> RipgrepLine:
     except ValueError:
         return {}
 
-    return {"path": path, "lnum": lnum, "excerpt": excerpt.strip()}
+    return {"path": path, "lnum": lnum, "excerpt": excerpt}
 
 
+def typst_codelib():
+    return [parse_ripgrep_line(s) for s in lines if parse_ripgrep_line(s)]
 
 
 
@@ -69,6 +71,7 @@ def ripgrep(
     exclude_dirs: List[str] = [],
     include_dirs: List[str] = [],
     exts: List[str] = [],
+    grouped = False,
 ) -> List[RipgrepLine]:
     cmd = ["rg"]
 
@@ -114,7 +117,27 @@ def ripgrep(
         raise RuntimeError(f"rg failed with error: {result.stderr}")
 
     lines = result.stdout.splitlines()
-    return [parse_ripgrep_line(s) for s in lines if parse_ripgrep_line(s)]
+
+    return group_ripgrep(lines, grouped=grouped)
+
+def group_ripgrep(lines, grouped = False):
+    parsed = [r for s in lines if (r := parse_ripgrep_line(s))]
+
+    if not grouped:
+        return parsed
+
+    groups = {}
+    for item in parsed:
+        path = item["path"]
+        if path not in groups:
+            groups[path] = []
+        groups[path].append({
+            "lnum": item["lnum"],
+            "excerpt": item["excerpt"]
+        })
+
+    return [{"path": path, "contents": contents} for path, contents in groups.items()]
+
 
 def fdfind(
     dirs: list = ["~/"],
@@ -204,5 +227,7 @@ def fd(
         exts=exts,
         debug=debug
     )
+def rg(dir, pattern, **kwargs):
+    return ripgrep(pattern, [dir], **kwargs)
 if __name__ == '__main__':
     print(ripgrep(pattern='def group', dirs = ['/home/kdog3682/projects/python/kevinlulee/kevinlulee/']))

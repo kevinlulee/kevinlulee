@@ -80,6 +80,17 @@ class PythonArgumentFormatter:
         prefix = f'def {parts}'
         return prefix + bracket_wrap(body, bracket_type=':', delimiter='', newlines=True)
 
+    def func_decl2(self, name, args, kwargs, body, elude):
+        parts = self.call2(name, args, kwargs, elude)
+        prefix = f'def {parts}'
+        return prefix + bracket_wrap(body, bracket_type=':', delimiter='', newlines=True)
+
+    def call2(self, func_name, args, kwargs, elude):
+        args = [self.format(v) for v in args]
+        kwargs = self._format_raw_dict(kwargs, as_argument = True)
+        if elude:
+            kwargs.append('**' + elude)
+        return strcall(func_name, args, kwargs, max_length = 60)
 
 pythonfmt = PythonArgumentFormatter()
 # print(pythonfmt.func_decl('asdf', 'xx', body = 'rsfsdfeturn'))

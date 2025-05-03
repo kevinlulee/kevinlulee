@@ -45,18 +45,22 @@ def bash(*args, cwd=None, on_error=None, silent=True, debug = False, strict = Fa
 
     return success
 
-def bash2(*args, cwd=None, on_error=None):
+def bash2(*args, cwd=None, on_error=None, strict = False, verbose = False):
     cwd = os.path.expanduser(cwd) if cwd else None
     cmd = filtered(args)
 
     try:
         result = subprocess.run(cmd, text=True, cwd=cwd, capture_output=True, check = True)
         stdout = result.stdout.strip()
+        if verbose:
+            print(stdout)
         return stdout
     except Exception as e:
 
         if on_error:
             return on_error(e)
+        elif strict:
+            raise e
         else:
             stdout = e.stdout.strip()
             stderr = e.stderr.strip()

@@ -11,6 +11,7 @@ from .typstfmt import typstfmt
 from .bash import *
 from .ripgrep import *
 from .git import GitRepo
+from .constants import *
 
 
 import inspect
@@ -160,3 +161,46 @@ def comparable(a, b):
         return False
 
     return True
+
+class Array:
+    def __init__(self, items=None):
+        self.items = list(items) if items else []
+
+    def insert(self, index,item):
+        self.items.insert(index, item)
+        return self
+
+    def append(self, item):
+        self.items.append(item)
+        return self
+
+    def map(self, func):
+        return Array([func(x) for x in self.items])
+
+    def filter(self, func):
+        return Array([x for x in self.items if func(x)])
+
+    def join(self):
+        return join_text(self.items)
+
+    def __repr__(self):
+        return self.map(str).join().strip()
+
+    def __iter__(self):
+        return iter(self.items)
+
+    def __getitem__(self, index):
+        return self.items[index]
+
+    def __len__(self):
+        return len(self.items)
+
+
+from pprint import pprint
+
+
+def linecount(text):
+    lines = text.split('\n')
+    non_empty_lines = [line for line in lines if line.strip()]
+    return len(non_empty_lines)
+

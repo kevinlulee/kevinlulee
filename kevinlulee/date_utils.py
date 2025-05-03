@@ -1,4 +1,7 @@
 from datetime import datetime, timedelta
+import datetime
+import calendar
+from typing import Optional, Union
 import os
 
 def to_datetime(x=None):
@@ -24,6 +27,7 @@ def get_season(d):
         return "Winter"
 
 
+# 2025-05-01 aicmp: literal type for mode based on the templates
 def strftime(source=None, mode="iso8601"):
     templates = {
         "iso8601": "%Y-%m-%d",
@@ -114,3 +118,136 @@ def timeago(time, now=None):
         return f"{td.days} days, {s}"
     else:
         return s
+
+class DateAccess:
+    """A class that provides access to various date and time properties."""
+    
+    def __init__(self, date: Optional[Union[datetime.datetime, datetime.date]] = None):
+        """
+        Initialize with either a specific date or the current date.
+        
+        Args:
+            date: Optional datetime or date object. Defaults to current date/time.
+        """
+        if date is None:
+            self._date = datetime.datetime.now()
+        elif isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
+            # Convert date to datetime at midnight
+            self._date = datetime.datetime.combine(date, datetime.time())
+        else:
+            self._date = date
+    
+    @property
+    def year(self) -> int:
+        """Get the year as an integer."""
+        return self._date.year
+    
+    @property
+    def month(self) -> int:
+        """Get the month as an integer (1-12)."""
+        return self._date.month
+    
+    @property
+    def day(self) -> int:
+        """Get the day of month as an integer."""
+        return self._date.day
+    
+    @property
+    def hour(self) -> int:
+        """Get the hour as an integer (0-23)."""
+        return self._date.hour
+    
+    @property
+    def minute(self) -> int:
+        """Get the minute as an integer (0-59)."""
+        return self._date.minute
+    
+    @property
+    def second(self) -> int:
+        """Get the second as an integer (0-59)."""
+        return self._date.second
+    
+    @property
+    def month(self) -> str:
+        """Get the full month name (e.g., 'January')."""
+        return calendar.month_name[self._date.month]
+    
+    @property
+    def month_name_short(self) -> str:
+        """Get the abbreviated month name (e.g., 'Jan')."""
+        return calendar.month_abbr[self._date.month]
+    
+    @property
+    def weekday(self) -> int:
+        """Get the weekday as an integer (0=Monday, 6=Sunday)."""
+        return self._date.weekday()
+    
+    @property
+    def weekday_name(self) -> str:
+        """Get the full weekday name (e.g., 'Monday')."""
+        return calendar.day_name[self._date.weekday()]
+    
+    @property
+    def weekday_name_short(self) -> str:
+        """Get the abbreviated weekday name (e.g., 'Mon')."""
+        return calendar.day_abbr[self._date.weekday()]
+    
+    @property
+    def day_of_year(self) -> int:
+        """Get the day of the year (1-366)."""
+        return self._date.timetuple().tm_yday
+    
+    @property
+    def week_of_year(self) -> int:
+        """Get the ISO week number of the year (1-53)."""
+        return self._date.isocalendar()[1]
+    
+    @property
+    def quarter(self) -> int:
+        """Get the quarter of the year (1-4)."""
+        return (self._date.month - 1) // 3 + 1
+    
+    @property
+    def is_leap_year(self) -> bool:
+        """Check if the current year is a leap year."""
+        return calendar.isleap(self._date.year)
+    
+    @property
+    def days_in_month(self) -> int:
+        """Get the number of days in the current month."""
+        return calendar.monthrange(self._date.year, self._date.month)[1]
+    
+    @property
+    def timestamp(self) -> float:
+        """Get the UNIX timestamp."""
+        return self._date.timestamp()
+    
+    @property
+    def iso_format(self) -> str:
+        """Get the date in ISO format (YYYY-MM-DD)."""
+        return self._date.date().isoformat()
+    
+    @property
+    def iso_datetime(self) -> str:
+        """Get the date and time in ISO format."""
+        return self._date.isoformat()
+    
+    @property
+    def american_date(self) -> str:
+        """Get the date in American format (MM/DD/YYYY)."""
+        return f"{self._date.month:02d}/{self._date.day:02d}/{self._date.year}"
+    
+    @property
+    def european_date(self) -> str:
+        """Get the date in European format (DD/MM/YYYY)."""
+        return f"{self._date.day:02d}/{self._date.month:02d}/{self._date.year}"
+    
+    @property
+    def ordinal_day(self) -> str:
+        """Get the day with ordinal suffix (1st, 2nd, 3rd, etc.)."""
+        day = self._date.day
+        if 10 <= day % 100 <= 20:
+            suffix = 'th'
+        else:
+            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
+        return f"{day}{suffix}"

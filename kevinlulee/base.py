@@ -213,3 +213,20 @@ def testf(selector: Selector, flags=0, anti=0, key=None):
         return lambda x: fn(get_field_value(x, key))
     else:
         return fn
+
+
+def n2char(num: int) -> str:
+    """Convert a number (0-25) to a corresponding lowercase letter (a-z)."""
+    if 0 <= num <= 25:
+        return chr(97 + num)
+    else:
+        raise ValueError("Number must be between 0 and 25.")
+
+
+def char2n(letter: str) -> int:
+    """Convert a lowercase letter (a-z) to a corresponding number (0-25)."""
+    if len(letter) == 1 and letter.islower():
+        return ord(letter) - 97
+    else:
+        raise ValueError("Input must be a single lowercase letter.")
+

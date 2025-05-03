@@ -253,3 +253,15 @@ def on_off(state, key, on, off):
     else:
         setattr(state, key, 1)
         on()
+
+
+def assign_fresh(*dicts: dict) -> dict:
+    result = {}
+    for d in dicts:
+        if not d:
+            continue  # Skip empty dictionaries
+        for key, value in d.items():
+            if key not in result or result[key] is None:
+                result[key] = value
+    return result
+
