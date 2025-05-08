@@ -80,8 +80,18 @@ def uncomment(s):
     r = '^( *)(?:#+|//+|"|--+) +'
     return re.sub(r , lambda x: x.group(1), s, flags = re.M)
 
+def filter_none(data):
+    if isinstance(data, list):
+        return [x for x in data if x is not None]
+    elif isinstance(data, dict):
+        return {
+            k: v for k, v in data.items() if v is not None
+        }
+    else:
+        panic('only lists and dicts')
+
 def pycall(*args, **kwargs):
-    return pythonfmt.call(*args, **kwargs)
+    return pythonfmt.call(*args, **filter_none(kwargs))
 
 
 def get_required_args(func):
@@ -204,3 +214,74 @@ def linecount(text):
     non_empty_lines = [line for line in lines if line.strip()]
     return len(non_empty_lines)
 
+def bug(value):
+    print('bugging')
+    print('---')
+    print('type', type(value))
+    print('value', value)
+    print('---')
+    stop()
+
+
+def panic(x):
+    stop(x)
+
+def is_class_constructor(obj):
+        if isinstance(obj, type):
+            return True
+
+def exists_in_list(obj, lst):
+    return any(x is obj for x in lst)
+
+def quotify(s):
+    if s.startswith('"'):
+        return s
+    return f'"{s}"'
+
+def looks_like_number(s):
+    return bool(re.search(r'^\d+(?:\.\d+)?$', str(s)))
+
+def add_unit(value, unit):
+    base = str(value)
+    if base.endswith(unit):
+        return base
+    return base + unit
+
+
+def panic(el, message):
+    print(type(el))
+    stop(el, message)
+
+def get_class_properties(cls):
+    native = [
+        "__class__",
+        "__delattr__",
+        "__dict__",
+        "__dir__",
+        "__doc__",
+        "__eq__",
+        "__format__",
+        "__ge__",
+        "__getattribute__",
+        "__getstate__",
+        "__gt__",
+        "__hash__",
+        "__init__",
+        "__init_subclass__",
+        "__le__",
+        "__lt__",
+        "__module__",
+        "__ne__",
+        "__new__",
+        "__reduce__",
+        "__reduce_ex__",
+        "__repr__",
+        "__setattr__",
+        "__sizeof__",
+        "__str__",
+        "__subclasshook__",
+        "__weakref__",
+    ]
+
+    keys = filtered(dir(cls), native)
+    return [getattr(cls, key) for key in keys]

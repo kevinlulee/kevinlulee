@@ -40,6 +40,12 @@ class GenerativeResult:
 
 # --- Core Functions ---
 
+class ProcessResponse:
+    def __init__(self):
+        
+    
+
+
 def process_llm_response(raw: Any) -> GenerativeResult:
     """
     Processes the raw response from an LLM API call, extracts code and summary,

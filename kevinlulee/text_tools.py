@@ -11,6 +11,7 @@ def bracket_wrap(
     indent: int = 4,
     delimiter=", ",
     newlines=False,
+    extra_comma = False,
 ) -> str:
     brackets = {
         "()": ("(", ")"),
@@ -28,10 +29,12 @@ def bracket_wrap(
         "([])": ("([", "])"),
     }
 
+    extra_comma = ',' if extra_comma else ''
     if newlines and delimiter == ", ":
         delimiter = ",\n"
     open_bracket, close_bracket = brackets[bracket_type]
-    text = delimiter.join(str(el) for el in to_array(items))
+    close_bracket
+    text = delimiter.join(str(el) for el in to_array(items)) + extra_comma
     if not text:
         return open_bracket + close_bracket
     if re.search("^[\(\{\[]\n", text):
@@ -42,7 +45,7 @@ def bracket_wrap(
         ending_newline = "" if indented_text.endswith("\n") else "\n"
         return f"{open_bracket}\n{indented_text}{ending_newline}{close_bracket}"
     else:
-        return open_bracket + text + close_bracket
+        return open_bracket + text + close_bracket 
 
 def extract_frontmatter(text: str):
     """

@@ -31,6 +31,8 @@ def to_lines(x):
 def mapfilter(items, fn, validator = lambda x: x):
     store = []
     for item in items:
+        if item is None:
+            continue
         p = fn(item)
         if validator(p):
             store.append(p)
@@ -198,6 +200,8 @@ def filtered(items, selector: Selector = exists):
         return items
 
     fn = testf(selector)
+    if isinstance(items, dict):
+        return {k: v for k, v in items.items() if fn(v)}
     return [ item for item in items if fn(item) ] 
 
 

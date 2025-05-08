@@ -1,12 +1,15 @@
-from kevinlulee.ao import mapfilter
-from kevinlulee.validation import is_array, is_number, is_string
-from kevinlulee.text_tools import bracket_wrap, strcall
-from kevinlulee.string_utils import dash_case
-from kevinlulee.base import real
-# import numpy as np
-# i think this works
-# i think we also need access to the primitives
+from enum import Enum
+from kevinlulee import *
+pointlike_keys = ['args', 'points']
+numpy_keys = ['pos', 'points']
 
+
+angular = ['rotate', 'angle']
+
+def quotify(s):
+    return f'"{s}"'
+def pointify(value, unit = 'pt'):
+    return str(value) + unit
 def floatify(v):
     if is_array(v):
         return real(str(float(v)) + 'deg')
@@ -26,6 +29,7 @@ typst_length_keys = [
     "outset",
     "spacing",
     "indent",
+    "length",
     "stroke-width",
     "radius",
     "gap",
@@ -47,40 +51,11 @@ alignments = ('left', 'right', 'top', 'center', 'bottom', 'horizon')
 typst_keys = ('scale','stroke', 'wh', 'width', 'height', 'align')
 
 def is_point_pair(x):
-    return is_array(x) and isinstance(x[0], (float, int)) and len(x) == 2
+    return is_array(x) and isinstance(x[0], (float, int)) and len(x) >= 2
 class TypstArgumentFormatter:
     def __init__(self, max_width=50, indentation=2):
         self.indentation = indentation
         self.max_width = max_width
-
-    def _coerce_value(self, k, v):
-        if isinstance(v, (np.float32, np.float64, np.integer)):
-            v = float(v)
-
-        # if isinstance(v, (np.float32, np.float64, np.integer)):
-        #     if k == 'rotate':
-        #         return real(str(float(v)) + 'deg')
-        #     else:
-        #         return real(str(float(v)) + 'pt')
-        if is_number(v):
-            if k == 'rotate' or k == 'angle':
-                return real(str(v) + 'deg')
-            else:
-                return real(str(v) + 'pt')
-        if is_string(v):
-            if k in typst_keys:
-                return real(v)
-            elif k in ('paint', 'fill', 'bg', 'fg'):
-                return real(v)
-            elif re.search(css_unit_re, v):
-                return real(v)
-            elif v in alignments:
-                return real(v)
-            else:
-                return v
-        if (k == 'args' or k == 'points') and is_array(v) and all(is_point_pair(p) for p in v):
-            return [[real(str(float(v)) + 'pt') for v in el] for el in v]
-        return v
 
     def format(self, value, level=0, coerce=False, parent_key = None):
         if value is None:
@@ -89,10 +64,49 @@ class TypstArgumentFormatter:
             return "true"
         if value is False:
             return "false"
+        # print(value, parent_key)
         if isinstance(value, dict):
             return self.format_dict(value, level, coerce, parent_key)
+
         if isinstance(value, (list, tuple)):
+            # if coerce:
+            #     if parent_key == 'pos':
+            #         return self.numpify(value)
+            #     if parent_key == 'points':
+            #         return self.numpify2(value)
+                    
             return self.format_list(value, level, coerce, parent_key)
+
+        if parent_key and coerce:
+            return self.coerce(value, parent_key)
+
+        return str(value)
+
+    # def numpify2(self, value):
+    #     return self._format_collection(self._format_collection([pointify(x) for x in p[0:2]]) for p in value)
+    # def numpify(self, value):
+    #
+    #                 return self._format_collection([pointify(x) for x in value[0:2]])
+    def coerce(self, value, parent_key):
+        # print('hi', value, parent_key)
+        if isinstance(value, Enum):
+            if parent_key == 'dash':
+                return quotify(value.value)
+            return value.value
+        if parent_key in angular:
+            return pointify(value, "deg")
+        # if parent_key in numpy_keys:
+        #     return self.numpify(value)
+        # if parent_key in typst_length_keys:
+        #     return pointify(value)
+        if parent_key in typst_color_keys:
+            if isinstance(value, str):
+                if value.startswith('#'):
+                    return f'rgb("{value}")'
+                if value.endswith(')'):
+                    return value
+            return str(value)
+
         if isinstance(value, str):
             if value.startswith('$') and value.endswith('$'):
                 return value
@@ -102,17 +116,7 @@ class TypstArgumentFormatter:
                 return markup(value)
             return f'"{value}"'
 
-        if parent_key and coerce:
-            return self.coerce(value, parent_key)
         return str(value)
-
-    def coerce(self, value, parent_key):
-        if parent_key == 'rotate':
-            return deg(value)
-        if parent_key in typst_length_keys:
-            return real(str(value))
-
-        return value
     def format_list(self, lst, level=0, coerce=False, parent_key = None):
         args = [self.format(v, level + 1, coerce, parent_key=parent_key) for v in lst]
         comma = "," if len(args) == 1 else ""
@@ -134,17 +138,27 @@ class TypstArgumentFormatter:
         return mapfilter(dct.items(), callback)
 
     def format_dict(self, dct, level=0, coerce=False, parent_key = None):
-        return self._format_collection(self._format_raw_dict(dct, level, coerce, parent_key = parent_key), level)
+        return self._format_collection(self._format_raw_dict(dct, level, coerce, parent_key = parent_key), level, kind = "dict")
 
-    def _format_collection(self, args, level=0, comma=""):
+    def _format_collection(self, args, level=0, comma="", kind = ''):
         sample = f"({', '.join(args)}{comma})"
+        # extra_comma = "" if kind == dict or len(args) == 1 else ","
         if any("\n" in arg for arg in args):
-            return bracket_wrap(args, "()", indent=self.indentation, newlines=True)
+            return bracket_wrap(args, "()", indent=self.indentation, newlines=True, extra_comma=comma)
         elif len(sample) < self.max_width - (level * self.indentation):
             return sample
         else:
-            return bracket_wrap(args, "()", indent=self.indentation, newlines = True)
+            return bracket_wrap(args, "()", indent=self.indentation, newlines = True, extra_comma=comma)
 
+    def imports(self, *keys):
+        ref = {
+            "typkit": '#import "@local/typkit:0.3.0": *',
+        }
+        if not keys:
+            keys = ['typkit']
+
+        imports = join_text(each(keys, lambda key: ref.get(key)))
+        return imports + "\n\n" 
     def decl(self, name, value, toplevel=False, coerce=False):
         hash = '#' if toplevel else ''
         return f'{hash}let {name} = {self.format(value, coerce=coerce)}'
@@ -191,7 +205,8 @@ data = {
       "pos": 
         [
           135.0,
-          115.0
+          115.0,
+          115.0,
         ]
       ,
       "args": [
@@ -222,4 +237,36 @@ data = {
 }
 
 
-# print(typstfmt.format(data, coerce = True))
+data = {
+
+      "kwargs": {
+        "angle": 0.0,
+        'fill': '#adf',
+        'pos': (1, 1, 1),
+        # 'pos': np.array([1,1,1]),
+        'args': [(1, 1, 1), (2,2,2)],
+        # 'args': [np.array([1,1,1]), np.array([1,1,1])],
+#         'args': np.array([
+#     [1, 2, 3, 4],
+#     [5, 6, 7, 8],
+#     [9, 10, 11, 12]
+# ])
+      },
+      'asdas': 1,
+      'contents': [{
+          'alphasdfasdf': 11111,
+          'sdf': 11111,
+          'sdfsdf': 11111,
+          
+      }]
+}
+
+adata = {
+      'contents': [{
+          'alphasdfasdf': 11111,
+          'sdf': 11111,
+          'sdfsdf': 11111,
+      }]
+}
+if __name__ == '__main__':
+    print(typstfmt.format(data, coerce = True))

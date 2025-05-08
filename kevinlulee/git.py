@@ -421,6 +421,7 @@ if __name__ == '__main__':
         # print(g.create_branch('dev'))
         # print(g.branch)
         g.debug = False
+
         # res = g.commands.set_remote(apikey=True)
         # print(res)
         # print(g.commands.commit_all())

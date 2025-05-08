@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import datetime
 import calendar
 from typing import Optional, Union
 import os
@@ -122,7 +121,7 @@ def timeago(time, now=None):
 class DateAccess:
     """A class that provides access to various date and time properties."""
     
-    def __init__(self, date: Optional[Union[datetime.datetime, datetime.date]] = None):
+    def __init__(self, date = None):
         """
         Initialize with either a specific date or the current date.
         

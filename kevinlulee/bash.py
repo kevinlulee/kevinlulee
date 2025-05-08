@@ -12,7 +12,7 @@ from kevinlulee.module_utils import get_modname_from_file
 from kevinlulee.string_utils import split
 from kevinlulee.ao import join_spaces
 
-from .file_utils import find_git_directory, find_project_root
+from .file_utils import ensure_directory_exists, find_git_directory, find_project_root, writefile
 from .base import display
 from .validation import empty
 import subprocess
@@ -82,6 +82,7 @@ def typst(inpath=None, outpath=None, open=False, mode="compile", on_error = None
 
     inpath = os.path.expanduser(inpath)
     outpath = os.path.expanduser(outpath)
+    ensure_directory_exists(outpath)
 
     open = "--open" if open else ""
     return bash("typst", mode, inpath, outpath, open, "--root", "/", on_error=on_error)
@@ -99,6 +100,18 @@ def python3(file, *args, as_module=False, on_error = None):
     else:
         return bash("python3", file, *args, on_error=on_error, silent=False)
 
+def typstfile(s, src_path = None,pdf_outpath =None, open = False, debug = False):
+        if debug:
+            print(s)
+            return 
+        if not pdf_outpath:
+            pdf_outpath = '~/projects/hammymathclass/dist/untitled.pdf'
+        if not src_path:
+            src_path = '~/scratch/temp.typ'
+            # src_path = '~/projects/hammymathclass/'
+        writefile(src_path, s)
+        typst(src_path, pdf_outpath, open = open)
+        return os.path.expanduser(pdf_outpath)
 
 if __name__ == '__main__':
     pass

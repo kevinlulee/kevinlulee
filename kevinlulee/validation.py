@@ -25,7 +25,7 @@ def is_boolean(value):
     return isinstance(value, bool)
 
 def is_array(value):
-    return isinstance(value, list)
+    return isinstance(value, (list, tuple))
 
 def is_dict(value):
     return isinstance(value, dict)

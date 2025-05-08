@@ -629,45 +629,6 @@ def is_dir(x):
     return x and os.path.isdir(os.path.expanduser(x))
 
 
-def mvdir(destination, source, force=False):
-    """
-    Move directory contents from source to destination.
-    
-    Args:
-        destination (str): Path to destination directory
-        source (str): Path to source directory
-        force (bool, optional): If True, overwrite existing files at destination. Defaults to False.
-    
-    Returns:
-        bool: True if operation was successful, False otherwise
-    """
-    dest_path = Path(destination)
-    src_path = Path(source)
-    
-    # Check if source exists
-    if not src_path.exists() or not src_path.is_dir():
-        raise FileNotFoundError(f"Source directory '{source}' does not exist or is not a directory")
-    
-    # Create destination if it doesn't exist
-    dest_path.mkdir(parents=True, exist_ok=True)
-    
-    # Move files from source to destination
-    for item in src_path.glob('*'):
-        dest_item = dest_path / item.name
-        
-        if dest_item.exists() and not force:
-            print(dest_item, 'exists ... skipping')
-            continue
-        
-        if item.is_file():
-            shutil.copy2(item, dest_item)
-        elif item.is_dir():
-            if dest_item.exists() and dest_item.is_dir():
-                mvdir(str(dest_item), str(item), force)
-            else:
-                shutil.copytree(item, dest_item, dirs_exist_ok=force)
-    
-    return True
 
 
 def readnote(*queries):
@@ -919,3 +880,75 @@ def cp(source_file, destination_directory, name=None):
     shutil.copy2(source_path, destination_path)
     
     return destination_path
+
+def add_extension_if_not_present(file_name: str, extension: str) -> str:
+    # 3b1b/manim
+    if(file_name[-len(extension):] != extension):
+        return file_name + extension
+    else:
+        return file_name
+
+class FilepathValidator:
+    ignore_dirs = [
+        "__pycache__",
+        "node_modules",
+        ".git",
+    ]
+
+    def __init__(self, pattern="."):
+        self.regex = re.compile(pattern)
+
+    def directory(self, name):
+        if name in self.ignore_dirs or os.path.basename in self.ignore_dirs:
+            return
+        return True
+
+    def file(self, file):
+        if not re.search(self.regex, file):
+            return
+        return True
+def getfiles(dir, pattern=".", recursive=False, tree=False, sort=False) -> list[str]:
+    validate = FilepathValidator(pattern=pattern)
+    dir = os.path.expanduser(dir)
+
+    store = []
+    for root, dirs, files in os.walk(dir):
+        dirs[:] = [dir for dir in dirs if validate.directory(dir)]
+
+        for file in files:
+            path = os.path.join(root, file)
+            if validate.file(path):
+                store.append(path)
+
+        if not recursive:
+            return store
+
+    return store
+
+
+def mvdir(source_path, target_path, root_dir = None):
+
+    # Normalize paths and make them absolute
+    source_path = os.path.join(root_dir, os.path.expanduser(source_path))
+    target_path = os.path.join(root_dir, os.path.expanduser(target_path))
+    source_path = os.path.expanduser(os.path.normpath(source_path))
+    target_path = os.path.expanduser(os.path.normpath(target_path))
+
+    # Check if source exists
+    if not os.path.exists(source_path):
+        print(f"Source path does not exist: {source_path}")
+        return False
+
+    try:
+        # Create target directory if it doesn't exist
+        target_dir = os.path.dirname(target_path)
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)
+
+        # Move the directory or file
+        shutil.move(source_path, target_path)
+        print(f"Successfully moved {source_path} to {target_path}")
+        return True
+    except Exception as e:
+        print(f"Error moving directory: {e}")
+        return False
