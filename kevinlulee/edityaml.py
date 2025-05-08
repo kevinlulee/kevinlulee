@@ -65,5 +65,5 @@ def appendyaml(file, content):
         yaml.dump(data, f)
 
 if __name__ == '__main__':
-    appendyaml('/home/kdog3682/scratch/foo.yaml', {'alphalphalphalpha': 11111})
+    # appendyaml('/home/kdog3682/scratch/foo.yaml', {'alphalphalphalpha': 11111})
 

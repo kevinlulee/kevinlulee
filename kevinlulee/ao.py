@@ -269,3 +269,8 @@ def assign_fresh(*dicts: dict) -> dict:
                 result[key] = value
     return result
 
+
+
+def merge_dicts(*dicts):
+    return {k: v for d in dicts for k, v in d.items()}
+

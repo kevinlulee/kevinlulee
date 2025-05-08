@@ -58,6 +58,8 @@ def nameof(x):
 def yes(*args, **kwargs):
     return True
 
+def no(*args, **kwargs):
+    return False
 
 def stop(*args, **kwargs):
     if args:

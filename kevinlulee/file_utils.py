@@ -13,6 +13,7 @@ from pathlib import Path
 import shutil
 
 from kevinlulee.ao import smallify, partition
+from kevinlulee.base import yes, no
 from kevinlulee.date_utils import strftime
 from kevinlulee.string_utils import mget, split, split_once
 
@@ -684,17 +685,12 @@ def create_gitignore_matcher(rootdir):
     
     # Read gitignore file
     gitignore_path = os.path.join(root_dir, '.gitignore')
-    try:
-
-        with open(gitignore_path, 'r') as f:
-            gitignore_content = f.read()
-    except FileNotFoundError:
-        print(f"{gitignore_path} not found. No files will be ignored.")
-        # Return a function that ignores nothing if gitignore doesn't exist
-        return lambda path: False
-    
+    gitignore_content = readfile(gitignore_path)
+    if not gitignore_content:
+        return no
     # Create a spec from gitignore content
-    spec = pathspec.PathSpec.from_lines('gitwildmatch', gitignore_content.splitlines())
+    more = ['.git/']
+    spec = pathspec.PathSpec.from_lines('gitwildmatch', gitignore_content.splitlines() + more)
     
     def is_ignored(file_path):
         """
