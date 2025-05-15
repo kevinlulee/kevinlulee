@@ -7,6 +7,8 @@ from pprint import pprint
 import os
 import importlib
 
+from kevinlulee.ao import flat
+from kevinlulee.base import noop
 from kevinlulee.file_utils import get_extension
 from kevinlulee.string_utils import matchstr
 
@@ -23,10 +25,12 @@ def collect_python_paths():
     for path in paths:
         if path not in store and home in path and not re.search(exclude, path):
             store.append(re.sub("/$", "", path))
+    return sorted(store, reverse=True)
     return store
 
 
 PYTHON_MODULE_PATHS = collect_python_paths()
+
 
 
 def get_modname_from_file(file):
@@ -84,8 +88,6 @@ def get_modname(x: Union["path", "package_name"]):
     )
 
 
-def reload_module(key):
-    return importlib.reload(get_modname_from_file(key))
 
 
 def load_module(key, reload=False):
@@ -97,14 +99,26 @@ def load_module(key, reload=False):
     return __import__(key, fromlist=(key.split(".")))
 
 
-def load_func(module, func=None):
+def load_func(module, func=None, reload = True):
     if not func:
         if isinstance(module, str) and "." in module:
             func = module.split(".")[-1]
         else:
             raise Exception("func is needed")
-    return getattr(load_module(module), func, None)
+    return getattr(get_module(module, reload = reload), func, None)
 
+
+def get_module_func_from_string(s):
+    # private
+    parts = s.split('.')
+    fname = parts.pop()
+    modname = '.'.join(parts)
+    func = getattr(get_module(modname, reload = True), fname,None)
+    return func
+
+def run_module_func(s, *args, reload = True, **kwargs):
+    func = get_module_func_from_string(s)
+    return func(*args, **kwargs)
 
 
 def get_module(file_name: str, reload = False, from_anywhere = False):
@@ -114,7 +128,10 @@ def get_module(file_name: str, reload = False, from_anywhere = False):
     if not file_name:
         return 
 
-    module_name = file_name.replace(os.sep, ".").replace(".py", "")
+    module_name = get_modname_from_file(file_name)
+
+    if not module_name:
+        return 
 
     if reload and module_name in sys.modules:
         del sys.modules[module_name]
@@ -124,12 +141,31 @@ def get_module(file_name: str, reload = False, from_anywhere = False):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module
-    else:
-        return __import__(module_name, fromlist=(module_name.split(".")))
+
+    return __import__(module_name, fromlist=(module_name.split(".")))
         
+
+def get_modules(*names, reload = True, on_error = None):
+    store = []
+    for key in names:
+        if not key:
+            continue
+        try:
+            mod = get_module(key, reload=reload)
+            if mod: store.append(mod)
+        except Exception as e:
+            if on_error:
+                return on_error(e, key)
+
+    return store
+def tempfunc():
+    print('hi')
 if __name__ == "__main__":
     # this is super cool
     #
     load_func('kevinlulee.scripts.generate_pytypst_funcs')('abc')
     # print(PYTHON_MODULE_PATHS)
     # print(get_modname_and_cwd('/home/kdog3682/projects/python/kevinlulee/kevinlulee/experiments/abc.py'))
+
+def reload_modules(*keys, on_error = None):
+    return get_modules(flat(keys), reload = True, on_error=on_error)

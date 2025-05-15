@@ -40,10 +40,6 @@ class GenerativeResult:
 
 # --- Core Functions ---
 
-class ProcessResponse:
-    def __init__(self):
-        
-    
 
 
 def process_llm_response(raw: Any) -> GenerativeResult:
@@ -109,7 +105,8 @@ def process_llm_response(raw: Any) -> GenerativeResult:
 
 def claude(
     query: str,
-    system: Optional[str] = None
+    system: Optional[str] = None,
+    max_retries = 3,
 ) -> GenerativeResult:
     """
     Sends a query to the Anthropic Claude model and returns a structured result.
@@ -128,25 +125,30 @@ def claude(
     messages = [{"role": "user", "content": query}]
     processed_system = textwrap.dedent(system).strip() if system else None
 
-    try:
-        raw_response = client.messages.create(
-            model=model_name,
-            system=processed_system, # Pass system prompt here
-            messages=messages,
-            max_tokens=4096 # Adjust max_tokens as needed
-        )
-        return process_llm_response(raw_response)
-    # except genai.client.
-    except anthropic.APIConnectionError as e:
-        print(f"Anthropic API connection error: {e}")
-        raise
-    except anthropic.RateLimitError as e:
-        print(f"Anthropic rate limit exceeded: {e}")
-        raise
-    except anthropic.APIStatusError as e:
-        print(f"Anthropic API status error: {e.status_code} - {e.response}")
-        raise
+    def runner(retries):
+        
+        if retries == 0:
+            raise Exception("Exceeded Maximum Retries originating from anthropic.OverLoadedError.")
 
+        try:
+            raw_response = client.messages.create(
+                model=model_name,
+                system=processed_system, # Pass system prompt here
+                messages=messages,
+                max_tokens=4096 # Adjust max_tokens as needed
+            )
+            return process_llm_response(raw_response)
+        except anthropic.APIConnectionError as e:
+            print(f"Anthropic API connection error: {e}")
+            raise
+        except anthropic.RateLimitError as e:
+            print(f"Anthropic rate limit exceeded: {e}")
+            raise
+        except anthropic.APIStatusError as e:
+            print(f"Anthropic API status error: {e.status_code} - {e.response}")
+            raise
+    
+    return runner(retries = max_retries)
 
 def gemini(
     query: str = "Explain the theory of relativity.", # Added default for consistency

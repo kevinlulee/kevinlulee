@@ -34,7 +34,9 @@ class Templater:
             elif word:
                 m = self.getter(word)
                 if isinstance(m, dict):
-                    m = json.dumps(m, indent=2, ensure_ascii=False)
+                    return json.dumps(m, indent=2, ensure_ascii=False)
+                if callable(m):
+                    return m()
                 return m
 
         def add_spacing(value, newline, ind, bullet, after_spaces, comma):
@@ -88,3 +90,38 @@ templater = Templater().format
 
 if __name__ == "__main__":
     print(templater('hi $a\nb', {'a':{'alpha':"1"}}))
+    ref = {
+        'isodate': 123.11,
+        'comment': lambda x: x + 5
+    }
+    # print(templater("${$comment('$isodate aicmp: ')}", ref))
+
+import re
+from typing import Any, Dict, Type
+
+class AbstractTemplater:
+    PATTERN = ''
+
+    def __init__(self, scope, template, flags = 0):
+        self.scope = scope
+        self.template = template
+        self.flags = flags
+
+    def format(self):
+        text = textwrap.dedent(self.template).strip()
+        return re.sub(self.PATTERN, self.replace, text, flags = self.flags)
+
+    def __str__(self):
+        return self.format()
+    
+
+class ClassTemplater(AbstractTemplater):
+    PATTERN = '''{(.*?)}'''
+
+    def replace(self, match):
+        scope = {'self': self.scope}
+        key = match.group(1)
+        return eval(key, scope)
+
+
+__all__ = ['ClassTemplater', 'templater']

@@ -1,7 +1,7 @@
 import re
 import yaml
 import textwrap
-from .ao import to_array
+from .ao import flat, to_array
 from .templater import templater
 
 
@@ -62,6 +62,10 @@ def extract_frontmatter(text: str):
     - If no valid frontmatter is found, returns the full text as content and an empty dictionary.
     - If improperly formatted, YAML parsing may fail or return unexpected results.
     """
+    a = strict_extract_frontmatter(text)
+    if a[1]:
+        return a
+
     frontmatter_pattern = re.compile(r"^\s*\w+:|^\s+-")
 
     lines = text.split("\n")
@@ -206,14 +210,20 @@ def toggle_comment(text: str, filetype: str) -> str:
     return "\n".join(result)
 
 
-def join_text(*contents):
+def join_text(*contents, conservative = False):
+
+    if conservative:
+        contents = flat(contents)
+        if not all("\n" in el for el in contents):
+            return "\n".join(contents)
+
     def runner(contents):
         o = ""
         for content in contents:
             if isinstance(content, (list, tuple)):
                 s = runner(content)
             else:
-                s = content
+                s = str(content)
 
             if not s:
                 continue
@@ -228,7 +238,7 @@ def join_text(*contents):
         return o
 
     contents = contents[0] if len(contents) == 1 else contents
-    return runner(contents)
+    return runner(contents).strip()
 
 
 def dash_split(text, delim_length=3, trim=True, filter=True):
@@ -284,4 +294,36 @@ def strcall(name, args, kwargs, max_length=80):
     return s
 
 
+
+def strict_extract_frontmatter(text):
+    text = text.strip()
+    if not text.startswith('---'):
+        # No frontmatter found
+        return text, {}
+    
+    # Find the end of the frontmatter
+    end_marker = text.find('---', 3)
+    if end_marker == -1:
+        # No closing frontmatter marker
+        return text, {}
+    
+    # Extract the frontmatter content
+    frontmatter_text = text[3:end_marker].strip()
+    
+    # Extract the main content (everything after the closing frontmatter marker)
+    content = text[end_marker+3:].strip()
+    
+    # Parse the frontmatter YAML
+    try:
+        frontmatter_dict = yaml.safe_load(frontmatter_text)
+        if frontmatter_dict is None:
+            frontmatter_dict = {}
+    except yaml.YAMLError:
+        # If YAML parsing fails, return empty dict
+        frontmatter_dict = {}
+    
+    return content, frontmatter_dict
+
+if __name__ == '__main__':
+    print(newline_indent('hi\nbye\n    abc asdfasdf\n\n\n'))
 

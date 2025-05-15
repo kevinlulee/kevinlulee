@@ -1,5 +1,6 @@
 from ruamel.yaml import YAML
-from ruamel.yaml.scalarstring import LiteralScalarString
+import kevinlulee as kx
+from ruamel.yaml.scalarstring import LiteralScalarString, PlainScalarString
 import copy
 
 
@@ -31,9 +32,15 @@ def format_multiline_strings(obj):
         return result
     elif isinstance(obj, list):
         return [format_multiline_strings(item) for item in obj]
-    elif isinstance(obj, str) and '\n' in obj:
-        # Convert strings with newlines to LiteralScalarString
-        return NoChompingLiteralString(obj)
+    elif isinstance(obj, str):
+        if '\n' in obj:
+            return NoChompingLiteralString(obj)
+        elif kx.DATE_PATTERN.search(obj):
+            # return str("2011" + "-11-12")
+            return PlainScalarString(obj)
+            return LiteralScalarString(obj)
+        else:
+            return obj
     else:
         return obj
 
@@ -52,6 +59,7 @@ def dump_yaml_with_multiline_blocks(data, stream=None, **kwargs):
     yaml = YAML()
     yaml.indent(mapping=2, sequence=4, offset=2)
     yaml.preserve_quotes = True
+    yaml.preserve_quotes = False
     
     # Process the data to handle multiline strings
     processed_data = format_multiline_strings(data)
@@ -185,4 +193,5 @@ def foo(s):
     return fm
 
 
-print(dump_yaml_with_multiline_blocks(foo(s)))
+# print(dump_yaml_with_multiline_blocks(foo(s)))
+print(dump_yaml_with_multiline_blocks(dict(date = kx.strftime())))

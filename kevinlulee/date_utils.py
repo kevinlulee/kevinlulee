@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import calendar
-from typing import Optional, Union
+from typing import Optional, Union, Literal
 import os
 
 def to_datetime(x=None):
@@ -48,6 +48,7 @@ def resolve_timedelta(
     weeks=0,
     months=0,
     years=0,
+    **kwargs
 ):
     now = datetime.now()
     cutoff = now - timedelta(
@@ -56,11 +57,13 @@ def resolve_timedelta(
         minutes=minutes,
         days=days + weeks * 7 + months * 30 + years * 365,
     )
+    # print(now)
+    # print(cutoff)
     return cutoff.timestamp()
 
 def is_recentf(mode = "after", key = None, **opts):
     cutoff = resolve_timedelta(**opts)
-    if mode == "after" or mode == "recent":
+    if mode == "after" or mode == "recent" or mode == 'near':
         fn = lambda x: x >= cutoff
     else:
         fn = lambda x: x < cutoff
@@ -250,3 +253,19 @@ class DateAccess:
         else:
             suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
         return f"{day}{suffix}"
+
+
+
+def get_recency_validator(mode: Literal['recent', 'distant'], **opts):
+    cutoff = resolve_timedelta(**opts)
+    if mode == 'recent':
+        return lambda x: x >= cutoff
+    else:
+        return lambda x: x < cutoff
+
+
+if __name__ == '__main__':
+    # import vim
+    # a = vim.funcs.getbufinfo(54)
+    # print(a[0]['lastused'], 'X')
+    print(get_recency_validator('recent',minutes = 1)( a[0]['lastused'] ))

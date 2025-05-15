@@ -118,7 +118,7 @@ def snake_case(s):
     return s
 
 def trimdent(s):
-    return textwrap.dedent(s).strip()
+    return textwrap.dedent(s).strip() if s else ''
 
 
 def dash_case(s):
@@ -180,3 +180,55 @@ def add_quotes(s):
         return f'"{s}"'
     else:
         return s
+
+
+
+
+def to_spaces(ind):
+    return " " * int(ind) if isinstance(ind, (float, int)) else ind
+def indent(s: str, ind: int) -> str:
+    if not ind:
+        return s
+    return textwrap.indent(str(s), to_spaces(ind))
+
+def newline_indent(s, ind = 4):
+    indented = indent(s, ind)
+    return "\n" + indented.rstrip()
+
+def parens(s, key = '()', newline = False, ind = 4):
+    brackets = {
+        "()": ("(", ")"),
+        "[]": ("[", "]"),
+        "[[]]": ("[[", "]]"),
+        "{}": ("{", "}"),
+        '"': ('"', '"'),
+        '""': ('"', '"'),
+        "'": ("'", "'"),
+        "''": ("'", "'"),
+        ":": (":", ""),
+        "'''": ("'''", "'''"),
+        '"""': ('"""', '"""'),
+        "``": ("`", "`"),
+        "": ("", ""),
+        "```": ("```", "```"),
+        "({})": ("({", "})"),
+        "([])": ("([", "])"),
+    }
+    a, b = brackets[key]
+    if newline:
+        return a + newline_indent(s, ind) + "\n" + b
+    return a + s + b
+
+
+
+def quotify(s):
+    if s.startswith('"'):
+        return s
+    return f'"{s}"'
+
+
+
+def uncomment(s, filetype = None):
+    r = '^( *)(?:#+|//+|"|--+) +'
+    return re.sub(r, lambda x: x.group(1), s, flags=re.M)
+

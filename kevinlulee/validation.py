@@ -1,3 +1,6 @@
+import re
+
+NUMBER_STRING_PATTERN = re.compile('^\d+(?:\.\d+)?$')
 
 def exists(x):
     if isinstance(x, (list, tuple, dict)):
@@ -18,6 +21,10 @@ def is_string(value):
 def is_number(value):
     return isinstance(value, (int, float, complex)) and not isinstance(value, bool)
 
+def is_string_number(s):
+    return re.search(NUMBER_STRING_PATTERN, s)
+def looks_like_number(value):
+    return is_number(value) or is_string_number(value)
 def is_integer(value):
     return isinstance(value, int) and not isinstance(value, bool)
 
@@ -35,4 +42,46 @@ def is_none(value):
 
 def is_function(value):
     return callable(value)
+
+
+
+def is_primitive(el):
+    return el is None or isinstance(el, (str, int, float, bool))
+
+
+def is_integer_float(value):
+    return (
+        isinstance(value, int)
+        or isinstance(value, float)
+        and value.is_integer()
+    )
+
+
+
+def is_word(s):
+    return re.search("^[a-zA-Z]+$", s)
+
+
+def looks_like_number(s):
+    return bool(re.search(r"^\d+(?:\.\d+)?$", str(s)))
+
+def exists_in_list(obj, lst):
+    return any(x is obj for x in lst)
+
+def comparable(a, b):
+    if a == None:
+        return True
+
+    if a and not b:
+        return False
+
+    if not a and b:
+        return False
+
+    return True
+
+
+def is_class_constructor(obj):
+    if isinstance(obj, type):
+        return True
 

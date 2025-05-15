@@ -1,4 +1,7 @@
 import os
+import webbrowser
+import os
+import shutil
 import re
 import os
 import shutil
@@ -204,6 +207,8 @@ def readfile(path: str) -> Any:
 
     mode = "rb" if extension in ("img", "jpg", "jpeg", "png", "gif", "svg") else "r"
     with open(expanded_path, mode) as f:
+        if extension == "md":
+            return f.read()
         if extension == "json":
             return json.load(f)
         if extension == "yb":
@@ -312,15 +317,14 @@ def get_most_recent_file(directory, pattern="*"):
     most_recent = max(files, key=os.path.getmtime)
     return most_recent
 
-def clip(s):
-    file = os.path.expanduser('~/.kdog3682/scratch/clip.txt')
+def clip(s, ext = 'txt'):
+    if not s:
+        return 
+    file = os.path.expanduser('~/.kdog3682/scratch/clip.' + ext)
     writefile(file, s)
-    import webbrowser
     webbrowser.open(file)
 
 
-import os
-import shutil
 
 def symlink(source, destination, force = False):
     """
@@ -384,27 +388,15 @@ def copy_directory_contents(src, dest):
 
 def resolve_dotted_path(path, reference):
 
+    path = os.path.expanduser(path)
+    if path.startswith("/"):
+        return os.path.expanduser(path)
+
     reference = os.path.expanduser(reference)
     if os.path.isfile(reference):
         reference = os.path.dirname(reference)
-
     assert os.path.isdir(reference), "to resolve the dotted path, the reference must be a directory"
-
-    if path.startswith("../"):
-        path, m = mget(path, "^(?:../)+")
-        upwards = len(m) // 3
-        r = "(?<!^)/(?!$)"
-        parts = re.split(r, reference)
-        parts = parts[:-upwards]
-        return os.path.join(*parts, path)
-
-    if path.startswith("./"):
-        return os.path.join(reference, path[2:])
-
-    if path.startswith("/") or path.startswith("~"):
-        return path
-
-    return os.path.join(reference, path)
+    return os.path.abspath(os.path.join(reference, path))
 
 
 def fnamemodify(file, dir = None, name = None, ext = None):
@@ -442,6 +434,8 @@ def cpfile(source, dest, debug=False, soft = False):
 
 
 def resolve_filetype(filepath):
+    if not filepath:
+        return 
     ext = os.path.splitext(filepath)[1].lower()
     return {
         '.py': 'python',
@@ -450,6 +444,11 @@ def resolve_filetype(filepath):
         '.html': 'html',
         '.typ': 'typst',
         '.css': 'css',
+        '.yml': 'yaml',
+        '.yaml': 'yaml',
+        '.typ': 'typst',
+        '.txt': 'text',
+        '.log': 'log',
         '.vue': 'vue',
         '.json': 'json',
         '.md': 'markdown',
@@ -498,14 +497,14 @@ def comment(text, filepath):
     return formatter(text)
 
 
-def serialize_data(data, filepath) -> str:
+def serialize_data(data, filepath = None) -> str:
     if isinstance(data, (int, bool)):
         raise TypeError("Only strings, arrays, dictionaries, customs are allowed.")
     elif isinstance(data, str):
         return data
 
     elif isinstance(data, (dict, list, tuple)):
-        file_extension = get_extension(filepath)
+        file_extension = resolve_filetype(filepath)
         match file_extension:
             case "yml" | "yaml":
                 return yaml.dump(data, indent=2)
@@ -518,7 +517,7 @@ def serialize_data(data, filepath) -> str:
             case "txt":
                 return json.dumps(data, indent=2)
             case _:
-                raise ValueError(f"Unsupported file extension: {file_extension}")
+                return json.dumps(data, indent=2)
     else:
         return str(data)
 def writefile(filepath: str, data: Any, debug = False, verbose = True) -> str:
@@ -529,8 +528,7 @@ def writefile(filepath: str, data: Any, debug = False, verbose = True) -> str:
     expanded_file_path = os.path.expanduser(filepath)
     value = serialize_data(data, expanded_file_path)
 
-    if debug:
-        return print(f'[DEBUG] writefile "{expanded_file_path}"')
+    if debug: return print(f'[DEBUG] writefile "{expanded_file_path}"')
 
     ensure_directory_exists(expanded_file_path)
     with open(expanded_file_path, "w") as file:
@@ -624,30 +622,10 @@ def clear_directory(path):
 
 
 def is_file(x):
-    return x and os.path.isfile(os.path.expanduser(x))
+    return x and isinstance(x, str) and os.path.isfile(os.path.expanduser(x))
 
 def is_dir(x):
     return x and os.path.isdir(os.path.expanduser(x))
-
-
-
-
-def readnote(*queries):
-    s = readfile('/home/kdog3682/documents/notes/notes.txt')
-    r = '^\d\d\d\d-\d\d-\d\d'
-    base = split(s, r, flags = re.M)
-    # aggregate it up
-    if queries:
-        store = []
-        for item in reversed(base):
-            a, b = split_once(item, '\n')
-            if a in queries:
-                store.append(b)
-                if len(store) == len(queries):
-                    return smallify(store)
-    else:
-        return base[-1]
-
 
 def mkfile(path, debug = False, soft = False):
     path = os.path.expanduser(path)
@@ -948,3 +926,137 @@ def mvdir(source_path, target_path, root_dir = None):
     except Exception as e:
         print(f"Error moving directory: {e}")
         return False
+
+def cp(src, dst, recursive=True, preserve_metadata=False, debug=False, verbose=False):
+    """
+    Copy files or directories, similar to bash 'cp' command.
+    
+    Args:
+        src (str): Source file or directory path
+        dst (str): Destination file or directory path
+        recursive (bool): If True, copy directories recursively (like cp -r)
+        preserve_metadata (bool): If True, preserve file metadata (like cp -p)
+        dry_run (bool): If True, only show what would be done without actually copying
+        verbose (bool): If True, print operations being performed
+    
+    Returns:
+        None
+    
+    Raises:
+        FileNotFoundError: If source doesn't exist
+        IsADirectoryError: If source is directory without recursive=True
+        shutil.Error: For other copy-related errors
+    """
+    # Expand paths (handle ~ and make absolute)
+    src = os.path.abspath(os.path.expanduser(src))
+    dst = os.path.abspath(os.path.expanduser(dst))
+    
+    if not os.path.exists(src):
+        raise FileNotFoundError(f"Source path '{src}' does not exist")
+    
+    if os.path.isdir(src):
+        if recursive:
+            action = "copytree" if not debug else "would copytree"
+            copy_func = "copy2" if preserve_metadata else "copy"
+            
+            if verbose or debug:
+                print(f"{action}: '{src}' -> '{dst}' (recursive, {copy_func})")
+                
+            if not debug:
+                try:
+                    if preserve_metadata:
+                        shutil.copytree(src, dst, copy_function=shutil.copy2)
+                    else:
+                        shutil.copytree(src, dst)
+                except shutil.Error as e:
+                    raise shutil.Error(f"Error copying directory {src} to {dst}: {e}")
+        else:
+            raise IsADirectoryError(f"'{src}' is a directory (not copied). Use recursive=True to copy directories.")
+    else:
+        action = "copy" if not debug else "would copy"
+        copy_func = "copy2" if preserve_metadata else "copy"
+        
+        if verbose or debug:
+            print(f"{action}: '{src}' -> '{dst}' ({copy_func})")
+            
+        if not debug:
+            try:
+                if preserve_metadata:
+                    shutil.copy2(src, dst)
+                else:
+                    shutil.copy(src, dst)
+            except shutil.Error as e:
+                raise shutil.Error(f"Error copying file {src} to {dst}: {e}")
+
+
+class PathValidator:
+    def __init__(self, base_pattern=None):
+        self.exclusion_rules = []
+        self.inclusion_rules = []
+        self.distancy_cutoff = 0
+        self.recency_cutoff = 0
+
+    def add_rule(self, **kwargs):
+     """
+     Add validation rules of different types
+     """
+     for rule_type, rule in kwargs.items():
+         match rule_type:
+             case "exclude":
+                 self.exclusion_rules.append(rule)
+             case "include":
+                 self.inclusion_rules.append(rule)
+             case "recent":
+                 self.recency_cutoff = kx.resolve_timedelta(**rule)
+             case "distant":
+                 self.distancy_cutoff = kx.resolve_timedelta(**rule)
+
+    def validate(self, filepath):
+        """
+        Validate a file path against all rules.
+        Returns True if the filepath passes all validations.
+        """
+        for rule in self.exclusion_rules:
+            if self.matches_rule(filepath, rule):
+                return False
+
+        if self.inclusion_rules:
+            includes_match = False
+            for rule in self.inclusion_rules:
+                if self.matches_rule(filepath, rule):
+                    includes_match = True
+                    break
+            if not includes_match:
+                return False
+
+        if self.recency_cutoff and not self.validate_recency(filepath):
+            return False
+
+        if self.distancy_cutoff and not self.validate_distancy(filepath):
+            return False
+
+        return True
+
+    def matches_rule(self, filepath, rule):
+        if isinstance(rule, list):
+            return filepath in rule
+        elif isinstance(rule, str):
+            return re.search(rule, filepath) is not None
+        return False
+
+    def validate_recency(self, filepath):
+        mtime = os.path.getmtime(filepath)
+        return mtime <= self.recency_cutoff
+
+    def validate_distancy(self, filepath):
+        mtime = os.path.getmtime(filepath)
+        return mtime >= self.distancy_custoff
+
+
+
+def resolve_directory(path):
+    if get_extension(path):
+        return os.path.dirname(path)
+
+if __name__ == '__main__':
+    print(resolve_dotted_path('~/.foo.py', '/home/kdog3682/projects/python/kevinlulee/kevinlulee/file_utils.py'))

@@ -1,0 +1,6 @@
+
+def ohola():
+    kargo()
+
+
+oho()

@@ -4,7 +4,7 @@ import re
 import textwrap
 
 from kevinlulee.string_utils import split
-from .bash import bash
+from .bash import bash, bash2
 from .ao import filtered
 from dotenv import load_dotenv
 import os
@@ -259,7 +259,7 @@ class GitRepo(HistoryData, StatusData, GitProperties):
         return err
 
     def cmd(self, *args, debug = False):
-        return bash(
+        return bash2(
             "git",
             *args,
             cwd=self.cwd,

@@ -45,10 +45,15 @@ def bash(*args, cwd=None, on_error=None, silent=True, debug = False, strict = Fa
 
     return success
 
-def bash2(*args, cwd=None, on_error=None, strict = False, verbose = False):
+def bash2(*args, cwd=None, on_error=None, strict = False, verbose = False, debug = False, silent = None):
+    if silent is not None:
+        verbose = not silent
     cwd = os.path.expanduser(cwd) if cwd else None
     cmd = filtered(args)
 
+    if debug:
+        print(cmd)
+        return 
     try:
         result = subprocess.run(cmd, text=True, cwd=cwd, capture_output=True, check = True)
         stdout = result.stdout.strip()
@@ -65,8 +70,8 @@ def bash2(*args, cwd=None, on_error=None, strict = False, verbose = False):
             stdout = e.stdout.strip()
             stderr = e.stderr.strip()
 
-            print('STDOUT', stdout)
-            print('STDERR', stderr)
+            print('[STDOUT]', stdout)
+            print('[STDERR]', stderr)
 
 
 

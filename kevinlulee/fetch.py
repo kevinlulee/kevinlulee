@@ -20,7 +20,9 @@ def fetch(url, **kwargs):
 
 
 
-url = 'https://raw.githubusercontent.com/tree-sitter/tree-sitter-pythont/master/tree/src/node-types.json'
-url = 'https://raw.githubusercontent.com/uben0/tree-sitter-typst/refs/heads/master/typescript/src/node-types.json'
-url = 'https://raw.githubusercontent.com/uben0/tree-sitter-typst/refs/heads/master/src/node-types.json'
-writefile('/home/kdog3682/projects/python/codeform/typst-node-types.json', fetch(url))
+if __name__ == '__main__':
+    
+    url = 'https://raw.githubusercontent.com/tree-sitter/tree-sitter-pythont/master/tree/src/node-types.json'
+    url = 'https://raw.githubusercontent.com/uben0/tree-sitter-typst/refs/heads/master/typescript/src/node-types.json'
+    url = 'https://raw.githubusercontent.com/uben0/tree-sitter-typst/refs/heads/master/src/node-types.json'
+    writefile('/home/kdog3682/projects/python/codeform/typst-node-types.json', fetch(url))

@@ -1,6 +1,6 @@
 from kevinlulee.base import testf
 import itertools
-from kevinlulee.typing import Selector
+from kevinlulee.typing import Selector, Union
 from kevinlulee.validation import exists, is_array
 
 
@@ -19,6 +19,7 @@ def smallify(arr):
 
 
 def to_array(items):
+    if not items: return []
     return items if isinstance(items, (list, tuple)) else [items]
 
 def to_lines(x):
@@ -52,19 +53,18 @@ def find(items, fn, key = None):
         return items[index]
 
 
-def modular_increment(items, item, dir = 1):
-
-    def modular_increment_indexes(items, i, dir):
-        if dir == 1:
-            if len(items) - 1 == i:
-                return 0
-            else:
-                return i + 1
+def modular_increment_indexes(items, i, dir):
+    if dir == 1:
+        if len(items) - 1 == i:
+            return 0
         else:
-            if i == 0:
-                return len(items) - 1
-            else:
-                return i - 1
+            return i + 1
+    else:
+        if i == 0:
+            return len(items) - 1
+        else:
+            return i - 1
+def modular_increment(items, item, dir = 1):
 
     def modular_increment_values(items, item, dir):
         i = items.index(item)
@@ -248,6 +248,14 @@ def reduce2(items, fn, *args, **kwargs):
                 store[k] = value
     return store
 
+def reduce(o, fn, *args, **kwargs):
+    store = {}
+
+    for k, v in o.items():
+        value = fn(v, *args, **kwargs)
+        if value is not None:
+            store[k] = value
+    return store
 
 
 def on_off(state, key, on, off):
@@ -274,3 +282,28 @@ def assign_fresh(*dicts: dict) -> dict:
 def merge_dicts(*dicts):
     return {k: v for d in dicts for k, v in d.items()}
 
+
+
+def split_dict(d, keys):
+    a = {}
+    b = {}
+    for k,v in d.items():
+        if k in keys:
+            a[k] = v
+        else:
+            b[k] = v
+    return a, b
+
+def map(x, v) -> Union[dict, list]:
+    if isinstance(x, (list, tuple, set)):
+        return each(x, v)
+    elif isinstance(x, dict):
+        return reduce(x, v)
+
+def filter_none(data):
+    if isinstance(data, list):
+        return [x for x in data if x is not None]
+    elif isinstance(data, dict):
+        return {k: v for k, v in data.items() if v is not None}
+    else:
+        raise Exception("only lists and dicts")

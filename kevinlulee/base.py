@@ -1,4 +1,5 @@
 import inspect
+from pprint import pprint
 from kevinlulee.typing import Selector
 import re
 
@@ -24,6 +25,18 @@ def sayhi(name="Bob", prefix="howdy"):
     return f"{prefix.capitalize()} from {name.capitalize()}"
 
 
+class Real:
+    def __new__(cls, value):
+        if not isinstance(value, str):
+            return value
+
+        self = super().__new__(cls)
+        self.value = value
+        return self
+
+    def __str__(self):
+        return self.value
+
 class real:
     def __new__(cls, value):
         if not isinstance(value, str):
@@ -35,6 +48,15 @@ class real:
 
     def __str__(self):
         return self.value
+
+def real(x):
+    if isinstance(x, (list, tuple, set)):
+        return [Real(el) for el in x]
+    if isinstance(x, dict):
+        return {
+            k: Real(v) for k,v in dict.items()
+        }
+    return Real(x)
 
 def nameof(x):
     """
@@ -232,3 +254,79 @@ def char2n(letter: str) -> int:
     else:
         raise ValueError("Input must be a single lowercase letter.")
 
+
+
+
+def noop(*args, **kwargs):
+    return 
+
+
+def identity(x):
+    return x
+
+
+def bar(n=50):
+    return "-" * n
+
+def prettyprint(*args, **kwargs):
+    for arg in args:
+        if isinstance(arg, (float, int, complex, str, bool)):
+            print(arg)
+        else:
+            pprint(arg)
+
+
+
+def breaker(max_iterations=1000):
+    """
+    Function to prevent infinite loops by raising an exception after a certain number of iterations.
+
+    Args:
+        max_iterations (int): Maximum allowed iterations before raising an exception.
+
+    Raises:
+        RuntimeError: If the number of iterations exceeds max_iterations.
+
+    Example:
+
+        c = 0
+        while c < 10:
+            c += 1
+            print(c)
+            breaker(max_iterations=5)
+    """
+    # Create or increment counter attribute in the function itself
+    if not hasattr(breaker, "counter"):
+        breaker.counter = 0
+    breaker.counter += 1
+
+    # Check if iteration limit has been reached
+    if breaker.counter >= max_iterations:
+        breaker.counter = 0  # Reset for next use
+        raise RuntimeError(
+            f"Loop exceeded {max_iterations} iterations - possible infinite loop detected"
+        )
+
+
+def curry(func, *top_args, **top_kwargs):
+    def inner(*args, **kwargs):
+        return func(*args, *top_args, **kwargs, **top_kwargs)
+
+    return inner
+
+
+
+def bug(value):
+    print("bugging")
+    print("---")
+    print("type", type(value))
+    print("value", value)
+    print("---")
+    stop()
+
+
+def panic(*args, **kwargs):
+    for arg in args:
+        print(arg)
+    display(kwargs)
+    stop()
