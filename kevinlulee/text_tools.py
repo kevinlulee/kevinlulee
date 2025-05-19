@@ -2,7 +2,6 @@ import re
 import yaml
 import textwrap
 from .ao import flat, to_array
-from .templater import templater
 
 
 def bracket_wrap(
@@ -277,7 +276,6 @@ def dash_split(text, delim_length=3, trim=True, filter=True):
     return [chunk for chunk in result_chunks if chunk is not None]
 
 
-# __all__ = ['toggle_comment', 'templater', 'join_text', 'dash_split']
 
 
 def strcall(name, args, kwargs, max_length=80):

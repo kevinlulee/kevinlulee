@@ -1,5 +1,5 @@
 from kevinlulee import readfile, join_text, clip, fd, ensure_directory
-from kevinlulee.file_utils import find_git_directory
+from kevinlulee.file_utils import ensure_directory_exists, find_git_directory
 
 def clip_directory_files_as_one(dir, git = True):
     """
@@ -7,7 +7,7 @@ def clip_directory_files_as_one(dir, git = True):
     reads them and joins them together
     """
 
-    dir = find_git_directory(dir) if git else ensure_directory(dir) 
+    dir = find_git_directory(dir) if git else ensure_directory_exists(dir) 
     files = fd(dir)
 
     def show(file):

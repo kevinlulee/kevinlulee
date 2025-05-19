@@ -4,8 +4,10 @@ import yaml
 import textwrap
 
 from kevinlulee.validation import is_array, is_string
+import kevinlulee.primary as kx
 from .ao import to_array
 
+BLANK = '<BLANK>'
 TEMPLATER_PATTERN = re.compile(r'''
     (?:(^|\n)(\s*)([-*•]|\d+[.)])(\s+))?  # Optional leading bullet (•, *, -, or numbered)
     \$                                  # Literal $ symbol
@@ -62,6 +64,10 @@ class Templater:
                 else:
                     return newline + ind + bullet + after_spaces + str(value) + comma
             else:
+                if isinstance(value, (str, int, float)):
+                    return str(value) + comma
+                else:
+                    return BLANK
                 assert isinstance(value, (str, int, float)), f"without bullets, the value must be a primitive. the provided value <<{value}>> does not match."
                 return str(value) + comma
 
@@ -78,23 +84,12 @@ class Templater:
             self.getter = lambda x: getattr(self.scope, x)
 
         text = textwrap.dedent(s).strip()
-        return re.sub(TEMPLATER_PATTERN, self.replace, text)
-
-def rgetattr(obj, attr):
-    for part in attr.split('.'):
-        obj = getattr(obj, part)
-    return obj
+        s = re.sub(TEMPLATER_PATTERN, self.replace, text)
+        if BLANK in s:
+            return re.sub(f'\n\s*{BLANK} *', '', s)
+        return s
 
 templater = Templater().format
-
-
-if __name__ == "__main__":
-    print(templater('hi $a\nb', {'a':{'alpha':"1"}}))
-    ref = {
-        'isodate': 123.11,
-        'comment': lambda x: x + 5
-    }
-    # print(templater("${$comment('$isodate aicmp: ')}", ref))
 
 import re
 from typing import Any, Dict, Type
@@ -120,8 +115,13 @@ class ClassTemplater(AbstractTemplater):
 
     def replace(self, match):
         scope = {'self': self.scope}
-        key = match.group(1)
-        return eval(key, scope)
-
+        keys = kx.split(match.group(1), '&')
+        return kx.join_text(kx.each(keys, eval, scope))
 
 __all__ = ['ClassTemplater', 'templater']
+
+
+if __name__ == "__main__":
+    print(templater('''
+        hi\n$alphalphalpha\nbye
+    ''', {'alphalpha': 1}))

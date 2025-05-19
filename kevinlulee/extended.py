@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .ao import flat
 from .string_utils import trimdent
 from .pythonfmt import pythonfmt
@@ -160,3 +161,4 @@ def tern(*args):
     if l == 3:
         a, b, c = args
         return b if exists(a) else c
+

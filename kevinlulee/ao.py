@@ -307,3 +307,37 @@ def filter_none(data):
         return {k: v for k, v in data.items() if v is not None}
     else:
         raise Exception("only lists and dicts")
+
+
+def partition_by_functions(data, funcs):
+    """
+    Returns:
+    - A list of partitions where:
+      - Each partition corresponds to items matching each function
+      - The last partition contains all remaining items not matched by any function
+    """
+    result = []
+    remaining = list(data)
+    
+    # Process each function
+    for func in funcs:
+        matched = []
+        not_matched = []
+        
+        # Apply the current function to each remaining item
+        for item in remaining:
+            if func(item):
+                matched.append(item)
+            else:
+                not_matched.append(item)
+                
+        # Add matched items to the result
+        result.append(matched)
+        
+        # Update remaining items for the next function
+        remaining = not_matched
+    
+    # Add any remaining unmatched items as the last partition
+    result.append(remaining)
+    
+    return result

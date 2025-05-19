@@ -10,12 +10,13 @@ class StringBuilder:
         self.content = []
         self.label_template = label_template
 
-    def add(self, text, label=None, wrap_with_dashes=False):
+    def add(self, text, label=None, wrap_with_dashes=False, dash_delimiter = '-'):
         if not text:
             return self
 
+        text = kx.trimdent(text)
         if wrap_with_dashes:
-            text = kx.bar(60) + "\n" + str(text).rstrip() + "\n" + kx.bar(60)
+            text = kx.bar(60, dash_delimiter) + "\n" + text + "\n" + kx.bar(60, dash_delimiter)
 
         if label:
             label = self.label_template % label
@@ -32,9 +33,9 @@ class StringBuilder:
                 elif self.content[-1].endswith("\n"):
                     return
             else:
-                self.content.append(newline)
+                self.content.append("\n")
         else:
-            self.content.append(newline)
+            self.content.append("\n")
         return self
 
     def to_str(self):

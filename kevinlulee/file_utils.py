@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import webbrowser
 import os
@@ -11,7 +12,7 @@ import os
 import json
 import yaml
 import toml
-from typing import Any
+from typing import Any, Unpack
 from pathlib import Path
 import shutil
 
@@ -112,7 +113,7 @@ def get_extension(file_path: str) -> str:
         Returns an empty string if no extension is found.
     """
     if not '.' in file_path:
-        return EXT_REFERENCE_MAP[file_path]
+        return EXT_REFERENCE_MAP.get(file_path, None)
     return os.path.splitext(file_path)[1].lstrip(".").lower()
 
 
@@ -1011,6 +1012,25 @@ class PathValidator:
              case "distant":
                  self.distancy_cutoff = kx.resolve_timedelta(**rule)
 
+    def add_inclusion_rule(self, **kwargs: Unpack[ValidationRuleSpec]):
+        # 2025-05-18 aicmp: implement
+        # exts means the file's ext matches. after means the file's os.path.getmtime is after
+        for rule_type, rule in kwargs.items():
+            match rule_type:
+                case "exts":
+                    pass
+                case "ext":
+                    pass
+                case "filetype":
+                    pass
+                case "after":
+                     self.recency_cutoff = kx.resolve_timedelta(**rule)
+                case "before":
+                    pass
+
+    def add_exclusion_rule(self, **kwargs: Unpack[ValidationRuleSpec]):
+        pass
+
     def validate(self, filepath):
         """
         Validate a file path against all rules.
@@ -1057,6 +1077,11 @@ class PathValidator:
 def resolve_directory(path):
     if get_extension(path):
         return os.path.dirname(path)
+    return path
+
+
+def text_getter(s) -> str:
+    return (readfile(s) if is_file(s) else s).strip()
 
 if __name__ == '__main__':
     print(resolve_dotted_path('~/.foo.py', '/home/kdog3682/projects/python/kevinlulee/kevinlulee/file_utils.py'))

@@ -265,8 +265,8 @@ def identity(x):
     return x
 
 
-def bar(n=50):
-    return "-" * n
+def bar(n=50, dash_delimiter = '-'):
+    return dash_delimiter * n
 
 def prettyprint(*args, **kwargs):
     for arg in args:

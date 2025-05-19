@@ -118,7 +118,7 @@ def snake_case(s):
     return s
 
 def trimdent(s):
-    return textwrap.dedent(s).strip() if s else ''
+    return textwrap.dedent(str(s)).strip() if s else ''
 
 
 def dash_case(s):
