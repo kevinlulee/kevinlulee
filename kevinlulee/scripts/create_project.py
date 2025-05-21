@@ -17,7 +17,11 @@ from kevinlulee.base import stop
 from kevinlulee.file_utils import cpfile, fancy_filetree, mkfile, readfile, resolve_filetype, writefile, mkdir
 from kevinlulee.module_utils import get_file_from_modname
 from kevinlulee.text_tools import join_text
+import kevinlulee as kx
 
+def append_python_path(path):
+    template = f'set -x PYTHONPATH {path} $PYTHONPATH'
+    kx.appendfile("/home/kdog3682/dotfiles/links/fish/config.fish", template)
 
 def is_python(path):
     filetype = resolve_filetype(path)
@@ -26,7 +30,9 @@ def process_project_structure(data: dict, debug = False) -> None:
 # aicmp: rewrite as class
 # aicmp: rewrite the mkfile and all that stuff to use fs = FileSystem(debug = debug) ... makes it a lot easier to read
     project_languages = set()
-    root_path = os.path.expanduser(data["path"])
+    frontmatter = data['frontmatter']
+    tree = data['tree']
+    root_path = os.path.expanduser(tree["path"])
     root_name = os.path.basename(root_path)
     descriptions = {}
     hotkeys = {
@@ -99,16 +105,15 @@ def process_project_structure(data: dict, debug = False) -> None:
 
 
     # Process the entire structure
-    process_node(data)
+    process_node(tree)
 
     # Setup .gitignore in root if it doesn't exist
     gitignore_path = os.path.join(root_path, ".gitignore")
     cpfile("~/dotfiles/templates/.gitignore", gitignore_path, soft = True, debug=debug)
+    python_path = frontmatter.get('python_path')
+    if python_path:
+        append_python_path(root_path)
 
-    # Setup tests directory
-
-
-# aicmp: modify this spec so that
     lang_spec = {
         'python': {
             'templates': [
@@ -149,33 +154,33 @@ def process_project_structure(data: dict, debug = False) -> None:
     writefile(p, readme_content, debug = debug)
     # Create GitHub repository
     if hotkeys:
-        prev = readfile("/home/kdog3682/dotfiles/nvim/lua/kdog3682/config/keymaps/hotpaths.json")
-        data = merge_dicts_recursively(prev, hotkeys)
-
-        writefile("/home/kdog3682/dotfiles/nvim/lua/kdog3682/config/keymaps/hotpaths.json", data, debug = debug)
+        print('skipping hotkeys', hotkeys)
+        # prev = readfile("/home/kdog3682/dotfiles/nvim/lua/kdog3682/config/keymaps/hotpaths.json")
+        # data = merge_dicts_recursively(prev, hotkeys)
+        #
+        # writefile("/home/kdog3682/dotfiles/nvim/lua/kdog3682/config/keymaps/hotpaths.json", data, debug = debug)
 
     if not debug:
         GithubController().create_repo(root_name, root_path)
 
 
 
-def main(debug = False):
-    from kevinlulee.file_utils import readnote
+def main(text, debug = False):
     from traversal.lop import visit_filetree
 
-    filetree = visit_filetree(readnote('filetree'))
+    s = kx.trimdent(text or readnote('filetree'))
+    filetree = visit_filetree(s)
     process_project_structure(filetree, debug = debug)
 
 
-def foobar():
-    if __name__ == "__main__":
-        main(debug = True)
+def create_project(text = None):
+        main(text, debug = True)
 
         try:
             import nvim
             if nvim.confirm('proceed with creation'):
                 print('starting creation')
-                main(debug = False)
+                main(text, debug = False)
         except Exception as e:
             pass
 
@@ -191,7 +196,16 @@ def init_manimlib(name):
     print(repo.create_branch('main'))
     # message = 'fork of 3b1b/manim'
     repo.commit("first")
-if __name__ == '__main__':
-    # init_manimlib('manimlib')
-    # foobar()
-    # pass
+
+
+s = """
+abc: 1
+asdfasdf: 2
+
+hamburger
+    boomba
+"""
+if __name__ == "__main__":
+    create_project(s)
+
+

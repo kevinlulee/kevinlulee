@@ -135,9 +135,87 @@ def shorten(s, max_lines=17, padding=(1, 1)):
         return "\n".join(out)
 
 
+def side_by_side(
+    a,
+    b,
+    padding=1,
+    max_width=80,
+    separator="|",
+    prefix=None,
+    headers=None,
+    dotted_starting_spaces=False,
+    title=None,
+):
+    """
+    Display two chunks of text side by side, with auto-width adjustment and padding.
+    Raises ValueError if the total width exceeds the maximum width.
 
-long_text = "\n".join([f"Line {i}" for i in range(1, 101)])
-shortened = shorten(long_text, max_lines=10)
+    :param a: First chunk of text
+    :param b: Second chunk of text
+    :param padding: Number of spaces for padding (default 1)
+    :param max_width: Maximum total width, including separator (default 80)
+    :raises ValueError: If the total width exceeds max_width
+    """
+
+    # Split the texts into lines and trim whitespace
+    def fix(a):
+        a = kx.trimdent(kx.serialize_data(a))
+        a = [line.rstrip() for line in a.split("\n")]
+        return a
+
+    lines1 = fix(a)
+    lines2 = fix(b)
+
+    if headers:
+        lines1.insert(0, hr(5))
+        lines2.insert(0, hr(5))
+        lines1.insert(0, headers[0])
+        lines2.insert(0, headers[1])
+    # Determine the maximum line length for each text
+    max_len1 = max((len(line) for line in lines1), default=0)
+    max_len2 = max((len(line) for line in lines2), default=0)
+
+    # Calculate total width including padding and separator
+    pad_left, pad_right = (padding, padding) if is_number(padding) else padding
+    prefix = prefix + " " if prefix else ""
+    total_width = max_len1 + max_len2 + 3 + pad_left + pad_right + len(prefix)
+
+    # Early guard clause: check if total width exceeds max_width
+    if total_width > max_width:
+        s = ""
+        if title:
+            s += title
+            s += "\n"
+        if headers:
+            s += headers[0] + ":\n"
+        s += fence(a)
+        s += "\n"
+        if headers:
+            s += headers[1] + ":\n"
+        s += fence(b)
+        return s
+
+    # Determine the maximum number of lines
+    max_lines = max(len(lines1), len(lines2))
+
+    # Pad the shorter text with empty lines
+    lines1 += [""] * (max_lines - len(lines1))
+    lines2 += [""] * (max_lines - len(lines2))
+
+    pad_left = " " * pad_left
+    pad_right = " " * pad_right
+    store = []
+    for line1, line2 in zip(lines1, lines2):
+        padded_line1 = f"{line1:<{max_len1}}"
+        padded_line2 = f"{line2:<{max_len2}}"
+        s = f"{padded_line1}{pad_left}{separator}{pad_right}{prefix}{padded_line2}"
+        store.append(s)
+    if title:
+        w = len(store[0])
+        store.insert(0, hr(w))
+        store.insert(0, centered(title, w))
+        store.insert(0, hr(w))
+    return "\n".join(store)
 
 
 # Sample calls
@@ -151,5 +229,6 @@ data1 = [
 if __name__ == '__main__':
     print(table(data1))
 
-
+    long_text = "\n".join([f"Line {i}" for i in range(1, 101)])
+    shortened = shorten(long_text, max_lines=10)
 

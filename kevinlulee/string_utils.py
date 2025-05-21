@@ -232,3 +232,14 @@ def uncomment(s, filetype = None):
     r = '^( *)(?:#+|//+|"|--+) +'
     return re.sub(r, lambda x: x.group(1), s, flags=re.M)
 
+
+
+def prefix_join(prefix, key, delimiter = '_'):
+    prefix = "" if not prefix else prefix + delimiter
+    return prefix + key
+
+def suffix_join(key, suffix, delimiter = '_'):
+    if suffix:
+        return f'{key}{delimiter}{suffix}'
+    else:
+        return key

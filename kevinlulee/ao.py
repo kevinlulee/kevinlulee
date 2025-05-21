@@ -341,3 +341,9 @@ def partition_by_functions(data, funcs):
     result.append(remaining)
     
     return result
+
+
+def dictf(ref):
+    def callback(key):
+        return ref[key] if isinstance(ref, dict) else getattr(ref, key)
+    return callback

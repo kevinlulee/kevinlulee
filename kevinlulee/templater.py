@@ -1,11 +1,5 @@
-import json
 import re
-import yaml
-import textwrap
-
-from kevinlulee.validation import is_array, is_string
-import kevinlulee.primary as kx
-from .ao import to_array
+import kevinlulee as kx
 
 BLANK = '<BLANK>'
 TEMPLATER_PATTERN = re.compile(r'''
@@ -36,7 +30,7 @@ class Templater:
             elif word:
                 m = self.getter(word)
                 if isinstance(m, dict):
-                    return json.dumps(m, indent=2, ensure_ascii=False)
+                    return kx.serialize_data(m, indent=2)
                 if callable(m):
                     return m()
                 return m
@@ -45,7 +39,7 @@ class Templater:
             if bullet:
                 if isinstance(value, dict):
                     raise Exception("no dicts allowed in templater")
-                if is_array(value):
+                if isinstance(value, str):
                     s = newline
 
                     def fix(i, bullet):
@@ -83,7 +77,7 @@ class Templater:
         else:
             self.getter = lambda x: getattr(self.scope, x)
 
-        text = textwrap.dedent(s).strip()
+        text = kx.trimdent(s)
         s = re.sub(TEMPLATER_PATTERN, self.replace, text)
         if BLANK in s:
             return re.sub(f'\n\s*{BLANK} *', '', s)
@@ -97,31 +91,48 @@ from typing import Any, Dict, Type
 class AbstractTemplater:
     PATTERN = ''
 
-    def __init__(self, scope, template, flags = 0):
-        self.scope = scope
-        self.template = template
+    def build_scope(self, scopes):
+        big_scope = {}
+        for scope in scopes:
+            # 2025-05-20 aicmp: implement
+            if kx.is_class_instance(scope):
+                big_scope['self'] = scope
+            else:
+                big_scope.update(scope)
+        return big_scope
+
+    def __init__(self, *scopes, flags = 0):
+        self.base_scope = self.build_scope(scopes)
         self.flags = flags
+        self.regex = re.compile(self.PATTERN)
 
-    def format(self):
-        text = textwrap.dedent(self.template).strip()
-        return re.sub(self.PATTERN, self.replace, text, flags = self.flags)
+    def format(self, template, *additional_scopes):
+        self.scope = kx.merge_dicts(self.base_scope, *additional_scopes)
+        text = kx.trimdent(template)
+        return self.sub(text)
 
-    def __str__(self):
-        return self.format()
-    
+    def sub(self, text):
+        return re.sub(self.regex, self.replacer, text, flags = self.flags)
 
 class ClassTemplater(AbstractTemplater):
     PATTERN = '''{(.*?)}'''
 
-    def replace(self, match):
-        scope = {'self': self.scope}
+    def apply(self, key):
+        if key in self.scope:
+            v = self.scope[key]
+            return v
+        else:
+            return eval(key, {}, self.scope)
+        
+    def replacer(self, match):
         keys = kx.split(match.group(1), '&')
-        return kx.join_text(kx.each(keys, eval, scope))
+        m = kx.join_text(kx.each(keys, self.apply))
+        return self.sub(m) # recursive replacement
 
 __all__ = ['ClassTemplater', 'templater']
 
 
 if __name__ == "__main__":
-    print(templater('''
-        hi\n$alphalphalpha\nbye
-    ''', {'alphalpha': 1}))
+    # print(templater(''' hi\n$alphalphalpha\nbye ''', {'alphalpha': 1}))
+    c = ClassTemplater({'a': 'hi {b}', 'b': 'ccc'})
+    print(c.format('{a}'))

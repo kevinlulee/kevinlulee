@@ -37,59 +37,10 @@ def yamload(x):
     return m
 
 
-def get_caller(offset=0, skippable=[], ignore_list = []) -> inspect.FrameInfo:
-    KNOWN_IMPLICIT_CALLERS = [
-        "get_caller",
-    ]
-    backwards = ["must"]
-    skippableA = [
-        "log",
-        "log_error",
-        "__init__",
-        "handler",
-        "decorator",
-        "wrapper",
-    ]
-
-    items: list = inspect.stack()
-
-    # find_index
-    start = find_index(
-        items,
-        lambda x: x.function in KNOWN_IMPLICIT_CALLERS,
-    )
-    if start == -1:
-        return
-    start += 1
-    length = len(items)
-    skip = skippable + skippableA
-    while start < length:
-        next: inspect.FrameInfo = items[start]
-        if next.function in backwards:
-            return items[start - 1]
-        if (next.filename, next.function) in ignore_list:
-            start += 1
-            continue
-            
-        if next.function in skip:
-            start += 1
-            continue
-        if offset:
-            next = items[start + offset]
-        return next
-
-
-
-
 def pycall(*args, **kwargs):
     return pythonfmt.call(*args, **filter_none(kwargs))
 
 
-def get_required_args(func):
-    p = inspect.getfullargspec(func)
-    delta = len(p.args) - len(p.defaults or [])
-    required_args = p.args[0:delta]
-    return required_args
 
 
 def hashify(key):

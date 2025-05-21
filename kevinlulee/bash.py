@@ -118,6 +118,22 @@ def typstfile(s, src_path = None,pdf_outpath =None, open = False, debug = False)
         typst(src_path, pdf_outpath, open = open)
         return os.path.expanduser(pdf_outpath)
 
-if __name__ == '__main__':
-    pass
-    # bash('python3 -m kevinlulee.experiments.foobar')
+
+def bash3(*args, cwd=None, on_error=None):
+    """
+    simplified version of bash
+    no debugging
+    no printing
+
+    these parts need to be manually controlled
+    """
+    cwd = os.path.expanduser(cwd) if cwd else None
+    cmd = filtered(args)
+
+    try:
+        result = subprocess.run(cmd, text=True, cwd=cwd, capture_output=True, check = True)
+        return result.stdout.strip()
+    except Exception as e:
+        if on_error:
+            return on_error(e)
+        raise e

@@ -269,3 +269,81 @@ if __name__ == '__main__':
     # a = vim.funcs.getbufinfo(54)
     # print(a[0]['lastused'], 'X')
     print(get_recency_validator('recent',minutes = 1)( a[0]['lastused'] ))
+
+
+
+from datetime import datetime 
+
+# Mapping full day names and abbreviations to integers (Mon=0, ..., Sun=6)
+DAY_MAPPING = {
+    "Mon": 0,
+    "Monday": 0,
+    "Tue": 1,
+    "Tuesday": 1,
+    "Wed": 2,
+    "Wednesday": 2,
+    "Thu": 3,
+    "Thursday": 3,
+    "Fri": 4,
+    "Friday": 4,
+    "Sat": 5,
+    "Saturday": 5,
+    "Sun": 6,
+    "Sunday": 6,
+}
+
+
+def parse_time(x):
+    """Parse time string, inferring 'PM' if not provided."""
+    # Check if "AM" or "PM" is explicitly mentioned
+    if "AM" in x.upper() or "PM" in x.upper():
+        try:
+            return datetime.strptime(x, "%I:%M%p")
+        except Exception as e:
+            return datetime.strptime(x, "%I%p")
+
+    # No "AM" or "PM" provided, assume PM
+    try:
+        # Try parsing full "HH:MM" format first
+        return datetime.strptime(x, "%I:%M")
+    except ValueError:
+        # If only "HH" is given (e.g., '5' meaning '5PM')
+        return datetime.strptime(x, "%I")
+
+
+def parse_day_and_time(day_time_obj):
+    if isinstance(day_time_obj, str):
+        return None, parse_time(day_time_obj)
+    """Parse day and time from the given object, handle flexible time formats."""
+    # Handle both full and abbreviated day names
+    day = DAY_MAPPING[day_time_obj["day"].capitalize()]
+    time_str = day_time_obj["time"]
+    time_obj = parse_time(time_str)  # Parse the flexible time string
+    return day, time_obj
+
+
+def is_time_between(start: str | dict, end: str | dict):
+    start_day, start_time = parse_day_and_time(start)
+    end_day, end_time = parse_day_and_time(end)
+
+    now = datetime.now()
+    current_day = now.weekday()  # Monday = 0, Sunday = 6
+    current_time = now.time()
+    if start_day == None: start_day = current_day
+    if end_day == None: end_day = current_day
+
+    return (
+        current_day >= start_day
+        and current_day <= end_day
+        and current_time > start_time.time()
+        and current_time < end_time.time()
+    )
+
+
+if __name__ == "__main__":
+    start = {"day": "friday", "time": "1pm"}
+    end = {"day": "sunday", "time": "11pm"}
+    start = "1:40pm"
+    end = "11pm"
+
+    # print(is_time_between(start, end))  # True
