@@ -222,7 +222,7 @@ def testf(selector: Selector, flags=0, anti=0, key=None):
     elif isinstance(selector, re.Pattern):
         fn = lambda s: selector.search(s, flags = flags)
         
-    elif isinstance(selector, (list, tuple)):
+    elif isinstance(selector, (list, tuple, set)):
         fn = lambda s: s in selector
     elif callable(selector):
         fn = selector

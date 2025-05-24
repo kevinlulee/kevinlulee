@@ -20,7 +20,7 @@ import shutil
 from kevinlulee.ao import smallify, partition
 from kevinlulee.base import yes, no
 from kevinlulee.date_utils import strftime
-from kevinlulee.string_utils import mget, split, split_once
+from kevinlulee.string_utils import mget, prefix_join, split, split_once
 
 def yb_parse(kwargs):
             assert isinstance(kwargs, dict), "yb data must be in the form of a dict"
@@ -96,6 +96,8 @@ extensions = list(set(EXT_REFERENCE_MAP.values()))
 
 
 def has_extension(el):
+        if not el or not isinstance(el, str):
+            return False
         return get_extension(el) in extensions
 def is_extf(extensions):
     def check(el):
@@ -200,6 +202,7 @@ def readfile(path: str) -> Any:
         The content of the file, deserialized if applicable.
         Returns None if the file does not exist.
     """
+    path = str(path)
     expanded_path = os.path.expanduser(path)
 
     if not os.path.isfile(expanded_path):
@@ -408,12 +411,15 @@ def fnamemodify(file, dir = None, name = None, ext = None):
     _name = os.path.basename(file)
     if has_extension(name):
         _ext = get_extension(name)
+
+
     
 
-    if dir: _dir = dir(_dir) if is_function(dir) else dir
-    if ext: _ext = ext(_ext) if is_function(ext) else ext
-    if name: _name = name(_name) if is_function(name) else name
-    return os.path.join(_dir, f"{_name}.{_ext}")
+    if dir: _dir = dir(_dir) if callable(dir) else dir
+    if ext: _ext = ext(_ext) if callable(ext) else ext
+    if name: _name = name(_name) if callable(name) else name
+    ext_value = prefix_join('.', _ext)
+    return os.path.join(_dir, f"{_name}{ext_value}")
 
 
 def cpfile(source, dest, debug=False, soft = False):
@@ -458,6 +464,7 @@ def resolve_filetype(filepath):
         '.cpp': 'cpp',
         '.java': 'java',
         '.sh': 'shell',
+        '.zip': 'zip',
         '.rb': 'ruby'
     }.get(ext, 'text')
 

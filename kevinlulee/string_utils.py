@@ -235,6 +235,8 @@ def uncomment(s, filetype = None):
 
 
 def prefix_join(prefix, key, delimiter = '_'):
+    if not key:
+        return ''
     prefix = "" if not prefix else prefix + delimiter
     return prefix + key
 

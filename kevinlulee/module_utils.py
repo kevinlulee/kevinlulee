@@ -35,7 +35,7 @@ PYTHON_MODULE_PATHS = collect_python_paths()
 
 def get_modname_from_file(file):
     if not file.endswith(".py"):
-        return file
+        return 
 
     path = os.path.expanduser(file)
     for root in PYTHON_MODULE_PATHS:
@@ -169,3 +169,7 @@ if __name__ == "__main__":
 
 def reload_modules(*keys, on_error = None):
     return get_modules(flat(keys), reload = True, on_error=on_error)
+
+def get_module_directory(modname) -> Path:
+    module = importlib.import_module(modname)
+    return Path(os.path.dirname(inspect.getabsfile(module)))

@@ -31,3 +31,14 @@ def get_most_common_file_extension(dir, recursive=False):
     extension_counts = Counter(extensions)
     most_common = extension_counts.most_common(1)
     return most_common[0][0][1:] if most_common else None
+
+
+def unzip(file, dest):
+    import zipfile
+
+    file = os.path.expanduser(file)
+    ensure_directory_exists(dest)
+    dest = os.path.expanduser(dest)
+
+    with zipfile.ZipFile(file, "r") as zf:
+        zf.extractall(dest)

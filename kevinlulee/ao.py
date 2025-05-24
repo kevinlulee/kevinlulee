@@ -1,4 +1,5 @@
-from kevinlulee.base import testf
+from kevinlulee.base import get_field_value, testf
+import re
 import itertools
 from kevinlulee.typing import Selector, Union
 from kevinlulee.validation import exists, is_array
@@ -39,16 +40,46 @@ def mapfilter(items, fn, validator = lambda x: x):
             store.append(p)
     return store
 
+def xtest(x, selector: Selector = None, key = None, flags=0, anti=0):
+    if x is None or selector is None:
+        return False
 
-def find_index(items, query, key = None):
-    validate = testf(query, key)
+    if key:
+        x = get_field_value(x, key)
+
+    def get(x):
+        if isinstance(selector, str):
+            return bool(re.search(selector, x, flags = flags))
+        elif isinstance(selector, re.Pattern):
+            return bool(selector.search(s, flags=flags))
+        elif isinstance(selector, (list, tuple, set)):
+            return x in selector
+        elif callable(selector):
+            return selector(x)
+        elif isinstance(selector, dict):
+            for k, v in selector.items():
+                value = get_field_value(x, k)
+                # print(x, k, v, value, xtest(value, v))
+
+                if not xtest(value, v):
+                    return False
+            return True
+        elif selector is not None:
+            return selector == x
+
+    return not get(x) if anti else get(x)
+
+def xtestf(selector, key = None, flags=0, anti=0):
+    return lambda s: xtest(s, selector, flags, anti, key, **kwargs)
+
+def find_index(items, query, **kwargs):
     for i, item in enumerate(items):
-        if validate(item):
+        if xtest(item, query, **kwargs):
             return i
 
 
-def find(items, fn, key = None):
-    index = find_index(items, fn, key)
+def find(items, query, **kwargs):
+    index = find_index(items, query, **kwargs)
     if index is not None:
         return items[index]
 
@@ -117,7 +148,7 @@ def flat(*items, validator = exists):
     runner(items)
     return store
 
-from typing import Any, Union, Callable
+from typing import Any, Iterable, Union, Callable
 
 def group(
     items: Union[list[tuple[str, Any]], list[dict]],
@@ -200,6 +231,8 @@ def filtered(items, selector: Selector = exists):
         return items
 
     fn = testf(selector)
+    if not fn:
+        return items 
     if isinstance(items, dict):
         return {k: v for k, v in items.items() if fn(v)}
     return [ item for item in items if fn(item) ] 
@@ -294,11 +327,16 @@ def split_dict(d, keys):
             b[k] = v
     return a, b
 
-def map(x, v) -> Union[dict, list]:
+def map(x: Iterable, *args, callback = None, template = None, key = None, keys = None) -> Union[dict, list]:
     if isinstance(x, (list, tuple, set)):
-        return each(x, v)
-    elif isinstance(x, dict):
-        return reduce(x, v)
+        if template:
+            return [template.format(el) for el in x]
+        if callback:
+            return [callback(el, *args) for el in x]
+        if key:
+            return [(get_field_value(el, key)) for el in x]
+    raise Exception('only list like entries')
+
 
 def filter_none(data):
     if isinstance(data, list):
@@ -309,7 +347,7 @@ def filter_none(data):
         raise Exception("only lists and dicts")
 
 
-def partition_by_functions(data, funcs):
+def partition_by_functions(data, *funcs):
     """
     Returns:
     - A list of partitions where:
@@ -320,7 +358,7 @@ def partition_by_functions(data, funcs):
     remaining = list(data)
     
     # Process each function
-    for func in funcs:
+    for func in flat(funcs):
         matched = []
         not_matched = []
         
@@ -347,3 +385,7 @@ def dictf(ref):
     def callback(key):
         return ref[key] if isinstance(ref, dict) else getattr(ref, key)
     return callback
+
+
+def flat_map(items, fn):
+    return [fn(el) for el in flat(items)]
