@@ -73,11 +73,6 @@ def bring_to_life(code, scope=None) -> Callable:
     return local_namespace[function_name]
 
 
-def is_class_instance(s):
-    return (hasattr(s, '__class__') and 
-            not isinstance(s, type) and 
-            not isinstance(s, (list, dict, tuple, set, str, int, float, bool)) and 
-            type(s) != type)
 def modify_array(items, func, key = None):
     # kx.ao
     for i, item in enumerate(items):
@@ -167,3 +162,15 @@ def remove_quotes(s):
         return s
 
 from typing import *
+
+def templaterf(callback):
+    # kx
+    def wrapper(s, reference):
+
+        def replacer(x):
+            key = x.group(1)
+            return callback(key, reference)
+        regex = '\$(\w+)'
+        return re.sub(regex, replacer, s)
+        
+    return wrapper

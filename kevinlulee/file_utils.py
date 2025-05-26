@@ -636,7 +636,7 @@ def is_file(x):
     return x and isinstance(x, str) and os.path.isfile(os.path.expanduser(x))
 
 def is_dir(x):
-    return x and os.path.isdir(os.path.expanduser(x))
+    return x and isinstance(x, str) and os.path.isdir(os.path.expanduser(x))
 
 def mkfile(path, debug = False, soft = False):
     path = os.path.expanduser(path)

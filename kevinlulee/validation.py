@@ -85,3 +85,8 @@ def is_class_constructor(obj):
     if isinstance(obj, type):
         return True
 
+def is_class_constructor(x):
+    BASE_TYPES =(list, dict, tuple, set, str, int, float, bool)
+    if x in BASE_TYPES:
+        return False
+    return isinstance(x, type)
