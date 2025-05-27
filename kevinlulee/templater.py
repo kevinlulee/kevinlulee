@@ -120,7 +120,7 @@ class ClassTemplater(AbstractTemplater):
     def apply(self, key):
         if key in self.scope:
             v = self.scope[key]
-            return v
+            return kx.serialize_data(v)
         else:
             return eval(key, {}, self.scope)
         

@@ -3,6 +3,7 @@ import json
 import re
 import textwrap
 
+from pprint import pprint
 from kevinlulee.string_utils import split
 from .bash import bash, bash2
 from .ao import filtered
@@ -421,6 +422,7 @@ if __name__ == '__main__':
         # print(g.create_branch('dev'))
         # print(g.branch)
         g.debug = False
+        pprint(g.get_files())
 
         # res = g.commands.set_remote(apikey=True)
         # print(res)
