@@ -72,6 +72,7 @@ def ripgrep(
     include_dirs: List[str] = [],
     exts: List[str] = [],
     grouped = False,
+    boundary: bool = False,
 ) -> List[RipgrepLine]:
     cmd = ["rg"]
 
@@ -95,6 +96,8 @@ def ripgrep(
         cmd.append("--ignore-case")
     if multiline:
         cmd.append("--multiline")
+    if boundary:
+        cmd.append("--word-regexp")
 
     exclude_dirs = set(GLOBAL_COMMON_IGNORE_DIRS + exclude_dirs or [])
     include_dirs = set(include_dirs or [])

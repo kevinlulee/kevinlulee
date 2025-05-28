@@ -72,6 +72,35 @@ class StringBuilder:
     def section(self, name):
         return SectionContext(self, name)
 
+def pretty_trace(data: ErrorData, useful_traces=True, all_traces=False) -> str:
+    sb = kx.StringBuilder()
+    sb.add_field("type", data.type)
+    sb.add_field("message", data.message)
+
+    def format(trace: TraceInfo):
+        file = trace.file or "?"
+        lnum = trace.lnum or "?"
+        caller = trace.caller
+        snippet = trace.snippet
+
+        parts = [f"{file}:{lnum}"]
+        if caller:
+            parts.append(kx.parens(caller))
+        if snippet:
+            parts.append(snippet)
+        return kx.join_spaces(parts)
+
+    if useful_traces:
+        with sb.bullets(delimiter="-", ind=2, title="useful_traces") as section:
+            for trace in get_useful_traces(data.traces):
+                section.add(format(trace))
+
+    if all_traces:
+        with sb.bullets(delimiter="-", ind=2, title="all_traces") as section:
+            for trace in data.traces:
+                section.add(format(trace))
+
+    return sb
 
 class MarkdownBuilder(StringBuilder):
     def __init__(self):
