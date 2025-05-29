@@ -19,6 +19,7 @@ from .components.string_builders import *
 from .git import GitRepo
 from .pythonfmt import pythonfmt
 from .typstfmt import typstfmt
+from .ddo import LiveDict, LiveArray
 import kevinlulee.ascii as ascii
 import kevinlulee.introspect as introspect
 
@@ -179,9 +180,34 @@ def templaterf(callback):
     
 
 
+def collect(file, pattern, sort=False, unique=False):
+    s = text_getter(file)
+    flags = re.M if pattern.startswith('^') else 0
+    
+    matches = []
+    for match in re.finditer(pattern, s, flags=flags):
+        m = get_match(match)
+        if m:
+            matches.append(m)
+    
+    if unique:
+        matches = list(set(matches))
+    
+    if sort:
+        matches.sort()
+    
+    return matches
 
 
-
-
-
-
+def opposite(x):
+    match x:
+        case 0: return 1
+        case 1: return 0
+        case True: return False
+        case False: return True
+        case _: return not bool(x)
+def toggle(state, key, verbose = False):
+    v = getattr(state, key, False)
+    new = opposite(v)
+    setattr(state, key, new)
+    if verbose: print(f'setting state.{key} as {new}')

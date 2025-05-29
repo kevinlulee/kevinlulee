@@ -237,7 +237,9 @@ def join_text(*contents, conservative = False):
         return o
 
     contents = contents[0] if len(contents) == 1 else contents
-    return runner(contents).strip()
+    def cleanup(s):
+        return re.sub('^\n*', '', s).rstrip()
+    return cleanup(runner(contents))
 
 
 def dash_split(text, delim_length=3, trim=True, filter=True):

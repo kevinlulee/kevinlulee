@@ -186,6 +186,8 @@ def group(
 def join_spaces(*args):
     return ' '.join(flat(args))
 
+def join_delimiter(*args, delimiter = ' '):
+    return delimiter.join([str(x) for x in flat(args)])
 def merge_dicts_recursively(*dicts):
     """
     Creates a dict whose keyset is the union of all the
@@ -197,7 +199,7 @@ def merge_dicts_recursively(*dicts):
     When values are dictionaries, it is applied recursively
     """
     result = dict()
-    all_items = itertools.chain(*[d.items() for d in dicts])
+    all_items = itertools.chain(*[d.items() for d in dicts if d])
     for key, value in all_items:
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = merge_dicts_recursively(result[key], value)
@@ -313,7 +315,7 @@ def assign_fresh(*dicts: dict) -> dict:
 
 
 def merge_dicts(*dicts):
-    return {k: v for d in dicts for k, v in d.items()}
+    return {k: v for d in dicts for k, v in d.items() if d}
 
 
 

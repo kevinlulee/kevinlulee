@@ -39,7 +39,7 @@ def get_modname_from_file(file):
 
     path = os.path.expanduser(file)
     for root in PYTHON_MODULE_PATHS:
-        m = path.replace(root, "")
+        m = path.replace(root + '/', "")
         if len(m) < len(path):
             b = m
             b = b[1:] if b[0] == "/" else b
@@ -163,7 +163,8 @@ def tempfunc():
 if __name__ == "__main__":
     # this is super cool
     #
-    load_func('kevinlulee.scripts.generate_pytypst_funcs')('abc')
+    pass
+    # load_func('kevinlulee.scripts.generate_pytypst_funcs')('abc')
     # print(PYTHON_MODULE_PATHS)
     # print(get_modname_and_cwd('/home/kdog3682/projects/python/kevinlulee/kevinlulee/experiments/abc.py'))
 
@@ -173,3 +174,7 @@ def reload_modules(*keys, on_error = None):
 def get_module_directory(modname) -> Path:
     module = importlib.import_module(modname)
     return Path(os.path.dirname(inspect.getabsfile(module)))
+
+
+
+# print(get_modname_from_file('/home/kdog3682/projects/hammymathclass/python/manimlib/document/container.py'))

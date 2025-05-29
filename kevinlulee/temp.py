@@ -1,6 +1,0 @@
-
-def ohola():
-    kargo()
-
-
-oho()

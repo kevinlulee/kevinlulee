@@ -35,6 +35,10 @@ def matchstr(s: str, reg: str, flags: int = 0) -> Union[str, Tuple[str, ...], No
         ('John', '30')
     """
     match = re.search(reg, s, flags=flags)
+    return get_match(match)
+
+def get_match(match):
+    
     if match:
         if match.groups():
             if len(match.groups()) == 1:
@@ -210,6 +214,7 @@ def parens(s, key = '()', newline = False, ind = 4):
         '"""': ('"""', '"""'),
         "``": ("`", "`"),
         "": ("", ""),
+        "---": ("---\n", "\n---"),
         "```": ("```", "```"),
         "({})": ("({", "})"),
         "([])": ("([", "])"),

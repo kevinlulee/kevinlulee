@@ -29,12 +29,15 @@ def yamload(x):
         return {}
 
     s = trimdent(x)
-    m = yaml.safe_load(s)
-
-    if type(m) == str:
+    try:
+        m = yaml.safe_load(s)
+        if type(m) == str:
+            return {}
+        
+        return m
+        
+    except Exception as e:
         return {}
-
-    return m
 
 
 def pycall(*args, **kwargs):

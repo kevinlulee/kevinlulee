@@ -101,7 +101,17 @@ def get_required_parameters(func) -> list:
     """
     p = inspect.getfullargspec(func)
     delta = len(p.args) - len(p.defaults or [])
-    required_args = p.args[0:delta]
-    return required_args
+    return p.args[0:delta]
 
-# print(get_required_args(get_param_info))
+def get_parameters_and_fallbacks(func):
+    p = inspect.getfullargspec(func)
+    args = p.args
+    if not args:
+        return []
+    defaults = list(p.defaults) if p.defaults else []
+    defaults = [None] * (len(args) - len(defaults)) + defaults
+    return list(zip(args, defaults))
+def foobar(a, b, c = 1, d = 123):
+    pass
+if __name__ == '__main__':
+    print(gobo(foobar))

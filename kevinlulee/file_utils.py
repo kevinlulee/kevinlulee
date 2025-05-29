@@ -215,7 +215,10 @@ def readfile(path: str) -> Any:
         if extension == "md":
             return f.read()
         if extension == "json":
-            return json.load(f)
+            try:
+                return json.load(f)
+            except Exception as e:
+                return 
         if extension == "yb":
             return yb.load(f)
         elif extension in ("yaml", "yml"):
@@ -531,9 +534,9 @@ def serialize_data(data, filepath = None, indent = 2) -> str:
                 return json.dumps(data, indent=indent)
     else:
         return str(data)
-def writefile(filepath: str, data: Any, debug = False, verbose = True) -> str:
+def writefile(filepath: str, data: Any, debug = False, verbose = True, strict = True) -> str:
 
-    assert data, "Data must be existant. Empty strings or None are not allowed."
+    if strict: assert data, "Data must be existant. Empty strings or None are not allowed."
     assert os.path.splitext(filepath)[1], f"Filepath must have an extension: {filepath}"
 
     expanded_file_path = os.path.expanduser(filepath)

@@ -29,6 +29,7 @@ def bash(*args, cwd=None, on_error=None, silent=True, debug = False, strict = Fa
 
     err = result.stderr.strip()
     success = result.stdout.strip()
+    print(err, success)
 
     if success and not silent:
         print(success)
@@ -76,7 +77,7 @@ def bash2(*args, cwd=None, on_error=None, strict = False, verbose = False, debug
 
 
 
-def typst(inpath=None, outpath=None, open=False, mode="compile", on_error = None):
+def typst(inpath, outpath='~/scratch/temp.pdf', open=False, mode="compile", on_error = None):
     """
     params:
         inpath: the inpath typ file
@@ -90,7 +91,7 @@ def typst(inpath=None, outpath=None, open=False, mode="compile", on_error = None
     ensure_directory_exists(outpath)
 
     open = "--open" if open else ""
-    return bash("typst", mode, inpath, outpath, open, "--root", "/", on_error=on_error)
+    return bash2("typst", mode, inpath, outpath, open, "--root", "/", on_error=on_error)
 
 
 def python3(file, *args, as_module=False, on_error = None):
@@ -137,3 +138,8 @@ def bash3(*args, cwd=None, on_error=None):
         if on_error:
             return on_error(e)
         raise e
+
+
+def pip(key, cwd = None):
+    return bash('pip', 'install', key, '--break-system-packages', cwd = cwd)
+
