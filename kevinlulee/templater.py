@@ -29,11 +29,9 @@ class Templater:
                 return str(eval(rendered))
             elif word:
                 m = self.getter(word)
-                if isinstance(m, dict):
-                    return kx.serialize_data(m, indent=2)
                 if callable(m):
-                    return m()
-                return m
+                    m = m()
+                return kx.serialize_data(m)
 
         def add_spacing(value, newline, ind, bullet, after_spaces, comma):
             if bullet:
@@ -122,7 +120,13 @@ class ClassTemplater(AbstractTemplater):
             v = self.scope[key]
             return kx.serialize_data(v)
         else:
-            return eval(key, {}, self.scope)
+            try:
+                return eval(key, {}, self.scope)
+            except Exception as e:
+                return f'{str(e)}: {key}'
+                print('key', key)
+                print('scope', self.scope)
+                raise e
         
     def replacer(self, match):
         keys = kx.split(match.group(1), '&')

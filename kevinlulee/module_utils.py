@@ -177,4 +177,4 @@ def get_module_directory(modname) -> Path:
 
 
 
-# print(get_modname_from_file('/home/kdog3682/projects/hammymathclass/python/manimlib/document/container.py'))
+# print(get_modname_from_file('/home/kdog3682/projects/python/maelstrom/lib/nvim/plugins/v1/file_runner.py'))

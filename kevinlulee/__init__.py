@@ -205,9 +205,80 @@ def opposite(x):
         case 1: return 0
         case True: return False
         case False: return True
+        case 'False': return 'True'
+        case 'True': return 'False'
         case _: return not bool(x)
 def toggle(state, key, verbose = False):
-    v = getattr(state, key, False)
-    new = opposite(v)
-    setattr(state, key, new)
-    if verbose: print(f'setting state.{key} as {new}')
+    if is_dict(state):
+        v = state.get(key)
+        new = opposite(v)
+        state[key] = new
+        if verbose: print(f'setting state["{key}"] as {new}')
+    else:
+        v = getattr(state, key, False)
+        new = opposite(v)
+        setattr(state, key, new)
+        if verbose: print(f'setting state.{key} as {new}')
+
+class DependencyTree:
+    def __init__(self, library: Dict, getter: Callable):
+        self.library = library
+        self.getter = getter
+
+    def recursively_get_dependencies(self, target: str) -> Dict:
+        seen = set()
+
+        def runner(key):
+            seen.add(key)
+
+            raw = self.getter(key)
+
+            # Filter dependencies directly in this method
+            dependencies = (
+                [] if not raw else [item for item in raw if item not in seen]
+            )
+
+            children = [runner(dep) for dep in dependencies]
+            payload = {"name": key}
+
+            if children:
+                payload["children"] = children
+
+            return payload
+
+        return runner(target)
+
+    @staticmethod
+    def flatten(tree: Dict) -> List:
+        def runner(node):
+            name = node.get("name")
+            children = node.get("children", [])
+
+            # Directly flatten the nested results here
+            result = [name]
+            for child in children:
+                result.extend(runner(child))
+            return result
+
+        return runner(tree)
+
+
+def must(input, key):
+    if not input:
+        return 
+
+    if key in input:
+        return input[key]
+
+    raise Exception(f"{key} was not in found in {input.keys()}")
+
+def replacef(regex, replacement, flags = 0):
+        
+    def replacer(x):
+        key = x.group(0)
+        return
+        
+    def wrapper(s):
+        return re.sub(regex, replacement, s, flags = flags)
+
+    return wrapper

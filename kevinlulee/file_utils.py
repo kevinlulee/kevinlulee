@@ -19,6 +19,8 @@ import shutil
 
 from kevinlulee.ao import smallify, partition
 from kevinlulee.base import yes, no
+from kevinlulee.resolve_ops import resolve_filetype
+from kevinlulee.serialize_ops import serialize_data
 from kevinlulee.date_utils import strftime
 from kevinlulee.string_utils import mget, prefix_join, split, split_once
 
@@ -444,32 +446,6 @@ def cpfile(source, dest, debug=False, soft = False):
     shutil.copy2(source, dest)
 
 
-def resolve_filetype(filepath):
-    if not filepath:
-        return 
-    ext = os.path.splitext(filepath)[1].lower()
-    return {
-        '.py': 'python',
-        '.js': 'javascript',
-        '.ts': 'typescript',
-        '.html': 'html',
-        '.typ': 'typst',
-        '.css': 'css',
-        '.yml': 'yaml',
-        '.yaml': 'yaml',
-        '.typ': 'typst',
-        '.txt': 'text',
-        '.log': 'log',
-        '.vue': 'vue',
-        '.json': 'json',
-        '.md': 'markdown',
-        '.c': 'c',
-        '.cpp': 'cpp',
-        '.java': 'java',
-        '.sh': 'shell',
-        '.zip': 'zip',
-        '.rb': 'ruby'
-    }.get(ext, 'text')
 
 def comment(text, filepath):
     def hash_comment(t):
@@ -509,31 +485,7 @@ def comment(text, filepath):
     return formatter(text)
 
 
-def serialize_data(data, filepath = None, indent = 2) -> str:
-    if callable(data):
-        return inspect.getsource(data)
-    if isinstance(data, (int, bool)):
-        return str(data)
-    elif isinstance(data, str):
-        return data
 
-    elif isinstance(data, (dict, list, tuple)):
-        file_extension = resolve_filetype(filepath)
-        match file_extension:
-            case "yml" | "yaml":
-                return yaml.dump(data, indent=indent)
-            case "toml":
-                import toml
-
-                return toml.dumps(data)
-            case "json":
-                return json.dumps(data, indent=indent)
-            case "txt":
-                return json.dumps(data, indent=indent)
-            case _:
-                return json.dumps(data, indent=indent)
-    else:
-        return str(data)
 def writefile(filepath: str, data: Any, debug = False, verbose = True, strict = True) -> str:
 
     if strict: assert data, "Data must be existant. Empty strings or None are not allowed."

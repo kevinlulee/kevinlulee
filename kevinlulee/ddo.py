@@ -116,41 +116,27 @@ import os
 class LiveObject:
     """Base class for live data structures that automatically persist to disk."""
 
-    def __init__(self, data_path, loader=None, dumper=None):
-        self.data_path = os.path.expanduser(data_path)
-        self.loader = loader or self._default_loader
-        self.dumper = dumper or self._default_dumper
+    def __init__(self, data_path):
+        self._data_path = os.path.expanduser(data_path)
         self._data = self._load()
 
-    def _default_loader(self, data):
-        return data
-
-    def _default_dumper(self, data):
-        return data
-
     def _default_fallback(self):
-        """Override in subclasses to provide appropriate default data structure."""
         return None
 
     def _load(self):
-        try:
-            loaded_data = kx.readfile(self.data_path)
-            return (
-                self.loader(loaded_data)
-                if loaded_data is not None
-                else self._default_fallback()
-            )
-        except:
-            return self._default_fallback()
+        return kx.readfile(self._data_path) or self._default_fallback()
 
     def _save(self):
-        kx.writefile(self.data_path, self.dumper(self._data), strict=False)
+        kx.writefile(self._data_path, self._data, strict=False)
 
     def __len__(self):
         return len(self._data)
 
     def __bool__(self):
         return bool(self._data)
+
+    def __repr__(self):
+        return kx.serialize_data(self._data)
 
 
 class LiveDict(LiveObject):

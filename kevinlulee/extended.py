@@ -16,7 +16,7 @@ import inspect
 import yaml
 import re
 
-def yamload(x):
+def yamload(x, strict = False):
     if not x:
         return {}
 
@@ -37,6 +37,8 @@ def yamload(x):
         return m
         
     except Exception as e:
+        if strict:
+            raise e
         return {}
 
 
