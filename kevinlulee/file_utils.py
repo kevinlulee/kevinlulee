@@ -17,11 +17,12 @@ from typing import Any, Unpack
 from pathlib import Path
 import shutil
 
-from kevinlulee.ao import smallify, partition
+from kevinlulee.fancy_filetree import fancy_filetree
+from kevinlulee.ao import smallify, partition, xtest
 from kevinlulee.base import yes, no
 from kevinlulee.resolve_ops import resolve_filetype
 from kevinlulee.serialize_ops import serialize_data
-from kevinlulee.date_utils import strftime
+from kevinlulee.date_utils import strftime, resolve_timedelta
 from kevinlulee.string_utils import mget, prefix_join, split, split_once
 
 def yb_parse(kwargs):
@@ -666,58 +667,6 @@ def create_gitignore_matcher(rootdir):
     
     return is_ignored
 
-def fancy_filetree(root_dir):
-    """
-    Generates a string representation of the file tree for a given directory,
-    expanding the directory path using os.path.expanduser().
-
-    Args:
-        root_dir (str): The path to the root directory (will be expanded).
-
-    Returns:
-        str: A string representing the fancy file tree. Returns an error message
-             if the provided path is not a valid directory after expansion.
-    """
-    # Expand the root directory path
-    expanded_root = os.path.expanduser(root_dir)
-    
-    # Check if the expanded path is a valid directory
-    if not os.path.isdir(expanded_root):
-        return ''
-    
-    # Initialize the result string with the root directory
-    result = os.path.basename(expanded_root) + "/\n"
-    ignore = create_gitignore_matcher(expanded_root)
-    
-    # Recursively build the tree
-    def build_tree(directory, prefix=""):
-        entries = sorted(os.listdir(directory))
-        count = len(entries)
-        
-        tree_str = ""
-        for i, entry in enumerate(entries):
-            full_path = os.path.join(directory, entry)
-            if ignore(full_path):
-                continue
-            is_last = i == count - 1
-            
-            # Select the appropriate connector
-            connector = "└── " if is_last else "├── "
-            
-            # Determine if entry is a directory
-            if os.path.isdir(full_path):
-                tree_str += f"{prefix}{connector}{entry}/\n"
-                # Determine the new prefix for the next level
-                next_prefix = prefix + ("    " if is_last else "│   ")
-                tree_str += build_tree(full_path, next_prefix)
-            else:
-                tree_str += f"{prefix}{connector}{entry}\n"
-        
-        return tree_str
-    
-    # Start building the tree from the root
-    result += build_tree(expanded_root)
-    return result
 
 
 
@@ -973,9 +922,9 @@ class PathValidator:
              case "include":
                  self.inclusion_rules.append(rule)
              case "recent":
-                 self.recency_cutoff = kx.resolve_timedelta(**rule)
+                 self.recency_cutoff = resolve_timedelta(**rule)
              case "distant":
-                 self.distancy_cutoff = kx.resolve_timedelta(**rule)
+                 self.distancy_cutoff = resolve_timedelta(**rule)
 
     def add_inclusion_rule(self, **kwargs: Unpack[ValidationRuleSpec]):
         # 2025-05-18 aicmp: implement
@@ -989,12 +938,15 @@ class PathValidator:
                 case "filetype":
                     pass
                 case "after":
-                     self.recency_cutoff = kx.resolve_timedelta(**rule)
+                     self.recency_cutoff = resolve_timedelta(**rule)
                 case "before":
                     pass
 
     def add_exclusion_rule(self, **kwargs: Unpack[ValidationRuleSpec]):
-        pass
+        stem = kwargs.get('stem')
+        if stem:
+            self.exclusion_rules.append(lambda x: xtest(Path(x).stem, stem))
+        
 
     def validate(self, filepath):
         """
@@ -1023,6 +975,8 @@ class PathValidator:
         return True
 
     def matches_rule(self, filepath, rule):
+        if callable(rule):
+            return rule(filepath)
         if isinstance(rule, list):
             return filepath in rule
         elif isinstance(rule, str):
@@ -1049,4 +1003,8 @@ def text_getter(s) -> str:
     return (readfile(s) if is_file(s) else s).strip()
 
 if __name__ == '__main__':
-    print(resolve_dotted_path('~/.foo.py', '/home/kdog3682/projects/python/kevinlulee/kevinlulee/file_utils.py'))
+    # print(resolve_dotted_path('~/.foo.py', '/home/kdog3682/projects/python/kevinlulee/kevinlulee/file_utils.py'))
+
+    p = PathValidator()
+    p.add_exclusion_rule(stem = ['hii'])
+    print(p.validate('hii.py'))

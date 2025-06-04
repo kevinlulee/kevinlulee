@@ -49,6 +49,9 @@ def strftime(source=None, mode="iso8601"):
     return to_datetime(source).strftime(templates.get(mode, mode))
 
 
+def timestamp():
+    return datetime.now().timestamp()
+
 def resolve_timedelta(
     hours=0,
     seconds=0,

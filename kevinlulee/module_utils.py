@@ -168,6 +168,10 @@ if __name__ == "__main__":
     # print(PYTHON_MODULE_PATHS)
     # print(get_modname_and_cwd('/home/kdog3682/projects/python/kevinlulee/kevinlulee/experiments/abc.py'))
 
+
+def reload_module(key):
+    get_module(key, reload = True)
+
 def reload_modules(*keys, on_error = None):
     return get_modules(flat(keys), reload = True, on_error=on_error)
 

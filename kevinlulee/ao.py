@@ -51,7 +51,7 @@ def xtest(x, selector: Selector = None, key = None, flags=0, anti=0):
         if isinstance(selector, str):
             return bool(re.search(selector, x, flags = flags))
         elif isinstance(selector, re.Pattern):
-            return bool(selector.search(s, flags=flags))
+            return bool(selector.search(x, flags=flags))
         elif isinstance(selector, (list, tuple, set)):
             return x in selector
         elif callable(selector):
@@ -69,8 +69,8 @@ def xtest(x, selector: Selector = None, key = None, flags=0, anti=0):
 
     return not get(x) if anti else get(x)
 
-def xtestf(selector, key = None, flags=0, anti=0):
-    return lambda s: xtest(s, selector, flags, anti, key, **kwargs)
+def xtestf(selector, flags=0, anti=0, key = None):
+    return lambda s: xtest(s, selector, flags, anti, key)
 
 def find_index(items, query, **kwargs):
     for i, item in enumerate(items):

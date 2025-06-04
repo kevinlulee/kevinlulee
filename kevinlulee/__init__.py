@@ -22,6 +22,7 @@ from .typstfmt import typstfmt
 from .ddo import LiveDict, LiveArray
 import kevinlulee.ascii as ascii
 import kevinlulee.introspect as introspect
+import kevinlulee.lorem as lorem
 
 
 def mgetall(s, regex, flags = 0):
@@ -208,18 +209,16 @@ def opposite(x):
         case 'False': return 'True'
         case 'True': return 'False'
         case _: return not bool(x)
-def toggle(state, key, verbose = False):
+def toggle(state, key):
     if is_dict(state):
         v = state.get(key)
         new = opposite(v)
         state[key] = new
-        if verbose: print(f'setting state["{key}"] as {new}')
     else:
         v = getattr(state, key, False)
         new = opposite(v)
         setattr(state, key, new)
-        if verbose: print(f'setting state.{key} as {new}')
-
+    return state
 class DependencyTree:
     def __init__(self, library: Dict, getter: Callable):
         self.library = library
@@ -282,3 +281,59 @@ def replacef(regex, replacement, flags = 0):
         return re.sub(regex, replacement, s, flags = flags)
 
     return wrapper
+
+ROYGBIV = [
+    "red",
+    "orange",
+    "purple",
+    "white",
+    "yellow",
+    "green",
+    "blue",
+    "black",
+    "gray",
+    "teal",
+    "indigo",
+    "violet",
+]
+
+import os
+
+def looks_like_directory(path_str):
+    """
+    Check if a string looks like a directory path.
+    
+    Returns True if:
+    - The path is an existing directory
+    - The path has multiple '/' and no file extension
+    
+    Args:
+        path_str (str): The path string to check
+        
+    Returns:
+        bool: True if the string looks like a directory, False otherwise
+    """
+    # Check if it's an actual existing directory
+    path_str = os.path.expanduser(path_str)
+    if os.path.isdir(path_str):
+        return True
+    
+    # Check if it has multiple '/' and no extension
+    if path_str.count('/') > 0:
+        # Get the last part of the path (potential filename)
+        last_part = path_str.split('/')[-1]
+        
+        # If last part is empty (path ends with /) or has no extension
+        if not last_part or '.' not in last_part:
+            return True
+    
+    return False
+
+
+def is_python_file(path):
+    filetype = kx.resolve_filetype(path)
+    return filetype == 'python'
+
+
+def view_framed_text(s):
+    print("\n\n" + kx.indent(s, 2) + "\n\n")

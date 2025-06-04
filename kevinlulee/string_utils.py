@@ -199,6 +199,25 @@ def newline_indent(s, ind = 4):
     indented = indent(s, ind)
     return "\n" + indented.rstrip()
 
+def split_in_half(s):
+    """
+    Splits a string exactly in half.
+    
+    Args:
+        s (str): Input string with even number of characters
+        
+    Returns:
+        tuple: Two strings of equal length
+        
+    Raises:
+        ValueError: If string length is odd
+    """
+    if len(s) % 2 != 0:
+        raise ValueError("String must have even number of characters")
+    
+    mid = len(s) // 2
+    return s[:mid], s[mid:]
+
 def parens(s, key = '()', newline = False, ind = 4):
     brackets = {
         "()": ("(", ")"),
@@ -215,12 +234,14 @@ def parens(s, key = '()', newline = False, ind = 4):
         "``": ("`", "`"),
         "```": ("```", "```"),
         "": ("", ""),
+        "$": ("$", "$"),
+        "$$$": ("$$$", "$$$"),
         "---": ("---\n", "\n---"),
         "```": ("```", "```"),
         "({})": ("({", "})"),
         "([])": ("([", "])"),
     }
-    a, b = brackets[key]
+    a, b = brackets.get(key) or split_in_half(key)
     if newline:
         return a + newline_indent(s, ind) + "\n" + b
     return a + s + b

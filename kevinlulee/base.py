@@ -26,13 +26,8 @@ def sayhi(name="Bob", prefix="howdy"):
 
 
 class Real:
-    def __new__(cls, value):
-        if not isinstance(value, str):
-            return value
-
-        self = super().__new__(cls)
+    def __init__(self, value):
         self.value = value
-        return self
 
     def __str__(self):
         return self.value
@@ -92,7 +87,7 @@ def stop(*args, **kwargs):
 
 def each(items, fn, *args, **kwargs):
     params = get_parameters(fn)
-    if len(params) > 1 and params[1] == "index":
+    if len(params) > 1 and params[1] in ('i', "index"):
         return [
             fn(item, index, *args, **kwargs)
             for index, item in enumerate(items)
@@ -153,6 +148,8 @@ def coerce_argument(x):
             return x
         if x == 'false': return False
         if x == 'true': return True
+        if x.startswith("\""):
+            return x[1:1]
         if re.search('^\d+\.?\d*$', x):
             if '.' in x:
                 return float(x)
@@ -220,7 +217,7 @@ def testf(selector: Selector, flags=0, anti=0, key=None):
         pat = re.compile(selector, flags = flags)
         fn = lambda s: pat.search(s)
     elif isinstance(selector, re.Pattern):
-        fn = lambda s: selector.search(s, flags = flags)
+        fn = lambda s: selector.search(s)
         
     elif isinstance(selector, (list, tuple, set)):
         fn = lambda s: s in selector
