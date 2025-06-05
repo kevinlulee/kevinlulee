@@ -3,10 +3,10 @@ import re
 NUMBER_STRING_PATTERN = re.compile('^\d+(?:\.\d+)?$')
 
 def exists(x):
-    if isinstance(x, (list, tuple, dict)):
-        return len(x) > 0
     if isinstance(x, str):
         return len(x.strip()) > 0
+    if hasattr(x, '__iter__'):
+        return len(x) > 0
     if x == 0:
         return True
 

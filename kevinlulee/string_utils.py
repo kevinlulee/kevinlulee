@@ -244,7 +244,7 @@ def parens(s, key = '()', newline = False, ind = 4):
     a, b = brackets.get(key) or split_in_half(key)
     if newline:
         return a + newline_indent(s, ind) + "\n" + b
-    return a + s + b
+    return a + str(s) + b
 
 
 

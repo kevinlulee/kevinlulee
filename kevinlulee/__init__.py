@@ -337,3 +337,16 @@ def is_python_file(path):
 
 def view_framed_text(s):
     print("\n\n" + kx.indent(s, 2) + "\n\n")
+
+def array_to_dict(data, key):
+    store = {}
+    for arg in data:
+        store[key(arg) if callable(key) else arg[key]] = arg
+    return store
+
+
+def is_lenable(x):
+    return x and hasattr(x, '__iter__')
+def get_length(x):
+    assert is_lenable(x), f'{x} is not lenable'
+    return len(x)
