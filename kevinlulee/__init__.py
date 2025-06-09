@@ -350,3 +350,15 @@ def is_lenable(x):
 def get_length(x):
     assert is_lenable(x), f'{x} is not lenable'
     return len(x)
+
+
+def unique(x):
+    return [el for el in set(x) if el is not None]
+
+
+def announcef(func):
+    def wrapper(*args, **kwargs):
+        v = func(*args, **kwargs)
+        if v is not None:
+            print(v)
+    return wrapper

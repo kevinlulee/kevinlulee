@@ -46,6 +46,8 @@ def xtest(x, selector: Selector = None, key = None, flags=0, anti=0):
 
     if key:
         x = get_field_value(x, key)
+        if x is None:
+            return False
 
     def get(x):
         if isinstance(selector, str):
@@ -98,6 +100,8 @@ def modular_increment_indexes(items, i, dir):
 def modular_increment(items, item, dir = 1):
 
     def modular_increment_values(items, item, dir):
+        if item is None:
+            return items[0]
         i = items.index(item)
         return items[modular_increment_indexes(items, i, dir)]
         
@@ -341,7 +345,7 @@ def map(x: Iterable, *args, callback = None, template = None, key = None, keys =
 
 
 def filter_none(data):
-    if isinstance(data, list):
+    if isinstance(data, (list, tuple, set)):
         return [x for x in data if x is not None]
     elif isinstance(data, dict):
         return {k: v for k, v in data.items() if v is not None}

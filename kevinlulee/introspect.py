@@ -19,7 +19,7 @@ from inspect import Parameter
 class ParamInfoItem(TypedDict):
     default: Any # abc(foobar = 'default')
     name: str
-    annotation: Optional[Any]
+    annotation: Optional[str | Any]
     kind: Literal[
         "POSITIONAL_ONLY",
         "POSITIONAL_OR_KEYWORD",
@@ -65,6 +65,7 @@ def get_caller(offset=0, skippable=[], ignore_list=[]) -> inspect.FrameInfo:
         "handler",
         "decorator",
         "wrapper",
+        'modal',
     ]
 
     items: list = inspect.stack()
@@ -113,5 +114,16 @@ def get_parameters_and_fallbacks(func):
     return list(zip(args, defaults))
 def foobar(a, b, c = 1, d = 123):
     pass
+
+class Foo:
+    def __init__(self):
+        pass
+
+    def create(self):
+        print(get_caller())
+        pass
+    
+
 if __name__ == '__main__':
-    print(gobo(foobar))
+    # print(gobo(foobar))
+    Foo().create()

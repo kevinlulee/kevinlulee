@@ -34,6 +34,8 @@ def matchstr(s: str, reg: str, flags: int = 0) -> Union[str, Tuple[str, ...], No
         >>> matchstr("Name: John, Age: 30", r"Name: (\w+), Age: (\d+)")
         ('John', '30')
     """
+    if not s:
+        return 
     match = re.search(reg, s, flags=flags)
     return get_match(match)
 

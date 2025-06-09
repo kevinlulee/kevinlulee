@@ -12,6 +12,7 @@ class TableFormatter:
         self.left_aligned = left_aligned
         self.left_padding_first_col = left_padding_first_col
         self.right_padding_last_col = right_padding_last_col
+        self.outer_pipe = ''
 
     def get_keys(self, data):
         if isinstance(data, dict):
@@ -41,6 +42,7 @@ class TableFormatter:
     
     def format_header(self, columns, col_widths):
         pipe = "|" if self.show_pipes else ""
+        # pipe = ' '
         
         header_parts = []
         for i, col in enumerate(columns):
@@ -52,7 +54,7 @@ class TableFormatter:
             else:
                 header_parts.append(f"{' ' * left_pad}{col:<{col_widths[col]}}{' ' * right_pad}")
         
-        header = pipe + (pipe if self.show_pipes else "").join(header_parts) + pipe
+        header = self.outer_pipe + (pipe if self.show_pipes else "").join(header_parts) + self.outer_pipe
         return header
     
     def format_rows(self, columns, col_widths):
@@ -71,7 +73,7 @@ class TableFormatter:
                 else:
                     row_parts.append(f"{' ' * left_pad}{value:^{col_widths[col]}}{' ' * right_pad}")
             
-            formatted_row = pipe + (pipe if self.show_pipes else "").join(row_parts) + pipe
+            formatted_row = self.outer_pipe + (pipe if self.show_pipes else "").join(row_parts) +self.outer_pipe 
             rows.append(formatted_row)
         return rows
 
@@ -89,9 +91,9 @@ class TableFormatter:
             right_pad = self.right_padding_last_col if i == len(columns) - 1 else self.padding
             total_widths[col] = col_widths[col] + left_pad + right_pad
 
-        pipe = "+" if self.show_pipes else ""
-        separator_char = "-" if self.show_pipes else "-"
-        separator = pipe + pipe.join(separator_char * width for width in total_widths.values()) + pipe
+        pipe = "-" if self.show_pipes else ""
+        separator_char = '-'
+        separator = self.outer_pipe + pipe.join(separator_char * width for width in total_widths.values()) + self.outer_pipe
 
         header = self.format_header(columns, col_widths)
         rows = self.format_rows(columns, col_widths)
@@ -100,7 +102,7 @@ class TableFormatter:
         return "\n".join(table)
 
 # 2025-05-16 aicmp: add in the params from table formatter
-def table(data, keys=None, padding=2, center_header=False) -> str:
+def table(data, keys=None, padding=2, center_header=False, **kwargs) -> str:
     """
     data is a list of dictionaries or class objects
 
@@ -109,7 +111,7 @@ def table(data, keys=None, padding=2, center_header=False) -> str:
 
     a thin wrapper around TableFormatter
     """
-    formatter = TableFormatter(data, keys, padding, center_header)
+    formatter = TableFormatter(data, keys, padding, center_header, **kwargs)
     return formatter.format()
 
 def shorten(s, max_lines=17, padding=(1, 1)):
@@ -227,8 +229,8 @@ data1 = [
 
 
 if __name__ == '__main__':
-    print(table(data1))
+    print(table(data1, show_pipes = True))
 
-    long_text = "\n".join([f"Line {i}" for i in range(1, 101)])
-    shortened = shorten(long_text, max_lines=10)
+    # long_text = "\n".join([f"Line {i}" for i in range(1, 101)])
+    # shortened = shorten(long_text, max_lines=10)
 
