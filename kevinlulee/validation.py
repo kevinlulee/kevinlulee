@@ -1,5 +1,8 @@
 import re
 
+def not_none(x):
+    return x is not None
+
 NUMBER_STRING_PATTERN = re.compile('^\d+(?:\.\d+)?$')
 
 def exists(x):
@@ -157,3 +160,5 @@ if __name__ == "__main__":
     print(f"\nAdditional tests:")
     print(f"function: {is_class_constructor(my_function)}")  # False
     print(f"function: {is_class_instance(my_function)}")  # False
+
+

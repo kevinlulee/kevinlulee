@@ -415,16 +415,15 @@ def fnamemodify(file, dir = None, name = None, ext = None):
     _dir = os.path.dirname(file)
     _ext = get_extension(file)
     _name = os.path.basename(file)
+    _name = _name[0:-len(_ext) - 1]
     if has_extension(name):
         _ext = get_extension(name)
 
 
-    
-
     if dir: _dir = dir(_dir) if callable(dir) else dir
     if ext: _ext = ext(_ext) if callable(ext) else ext
     if name: _name = name(_name) if callable(name) else name
-    ext_value = prefix_join('.', _ext)
+    ext_value = '.' + _ext if _ext else ''
     return os.path.join(_dir, f"{_name}{ext_value}")
 
 
@@ -1005,6 +1004,7 @@ def text_getter(s) -> str:
 if __name__ == '__main__':
     # print(resolve_dotted_path('~/.foo.py', '/home/kdog3682/projects/python/kevinlulee/kevinlulee/file_utils.py'))
 
-    p = PathValidator()
-    p.add_exclusion_rule(stem = ['hii'])
-    print(p.validate('hii.py'))
+    # p = PathValidator()
+    # p.add_exclusion_rule(stem = ['hii'])
+    # print(p.validate('hii.py'))
+    print(fnamemodify('/home/kdog3682/scratch/scratch.py', ext = 'hii', dir = lambda x: x + 'boo', name = lambda x: x + 'hi'))

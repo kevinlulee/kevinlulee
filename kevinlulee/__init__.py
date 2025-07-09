@@ -20,6 +20,8 @@ from .git import GitRepo
 from .pythonfmt import pythonfmt
 from .typstfmt import typstfmt
 from .ddo import LiveDict, LiveArray
+from .serialize_ops import normalize_data, serialize_data
+from .func_ops import *
 import kevinlulee.ascii as ascii
 import kevinlulee.introspect as introspect
 import kevinlulee.lorem as lorem
@@ -362,3 +364,26 @@ def announcef(func):
         if v is not None:
             print(v)
     return wrapper
+
+
+
+def escape_quotes(s, quote_type = '"', num_backslashes = 1):
+    quotes = {
+        '"': '"',
+        '""': '"',
+        "'": "'",
+        "''": "''",
+    }
+    quote_type = quotes[quote_type]
+    backslashes = '\\' * (num_backslashes + 1)
+    return re.sub(quote_type, backslashes + quote_type, s)
+
+
+
+def sort_by_date(files, reverse = True):
+    return sorted(files, key = os.path.getmtime, reverse = reverse)
+
+def looks_like_path(x):
+    return test(x, '^[/~]')
+
+

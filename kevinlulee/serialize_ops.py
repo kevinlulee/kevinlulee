@@ -1,7 +1,10 @@
 from dataclasses import is_dataclass, asdict
 from typing import Any, Dict, Optional
+from kevinlulee.ao import walk
 from kevinlulee.resolve_ops import resolve_filetype
 import json
+
+from kevinlulee.validation import is_class_instance
 
 
 def serialize_data(data, filepath = None, indent = 2) -> str:
@@ -30,3 +33,14 @@ def serialize_data(data, filepath = None, indent = 2) -> str:
         return asdict(data)
     else:
         return str(data)
+
+
+
+def normalize_data(data):
+    def callback(el):
+        if is_dataclass(el) and not isinstance(el, type):
+            return asdict(el)
+        if is_class_instance(el):
+            return str(el)
+    return walk(data, callback)
+

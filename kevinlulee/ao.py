@@ -2,7 +2,7 @@ from kevinlulee.base import get_field_value, testf
 import re
 import itertools
 from kevinlulee.typing import Selector, Union
-from kevinlulee.validation import exists, is_array
+from kevinlulee.validation import exists, is_array, not_none
 
 
 def dotaccess(val, key):
@@ -251,7 +251,7 @@ def walk(x, fn):
 
         if isinstance(v, (tuple, list, set)):
             items = [walker(el, k, v, depth + 1) for el in v]
-            return filtered(items)
+            return filtered(items, not_none)
 
         if isinstance(v, dict):
             return {

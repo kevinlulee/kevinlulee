@@ -121,6 +121,10 @@ def run_module_func(s, *args, reload = True, **kwargs):
     return func(*args, **kwargs)
 
 
+def use(s, *args):
+    key = f'kevinlulee.lib.{s}.{s}'
+    return run_module_func(key, *args, reload = False)
+
 def get_module(file_name: str, reload = False, from_anywhere = False):
     """
     if from_anywhere, gets a module from anywhere. does not need to be on path
