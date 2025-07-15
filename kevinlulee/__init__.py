@@ -22,6 +22,7 @@ from .typstfmt import typstfmt
 from .ddo import LiveDict, LiveArray
 from .serialize_ops import normalize_data, serialize_data
 from .func_ops import *
+import kevinlulee.yb as yb
 import kevinlulee.ascii as ascii
 import kevinlulee.introspect as introspect
 import kevinlulee.lorem as lorem
@@ -387,3 +388,37 @@ def looks_like_path(x):
     return test(x, '^[/~]')
 
 
+def dreplace(s, ref, boundary = True, flags = 0):
+    keys = list(ref)
+    b = '\\b' if boundary else ''
+    middle = f'[{"".join(keys)}]' if all(len(k) == 1 for k in keys) else f'(?:{"|".join(keys)})'
+    regex = f'{b}{middle}{b}'
+
+    def replacer(x):
+        key = x.group(0)
+        return ref.get(key)
+        
+    return re.sub(regex, replacer, s, flags = flags)
+
+
+def instantiate_cls(cls):
+    return cls() if is_class_constructor(cls) else cls
+
+
+def oxford_or(names):
+    """
+    sam, bob, or galpha
+    """
+    s = ''
+    names = list(names)
+    max = len(names) - 1
+    for i, name in enumerate(names):
+        if i == 0:
+            pass
+        elif i == max:
+            s+= ', '
+        else:
+            s+= ', or'
+        s+= name
+
+    return s

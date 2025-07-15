@@ -318,9 +318,14 @@ def assign_fresh(*dicts: dict) -> dict:
 
 
 
-def merge_dicts(*dicts):
-    return {k: v for d in dicts for k, v in d.items() if d}
+def merge_dicts(*dcts):
+    store = {}
+    for dct in dcts:
+        if dct:
+            for k,v in dct.items():
+                store[k] = v
 
+    return store
 
 
 def split_dict(d, keys):
@@ -395,3 +400,51 @@ def dictf(ref):
 
 def flat_map(items, fn):
     return [fn(el) for el in flat(items)]
+
+def filter_seen(items, key = None):
+    if key:
+        store = []
+        seen = set()
+        for item in items:
+            ref = item.get(key)
+            if ref in seen:
+                continue
+            seen.add(ref)
+            store.append(item)
+        return store
+    else:
+        return list(set(items))
+
+
+
+def dict_partition(kwargs, *funcs):
+    """
+    Partition a dictionary into multiple bins based on functions.
+    
+    Args:
+        kwargs: Dictionary to partition
+        *funcs: Functions that take (key, value) and return True if item belongs in that bin
+    
+    Returns:
+        List of dictionaries - one for each function, plus a default bin at the end
+    """
+    # Initialize bins: one for each function + one default bin
+    bins = [dict() for _ in range(len(funcs) + 1)]
+    
+    for key, value in kwargs.items():
+        placed = False
+        
+        # Try each function in order
+        for i, func in enumerate(funcs):
+            if func(key, value):
+                bins[i][key] = value
+                placed = True
+                break
+        
+        # If no function matched, put in default bin (last bin)
+        if not placed:
+            bins[-1][key] = value
+    
+    return bins
+
+

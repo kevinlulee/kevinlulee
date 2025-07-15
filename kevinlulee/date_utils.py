@@ -42,6 +42,7 @@ def strftime(source=None, mode="iso8601"):
         "clock": "%-I:%M%p",
         "human": "%m/%d/%Y",
         "timestamp": "%s",
+        "wordy": "%A %B %d, %Y",
         "date": "%A %-I:%M%p %m/%d/%Y",
         "usa": "%m/%d/%Y %I:%M:%S %p",
     }
@@ -276,11 +277,11 @@ def get_recency_validator(mode: Literal['recent', 'distant'], **opts):
         return lambda x: x < cutoff
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
     # import vim
     # a = vim.funcs.getbufinfo(54)
     # print(a[0]['lastused'], 'X')
-    print(get_recency_validator('recent',minutes = 1)( a[0]['lastused'] ))
+    # print(get_recency_validator('recent',minutes = 1)( a[0]['lastused'] ))
 
 
 
@@ -351,7 +352,52 @@ def is_time_between(start: str | dict, end: str | dict):
         and current_time < end_time.time()
     )
 
+from datetime import datetime, timedelta
 
+def get_upcoming_day(target_day):
+    """
+    Get the date of the upcoming occurrence of a specific day of the week.
+    
+    Args:
+        target_day (str): Day of the week ('Monday', 'Tuesday', etc.)
+                         Case insensitive, can be full name or 3-letter abbreviation
+    
+    Returns:
+        datetime: Date object for the upcoming occurrence of the target day
+    """
+    # Day name mappings
+    days_full = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    days_abbr = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+    
+    target_day = target_day.lower().strip()
+    
+    # Find the target day index
+    if target_day in days_full:
+        target_index = days_full.index(target_day)
+    elif target_day in days_abbr:
+        target_index = days_abbr.index(target_day)
+    else:
+        raise ValueError(f"Invalid day: {target_day}. Use full name or 3-letter abbreviation.")
+    
+    # Get current date and day of week (0=Monday, 6=Sunday)
+    today = datetime.now()
+    current_day_index = today.weekday()
+    
+    # Calculate days until target day
+    days_ahead = (target_index - current_day_index) % 7
+    
+    # If it's the same day, get next week's occurrence
+    if days_ahead == 0:
+        days_ahead = 7
+    
+    # Return the upcoming date
+    upcoming_date = today + timedelta(days=days_ahead)
+    return upcoming_date.replace(hour=0, minute=0, second=0, microsecond=0)
+
+# Example usage and testing
+if __name__ == "__main__":
+    print(get_upcoming_day('sun'))
+    
 if __name__ == "__main__":
     start = {"day": "friday", "time": "1pm"}
     end = {"day": "sunday", "time": "11pm"}

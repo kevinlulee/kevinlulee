@@ -102,10 +102,13 @@ def possibly_normalize_number(value):
     return value
 
 
-def join_comma(*args, newline = False):
+def join_comma(*args, newline = False, ending_comma = False):
     space = '\n' if newline else ' '
     delimiter = ',' + space
-    return delimiter.join(flat(args))
+    p = delimiter.join(flat(args))
+    if ending_comma:
+        return p+','
+    return p
 
 
 

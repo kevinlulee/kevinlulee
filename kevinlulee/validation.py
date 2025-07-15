@@ -34,6 +34,9 @@ def is_integer(value):
 def is_boolean(value):
     return isinstance(value, bool)
 
+def is_nested_array(value):
+    return isinstance(value, (list, tuple)) and len(value) > 0 and isinstance(value[0], (list, tuple))
+
 def is_array(value):
     return isinstance(value, (list, tuple))
 

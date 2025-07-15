@@ -218,11 +218,9 @@ def readfile(path: str) -> Any:
         if extension == "md":
             return f.read()
         if extension == "json":
-            try:
-                return json.load(f)
-            except Exception as e:
-                return 
+            return json.load(f)
         if extension == "yb":
+            import yb
             return yb.load(f)
         elif extension in ("yaml", "yml"):
             p = yaml.safe_load(f)
