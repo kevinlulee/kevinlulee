@@ -332,6 +332,7 @@ def clip(s, ext = 'txt'):
     file = os.path.expanduser('~/.kdog3682/scratch/clip.' + ext)
     writefile(file, s)
     webbrowser.open(file)
+    return file
 
 
 

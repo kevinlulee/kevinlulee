@@ -26,6 +26,7 @@ import kevinlulee.yb as yb
 import kevinlulee.ascii as ascii
 import kevinlulee.introspect as introspect
 import kevinlulee.lorem as lorem
+import kevinlulee.rng as rng
 
 
 def mgetall(s, regex, flags = 0):
@@ -78,39 +79,6 @@ def bring_to_life(code, scope=None) -> Callable:
     return local_namespace[function_name]
 
 
-def modify_array(items, func, key = None):
-    # kx.ao
-    for i, item in enumerate(items):
-        value = func(item)
-        if value is not None:
-            if key:
-                items[i][key] = value
-            else:
-                items[i] = valuee
-    return items
-
-def edit_dict(dct, key, editor):
-    section = dct.get(key)
-    if not section:
-        return dct
-
-    def apply(base, v):
-        if isinstance(base, (list, tuple)):
-            return [v(el) for el in base]
-        else:
-            return v(base)
-
-    if isinstance(editor, dict):
-        for k, v in editor.items():
-            to_be_edited = section.get(k)
-            if to_be_edited is not None:
-                new_value = apply(to_be_edited, v)
-                if new_value is not None:
-                    section[k] = new_value
-    else:
-        raise Exception("todo")
-
-    return dct
 
 def keycache(key_func):
     cache = {}
@@ -422,3 +390,66 @@ def oxford_or(names):
         s+= name
 
     return s
+
+
+def bug_print(s):
+    print('DEBUG_START')
+    print('___')
+    print(s)
+    print('___')
+    print('DEBUG_END')
+
+
+
+
+def xsplit(x):
+    if isinstance(x, (list, tuple)):
+        return x
+
+    return [coerce_argument(el) for el in split(x, '\s+')]
+
+def colon_split(s):
+    """
+    a very useful split function
+    an example is shown below
+
+    abc:
+        def:
+            ghi: hi
+
+        this will also be aggregated in as the key: value
+        multiple lines too
+
+        multiple lines too
+        multiple lines too ... and newlines.
+    """
+    regex = '^([\w-]+):'
+    parts = re.split(regex, trimdent(s), flags = re.M)
+    parts = filtered(each(parts, trimdent))
+    chunks = partition(parts)
+    content_key = 'value'
+
+    store = {}
+    for a, b in chunks:
+        s, fm = extract_frontmatter(b)
+        if fm:
+            value = trimdent(s)
+            if value:
+                fm[content_key] = value
+            store[a] = fm
+        else:
+            store[a] = coerce_argument(s)
+    return store
+
+def get_number_from_string(text):
+    """Extract the first number (int or float) from a string."""
+    # Look for numbers (including decimals and negative numbers)
+    match = re.search(r"-?\d+\.?\d*", text)
+    if match:
+        num_str = match.group()
+        # Convert to int if it's a whole number, otherwise float
+        if "." in num_str:
+            return float(num_str)
+        else:
+            return int(num_str)
+    return None

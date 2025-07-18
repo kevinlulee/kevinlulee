@@ -394,7 +394,8 @@ def partition_by_functions(data, *funcs):
 
 def dictf(ref):
     def callback(key):
-        return ref[key] if isinstance(ref, dict) else getattr(ref, key)
+        fallback = key
+        return ref.get(key, fallback) if isinstance(ref, dict) else getattr(ref, key, fallback)
     return callback
 
 
@@ -448,3 +449,57 @@ def dict_partition(kwargs, *funcs):
     return bins
 
 
+
+
+def list_partition(items, *funcs):
+    # Initialize bins: one for each function + one default bin
+    bins = [list() for _ in range(len(funcs) + 1)]
+    
+    for item in items:
+        placed = False
+        
+        for i, func in enumerate(funcs):
+            if func(item):
+                bins[i].append(item)
+                placed = True
+                break
+        
+        if not placed:
+            bins[-1].append(item)
+    
+    return bins
+
+
+def modify_array(items, func, key = None):
+    # kx.ao
+    for i, item in enumerate(items):
+        value = func(item)
+        if value is not None:
+            if key:
+                items[i][key] = value
+            else:
+                items[i] = valuee
+    return items
+
+def edit_dict(dct, key, editor):
+    section = dct.get(key)
+    if not section:
+        return dct
+
+    def apply(base, v):
+        if isinstance(base, (list, tuple)):
+            return [v(el) for el in base]
+        else:
+            return v(base)
+
+    if isinstance(editor, dict):
+        for k, v in editor.items():
+            to_be_edited = section.get(k)
+            if to_be_edited is not None:
+                new_value = apply(to_be_edited, v)
+                if new_value is not None:
+                    section[k] = new_value
+    else:
+        raise Exception("todo")
+
+    return dct

@@ -1,7 +1,9 @@
 import re
 import yaml
 import textwrap
-from .ao import flat, to_array
+
+from kevinlulee.validation import is_array
+from kevinlulee.ao import flat, smallify, to_array
 
 
 def bracket_wrap(
@@ -219,7 +221,9 @@ def join_text(*contents, conservative = False):
     def runner(contents):
         o = ""
         for content in contents:
-            if isinstance(content, (list, tuple)):
+            if content is None:
+                continue
+            elif is_array(content):
                 s = runner(content)
             else:
                 s = str(content)
@@ -236,7 +240,7 @@ def join_text(*contents, conservative = False):
                 o += f"{s}\n"
         return o
 
-    contents = contents[0] if len(contents) == 1 else contents
+    contents = smallify(contents)
     def cleanup(s):
         return re.sub('^\n*', '', s).rstrip()
     return cleanup(runner(contents))

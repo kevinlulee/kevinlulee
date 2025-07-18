@@ -1,7 +1,12 @@
 import re
+from _collections_abc import dict_values, dict_keys, dict_items
 
 def not_none(x):
     return x is not None
+
+def test(s, r, flags=0):
+    return bool(re.search(r, str(s), flags))
+
 
 NUMBER_STRING_PATTERN = re.compile('^\d+(?:\.\d+)?$')
 
@@ -38,7 +43,7 @@ def is_nested_array(value):
     return isinstance(value, (list, tuple)) and len(value) > 0 and isinstance(value[0], (list, tuple))
 
 def is_array(value):
-    return isinstance(value, (list, tuple))
+    return isinstance(value, (list, tuple, dict_keys, dict_values, dict_items))
 
 def is_dict(value):
     return isinstance(value, dict)
@@ -130,38 +135,66 @@ def is_class_instance(obj):
             type(obj).__name__ != 'method' and
             type(obj).__name__ != 'builtin_function_or_method')
 
-# 2025-05-28 test: true
-if __name__ == "__main__":
-    # Define a sample class
-    class MyClass:
-        def __init__(self, value):
-            self.value = value
+def is_hex_color(s):
+    return test(s, '^#\w{3}(?:\w{3})?$')
+
+def deep_equal(a, b):
+    # Check if objects are of the same type
+    # if dump(a) == dump(b):
+        # return True
+
+    if isinstance(a, tuple):
+        a = list(a)
+    if isinstance(b, tuple):
+        b = list(b)
+
+    ta = type(a)
+    tb = type(b)
+    if ta != tb:
+        return False
     
-    # Create an instance
-    my_instance = MyClass(42)
+    # Handle None
+    if a is None and b is None:
+        return True
     
-    # Test cases
-    print("Testing is_class_constructor:")
-    print(f"MyClass: {is_class_constructor(MyClass)}")  # True
-    print(f"my_instance: {is_class_constructor(my_instance)}")  # False
-    print(f"int: {is_class_constructor(int)}")  # True
-    print(f"42: {is_class_constructor(42)}")  # False
-    print(f"'hello': {is_class_constructor('hello')}")  # False
+    # Handle basic types (int, float, string, bool)
+        
+    def normalized_newlines(s):
+        return re.sub("^[ \t]+(?=\n)", "", s, flags = re.M).rstrip()
+
+    if is_string(a):
+        return normalized_newlines(a) == normalized_newlines(b)
+
+    if is_primitive(a):
+        return a == b
     
-    print("\nTesting is_class_instance:")
-    print(f"MyClass: {is_class_instance(MyClass)}")  # False
-    print(f"my_instance: {is_class_instance(my_instance)}")  # True
-    print(f"42: {is_class_instance(42)}")  # False (built-in type)
-    print(f"'hello': {is_class_instance('hello')}")  # False (built-in type)
-    print(f"[1,2,3]: {is_class_instance([1,2,3])}")  # False (built-in type)
+    # Handle lists
+    if isinstance(a, list):
+        if len(a) != len(b):
+            return False
+        return all(deep_equal(a[i], b[i]) for i in range(len(a)))
     
+    # Handle dictionaries
+    if isinstance(a, dict):
+        if len(a) != len(b):
+            return False
+        if set(a.keys()) != set(b.keys()):
+            return False
+        return all(deep_equal(a[key], b[key]) for key in a)
     
-    # Test with functions to make sure they're excluded
-    def my_function():
-        pass
+    # Handle sets
+    if isinstance(a, set):
+        if len(a) != len(b):
+            return False
+        return all(any(deep_equal(item_a, item_b) for item_b in b) for item_a in a)
     
-    print(f"\nAdditional tests:")
-    print(f"function: {is_class_constructor(my_function)}")  # False
-    print(f"function: {is_class_instance(my_function)}")  # False
+    # For other types, use the default equality
+    try:
+        return a == b
+    except Exception as e:
+        return False
+
+def total_overlap(a, b):
+    return deep_equal(sorted(a), sorted(b))
 
 

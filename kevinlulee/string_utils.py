@@ -10,6 +10,7 @@ Functions:
 """
 
 from typing import List, Tuple, Union, Any
+from kevinlulee.validation import test
 import re
 import textwrap
 
@@ -128,6 +129,8 @@ def trimdent(s):
 
 
 def dash_case(s):
+    if len(s) == 1:
+        return s
     s = re.sub(r"([a-z])([A-Z])", r"\1-\2", s)  # Convert camelCase to kebab-case
     s = re.sub(r"[\s_]+", "-", s)  # Replace spaces and underscores with dashes
     return s.lower()  # Convert to lowercase
@@ -167,9 +170,6 @@ def testf(x, flags=0, anti=0, key=0):
         return lambda x: fn(x[key])
     else:
         return fn
-
-def test(s, r, flags=0):
-    return bool(re.search(r, str(s), flags))
 
 def camel_case(s):
     parts = split(s, r"[\W_]+")
