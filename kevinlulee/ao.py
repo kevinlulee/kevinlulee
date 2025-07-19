@@ -1,8 +1,9 @@
+import json
 from kevinlulee.base import get_field_value, testf
 import re
 import itertools
 from kevinlulee.typing import Selector, Union
-from kevinlulee.validation import exists, is_array, not_none
+from kevinlulee.validation import exists, is_array, is_dict, is_primitive, not_none, is_primitive_array, is_object_array
 
 
 def dotaccess(val, key):
@@ -26,10 +27,13 @@ def to_array(items):
 def to_lines(x):
     if isinstance(x, str):
         return x.splitlines()
+    elif is_object_array(x):
+        if is_dict(x[0]):
+            return json.dumps(x, indent=2).splitlines()
+        else:
+            return json.dumps(x, indent=2).splitlines()
     else:
         return list(x)
-
-
 def mapfilter(items, fn, validator = lambda x: x):
     store = []
     for item in items:
@@ -471,7 +475,6 @@ def list_partition(items, *funcs):
 
 
 def modify_array(items, func, key = None):
-    # kx.ao
     for i, item in enumerate(items):
         value = func(item)
         if value is not None:
@@ -481,7 +484,10 @@ def modify_array(items, func, key = None):
                 items[i] = valuee
     return items
 
-def edit_dict(dct, key, editor):
+def edit_dict(dct, key, editor: dict):
+    """
+    the keys of the editor dict will determine what gets edited
+    """
     section = dct.get(key)
     if not section:
         return dct
@@ -503,3 +509,5 @@ def edit_dict(dct, key, editor):
         raise Exception("todo")
 
     return dct
+
+

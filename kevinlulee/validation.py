@@ -39,11 +39,8 @@ def is_integer(value):
 def is_boolean(value):
     return isinstance(value, bool)
 
-def is_nested_array(value):
-    return isinstance(value, (list, tuple)) and len(value) > 0 and isinstance(value[0], (list, tuple))
-
 def is_array(value):
-    return isinstance(value, (list, tuple, dict_keys, dict_values, dict_items))
+    return isinstance(value, (list, tuple, dict_keys, dict_values, dict_items, set))
 
 def is_dict(value):
     return isinstance(value, dict)
@@ -198,3 +195,11 @@ def total_overlap(a, b):
     return deep_equal(sorted(a), sorted(b))
 
 
+def is_primitive_array(s):
+    return s and is_array(s) and all(is_primitive(el) for el in s)
+
+def is_object_array(s):
+    return s and is_array(s) and all(not is_primitive(el) and not is_array(el) for for el in s)
+
+def is_nested_array(s):
+    return s and is_array(s) and all(is_array(el) for el in s)

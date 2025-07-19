@@ -22,12 +22,15 @@ from .typstfmt import typstfmt
 from .ddo import LiveDict, LiveArray
 from .serialize_ops import normalize_data, serialize_data
 from .func_ops import *
+from .functions import *
 import kevinlulee.yb as yb
 import kevinlulee.ascii as ascii
 import kevinlulee.introspect as introspect
 import kevinlulee.lorem as lorem
 import kevinlulee.rng as rng
+from collections import defaultdict
 
+import re
 
 def mgetall(s, regex, flags = 0):
     # string_utils
@@ -453,3 +456,32 @@ def get_number_from_string(text):
         else:
             return int(num_str)
     return None
+
+def re_wrap(iterable, template=""):
+    ref = {
+        "": "(?:$1)",
+        "start": "^(?:$1)\\b",
+        "b": "\\b(?:$1)\\b",
+        "bc": "\\b($1)\\b",
+    }
+    s = ref.get(template, template)
+    keys = list(iterable)
+    symbols = each(keys, re.escape)
+
+    def replacer(x):
+        key = x.group(0)
+        start, end = x.span()
+        prev = s[start - 1] if s and start > 0 else None
+        # next = s[end + 1] if s and end < length else None
+        if prev == "[":
+            assert every(keys, lambda x: len(x)== 1)
+            return "".join(symbols)
+        else:
+            return "|".join(symbols)
+        
+    length = len(s)
+    return re.sub("\$1", replacer, s)
+
+
+def pluralize(s):
+    return s if s.endswith("s") else s + "s"
