@@ -37,7 +37,7 @@ def matchstr(s: str, reg: str, flags: int = 0) -> Union[str, Tuple[str, ...], No
     """
     if not s:
         return 
-    match = re.search(reg, s, flags=flags)
+    match = re.search(reg, str(s), flags=flags)
     return get_match(match)
 
 def get_match(match):
@@ -132,7 +132,7 @@ def dash_case(s):
     if len(s) == 1:
         return s
     s = re.sub(r"([a-z])([A-Z])", r"\1-\2", s)  # Convert camelCase to kebab-case
-    s = re.sub(r"[\s_]+", "-", s)  # Replace spaces and underscores with dashes
+    s = re.sub(r"_+", "-", s)  # Replace underscores with dashes
     return s.lower()  # Convert to lowercase
 
 def split(s, r="\s+", flags=0, maxsplit = 0):
