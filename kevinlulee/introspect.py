@@ -126,4 +126,5 @@ class Foo:
 
 if __name__ == '__main__':
     # print(gobo(foobar))
-    Foo().create()
+    # Foo().create()
+    print(get_parameters_and_fallbacks(foobar))

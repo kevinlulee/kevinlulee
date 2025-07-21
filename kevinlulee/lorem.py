@@ -53,3 +53,5 @@ alphabet = [
     "y",
     "z",
 ]
+
+dct = dict(a = 1, b = 2)

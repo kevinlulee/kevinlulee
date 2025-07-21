@@ -42,7 +42,7 @@ def generate_mutated_variations(data, targets=None, n=5, k=0.1):
     # Determine which keys to mutate
     if targets is None:
         # Find all keys with numeric values
-        targets = [key for key, value in data.items() if isinstance(value, (int, float))]
+        targets = [key for key, value in data.items() if kx.is_number(value)]
     else:
         targets = kx.to_array(targets)
     # Create list of dictionaries

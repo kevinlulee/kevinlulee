@@ -174,15 +174,21 @@ def collect(file, pattern, sort=False, unique=False):
     return matches
 
 
-def opposite(x):
-    match x:
-        case 0: return 1
-        case 1: return 0
-        case True: return False
-        case False: return True
-        case 'False': return 'True'
-        case 'True': return 'False'
-        case _: return not bool(x)
+
+def match_case(original, replacement):
+        if original.isupper():
+            return replacement.upper()
+        elif original[0].isupper():
+            return replacement.capitalize()
+        else:
+            return replacement
+
+def opposite(word):
+    lower = word.lower()
+    if lower in OPPOSITES:
+        return match_case(word, OPPOSITES[lower])
+    return None
+
 def toggle(state, key):
     if is_dict(state):
         v = state.get(key)

@@ -199,7 +199,7 @@ def is_primitive_array(s):
     return s and is_array(s) and all(is_primitive(el) for el in s)
 
 def is_object_array(s):
-    return s and is_array(s) and all(not is_primitive(el) and not is_array(el) for for el in s)
+    return s and is_array(s) and all(not is_primitive(el) and not is_array(el) for el in s)
 
 def is_nested_array(s):
     return s and is_array(s) and all(is_array(el) for el in s)
