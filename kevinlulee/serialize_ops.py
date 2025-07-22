@@ -7,7 +7,7 @@ import json
 from kevinlulee.validation import is_class_instance
 
 
-def serialize_data(data, filepath = None, indent = 2) -> str:
+def serialize_data(data, filepath = None, indent = 2, ensure_ascii = False) -> str:
     if isinstance(data, (int, bool)):
         return str(data)
     elif isinstance(data, str):
@@ -18,17 +18,14 @@ def serialize_data(data, filepath = None, indent = 2) -> str:
         file_extension = resolve_filetype(filepath)
         match file_extension:
             case "yml" | "yaml":
+                from codefmt.yaml import yamlfmt
+                return yamlfmt.format(data)
                 return yaml.dump(data, indent=indent)
             case "toml":
                 import toml
-
-                return toml.dumps(data)
-            case "json":
-                return json.dumps(data, indent=indent)
-            case "txt":
-                return json.dumps(data, indent=indent)
             case _:
-                return json.dumps(data, indent=indent)
+                return json.dumps(data, indent=indent, ensure_ascii=ensure_ascii)
+
     elif is_dataclass(data) and not isinstance(data, type):
         return asdict(data)
     else:

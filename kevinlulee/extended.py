@@ -121,3 +121,138 @@ def tern(*args):
         a, b, c = args
         return b if exists(a) else c
 
+
+
+def templaterf(callback):
+    # kx
+    def wrapper(s, reference):
+        def replacer(x):
+            key = x.group(1)
+            return callback(key, reference)
+
+        regex = "\$(\w+)"
+        return re.sub(regex, replacer, s)
+
+    return wrapper
+
+
+def collect(file, pattern, sort=False, unique=False):
+    s = text_getter(file)
+    flags = re.M if pattern.startswith("^") else 0
+
+    matches = []
+    for match in re.finditer(pattern, s, flags=flags):
+        m = get_match(match)
+        if m:
+            matches.append(m)
+
+    if unique:
+        matches = list(set(matches))
+
+    if sort:
+        matches.sort()
+
+    return matches
+
+
+def opposite(word):
+    lower = word.lower()
+    if lower in OPPOSITES:
+        return match_case(word, OPPOSITES[lower])
+    return None
+
+
+def toggle(state, key):
+    if is_dict(state):
+        v = state.get(key)
+        new = opposite(v)
+        state[key] = new
+    else:
+        v = getattr(state, key, False)
+        new = opposite(v)
+        setattr(state, key, new)
+    return state
+
+
+
+
+
+
+def get_length(x):
+    assert is_lenable(x), f"{x} is not lenable"
+    return len(x)
+
+
+def announcef(func):
+    def wrapper(*args, **kwargs):
+        v = func(*args, **kwargs)
+        if v is not None:
+            print(v)
+
+    return wrapper
+
+
+def sort_by_date(files, reverse=True):
+    return sorted(files, key=os.path.getmtime, reverse=reverse)
+
+
+def looks_like_path(x):
+    raise Exception("deprecated")
+    return test(x, "^[/~]")
+
+
+def instantiate_cls(cls):
+    return cls() if is_class_constructor(cls) else cls
+
+
+def xsplit(x):
+    if isinstance(x, (list, tuple)):
+        return x
+
+    return [coerce_argument(el) for el in split(x, "\s+")]
+
+
+def colon_split(s, content_key = 'value'):
+    """
+    a very useful split function
+    an example is shown below
+
+    abc:
+        def:
+            ghi: hi
+
+        this will also be aggregated in as the key: value
+        multiple lines too
+
+        multiple lines too
+        multiple lines too ... and newlines.
+    """
+    regex = "^([\w-]+):"
+    parts = re.split(regex, trimdent(s), flags=re.M)
+    parts = filtered(each(parts, trimdent))
+    chunks = partition(parts)
+
+    store = {}
+    for a, b in chunks:
+        s, fm = extract_frontmatter(b)
+        if fm:
+            value = trimdent(s)
+            if value:
+                fm[content_key] = value
+            store[a] = fm
+        else:
+            store[a] = coerce_argument(s)
+    return store
+
+def extract_frontmatter2(text):
+    if text.startswith('---\n'):
+        def replacer(x):
+            key = x.group(0)
+            return ''
+            
+        regex = '^---\n*([\w\W]+?)\n---\n*'
+        s = re.sub(regex, '', text, flags = 0)
+        fm = matchstr(text, regex)
+        return s, colon_split(fm, content_key='description')
+
+    return extract_frontmatter(text)

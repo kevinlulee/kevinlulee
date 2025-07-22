@@ -17,7 +17,6 @@ from typing import Any, Unpack
 from pathlib import Path
 import shutil
 
-from kevinlulee.fancy_filetree import fancy_filetree
 from kevinlulee.ao import smallify, partition, xtest
 from kevinlulee.base import yes, no
 from kevinlulee.resolve_ops import resolve_filetype
@@ -119,79 +118,10 @@ def get_extension(file_path: str) -> str:
         Returns an empty string if no extension is found.
     """
     if not '.' in file_path:
-        return EXT_REFERENCE_MAP.get(file_path, None)
+        if file_path.startswith('.'):
+            return EXT_REFERENCE_MAP.get(file_path, None)
+        return ''
     return os.path.splitext(file_path)[1].lstrip(".").lower()
-
-
-def writefile(filepath: str, data: Any, debug = False) -> str:
-    """Writes data to a file, serializing it based on the file extension.
-    Creates the directory if it doesn't exist.
-
-    Args:
-        filepath: The path to the file to write to. The path must have an extension.
-        data: The data to write to the file. Supported types include int, float, str,
-              bool, dict, and list. Data will be serialized to YAML, TOML, or JSON
-              format based on the file extension.
-
-    Returns:
-        The absolute path to the file that was written to.
-
-    Raises:
-        ValueError: If the file extension is not supported or data is None.
-        TypeError: If the data cannot be serialized to the specified format.
-        AssertionError: If the data is None or has no value or if the file path
-                        does not have an extension.
-    """
-    assert data, "Data must be existant. Empty strings or None are not allowed."
-    assert os.path.splitext(filepath)[1], f"Filepath must have an extension: {filepath}"
-
-
-    def serialize(data: Any) -> str:
-        if isinstance(data, (int, bool)):
-            raise TypeError("Only strings, arrays, dictionaries, customs are allowed.")
-        elif isinstance(data, str):
-            return data
-
-        elif isinstance(data, (dict, list, tuple)):
-            file_extension = get_extension(filepath)
-            match file_extension:
-                case 'yb':
-                    import yb
-                    return yb.dumps(data)
-                case "yml" | "yaml":
-                    return yaml.dumps(data, indent=2)
-                case "toml":
-                    import toml
-
-                    return toml.dumps(data)
-                case "json":
-                    return json.dumps(data, indent=2)
-                case "txt":
-                    return json.dumps(data, indent=2)
-                case _:
-                    raise ValueError(f"Unsupported file extension: {file_extension}")
-        else:
-            return str(data)
-
-    expanded_file_path = os.path.expanduser(filepath)
-    dir_path = os.path.dirname(expanded_file_path)
-
-    value = serialize(data)
-    if debug:
-        print('-' * 20)
-        print('[DEBUG] writefile')
-        print(f'[PATH] "{expanded_file_path}"')
-        print('[CONTENT]')
-        print()
-        print(value)
-        print('-' * 20)
-        print()
-    else:
-        ensure_directory_exists(dir_path)
-        with open(expanded_file_path, "w") as file:
-            file.write(value)
-
-    return expanded_file_path
 
 
 def readfile(path: str) -> Any:
@@ -331,7 +261,7 @@ def clip(s, ext = 'txt'):
         return 
 
     file = os.path.expanduser('~/.kdog3682/scratch/clip.' + ext)
-    writefile(file, s)
+    writefile(file, s, ensure_ascii=False)
     webbrowser.open(file)
     return file
 
@@ -385,8 +315,12 @@ def symlink(source, destination, force = False):
 def copy_directory_contents(src, dest):
     src = os.path.expanduser(src)
     dest = os.path.expanduser(dest)
-    if not os.path.exists(dest):
-        os.makedirs(dest)
+
+    assert os.path.isdir(src), "src must be a directory"
+    assert not os.path.isfile(src), "dst must not be a file"
+
+    os.makedirs(dest, exist_ok=True)
+
     for item in os.listdir(src):
         s = os.path.join(src, item)
         d = os.path.join(dest, item)
@@ -427,7 +361,7 @@ def fnamemodify(file, dir = None, name = None, ext = None):
     return os.path.join(_dir, f"{_name}{ext_value}")
 
 
-def cpfile(source, dest, debug=False, soft = False):
+def cpfile(source, dest, debug=False, soft = False, mkdir = False):
     dest = os.path.abspath(os.path.expanduser(dest))
     if soft and os.path.exists(dest):
         return 
@@ -435,7 +369,7 @@ def cpfile(source, dest, debug=False, soft = False):
     source = os.path.abspath(os.path.expanduser(source))
     assert os.path.isfile(source), f"the provided source: {source} is not a file"
 
-    if os.path.isdir(dest):
+    if os.path.isdir(dest) or mkdir:
         dest = os.path.join(dest, os.path.basename(source))
 
     if debug:
@@ -487,13 +421,13 @@ def comment(text, filepath):
 
 
 
-def writefile(filepath: str, data: Any, debug = False, verbose = True, strict = True) -> str:
+def writefile(filepath: str, data: Any, debug = False, verbose = True, strict = True, ensure_ascii = False) -> str:
 
     if strict: assert data, "Data must be existant. Empty strings or None are not allowed."
     assert os.path.splitext(filepath)[1], f"Filepath must have an extension: {filepath}"
 
     expanded_file_path = os.path.expanduser(filepath)
-    value = serialize_data(data, expanded_file_path)
+    value = serialize_data(data, expanded_file_path, ensure_ascii = ensure_ascii)
 
     if debug: return print(f'[DEBUG] writefile "{expanded_file_path}"')
 
@@ -773,7 +707,7 @@ def cp(source_file, destination_directory, name=None):
 def add_extension_if_not_present(file_name: str, extension: str) -> str:
     # 3b1b/manim
     if(file_name[-len(extension):] != extension):
-        return file_name + extension
+        return file_name + '.' + extension
     else:
         return file_name
 
@@ -1005,6 +939,45 @@ def get_filename(file):
 
 def text_getter(s) -> str:
     return (readfile(s) if is_file(s) else s).strip()
+
+
+def delete_file(file):
+    path = os.path.expanduser(str(file))
+    os.unlink(path)
+    return path
+def is_python_file(path):
+    filetype = resolve_filetype(path)
+    return filetype == 'python'
+
+def looks_like_directory(path_str):
+    """
+    Check if a string looks like a directory path.
+    
+    Returns True if:
+    - The path is an existing directory
+    - The path has multiple '/' and no file extension
+    
+    Args:
+        path_str (str): The path string to check
+        
+    Returns:
+        bool: True if the string looks like a directory, False otherwise
+    """
+    # Check if it's an actual existing directory
+    path_str = os.path.expanduser(path_str)
+    if os.path.isdir(path_str):
+        return True
+    
+    # Check if it has multiple '/' and no extension
+    if path_str.count('/') > 0:
+        # Get the last part of the path (potential filename)
+        last_part = path_str.split('/')[-1]
+        
+        # If last part is empty (path ends with /) or has no extension
+        if not last_part or '.' not in last_part:
+            return True
+    
+    return False
 
 if __name__ == '__main__':
     # print(resolve_dotted_path('~/.foo.py', '/home/kdog3682/projects/python/kevinlulee/kevinlulee/file_utils.py'))

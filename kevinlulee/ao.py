@@ -3,7 +3,15 @@ from kevinlulee.base import get_field_value, testf
 import re
 import itertools
 from kevinlulee.typing import Selector, Union
-from kevinlulee.validation import exists, is_array, is_dict, is_primitive, not_none, is_primitive_array, is_object_array
+from kevinlulee.validation import (
+    exists,
+    is_array,
+    is_dict,
+    is_primitive,
+    not_none,
+    is_primitive_array,
+    is_object_array,
+)
 
 
 def dotaccess(val, key):
@@ -22,9 +30,12 @@ def smallify(arr):
     else:
         return arr
 
+
 def to_array(items):
-    if not items: return []
+    if not items:
+        return []
     return items if isinstance(items, (list, tuple)) else [items]
+
 
 def to_lines(x):
     if isinstance(x, str):
@@ -38,7 +49,9 @@ def to_lines(x):
             return json.dumps(x, indent=2).splitlines()
     else:
         return list(x)
-def mapfilter(items, fn, validator = lambda x: x):
+
+
+def mapfilter(items, fn, validator=lambda x: x):
     store = []
     for item in items:
         if item is None:
@@ -48,7 +61,8 @@ def mapfilter(items, fn, validator = lambda x: x):
             store.append(p)
     return store
 
-def xtest(x, selector: Selector = None, key = None, flags=0, anti=0):
+
+def xtest(x, selector: Selector = None, key=None, flags=0, anti=0):
     if x is None or selector is None:
         return False
 
@@ -59,7 +73,7 @@ def xtest(x, selector: Selector = None, key = None, flags=0, anti=0):
 
     def get(x):
         if isinstance(selector, str):
-            return bool(re.search(selector, x, flags = flags))
+            return bool(re.search(selector, x, flags=flags))
         elif isinstance(selector, re.Pattern):
             return bool(selector.search(x, flags=flags))
         elif isinstance(selector, (list, tuple, set)):
@@ -79,8 +93,10 @@ def xtest(x, selector: Selector = None, key = None, flags=0, anti=0):
 
     return not get(x) if anti else get(x)
 
-def xtestf(selector, flags=0, anti=0, key = None):
+
+def xtestf(selector, flags=0, anti=0, key=None):
     return lambda s: xtest(s, selector, flags, anti, key)
+
 
 def find_index(items, query, **kwargs):
     for i, item in enumerate(items):
@@ -105,18 +121,20 @@ def modular_increment_indexes(items, i, dir):
             return len(items) - 1
         else:
             return i - 1
-def modular_increment(items, item, dir = 1):
 
+
+def modular_increment(items, item, dir=1):
     def modular_increment_values(items, item, dir):
         if item is None:
             return items[0]
         i = items.index(item)
         return items[modular_increment_indexes(items, i, dir)]
-        
+
     if isinstance(item, int):
         return modular_increment_indexes(items, item, dir)
     else:
         return modular_increment_values(items, item, dir)
+
 
 def partition(arr, n=2):
     if len(arr) <= 1:
@@ -142,13 +160,14 @@ def partition(arr, n=2):
     if isinstance(n, int):
         return by_numbers(arr, n)
 
-def pop(items, x, key = None):
+
+def pop(items, x, key=None):
     index = find_index(items, x, key)
     if index is not None:
         return items.pop(index)
 
 
-def flat(*items, validator = exists):
+def flat(*items, validator=exists):
     def runner(items):
         for item in items:
             if isinstance(item, (list, tuple)):
@@ -160,12 +179,14 @@ def flat(*items, validator = exists):
     runner(items)
     return store
 
+
 from typing import Any, Iterable, Union, Callable
+
 
 def group(
     items: Union[list[tuple[str, Any]], list[dict]],
     key: Union[Callable[[Any], str], str, None] = None,
-    flatten_array_values = False,
+    flatten_array_values=False,
 ) -> dict[str, list[Any]]:
     """Groups items by a specified key or callable.
 
@@ -181,7 +202,9 @@ def group(
     result = {}
     for item in items:
         if isinstance(item, dict):
-            assert key, "Must provide a key (str or callable) when grouping dicts."
+            assert (
+                key
+            ), "Must provide a key (str or callable) when grouping dicts."
             iden = item[key] if isinstance(key, str) else key(item)
             result.setdefault(iden, []).append(item)
         elif isinstance(item, (tuple, list)) and len(item) == 2:
@@ -196,10 +219,13 @@ def group(
 
 
 def join_spaces(*args):
-    return ' '.join(flat(args))
+    return " ".join(flat(args))
 
-def join_delimiter(*args, delimiter = ' '):
+
+def join_delimiter(*args, delimiter=" "):
     return delimiter.join([str(x) for x in flat(args)])
+
+
 def merge_dicts_recursively(*dicts):
     """
     Creates a dict whose keyset is the union of all the
@@ -213,7 +239,11 @@ def merge_dicts_recursively(*dicts):
     result = dict()
     all_items = itertools.chain(*[d.items() for d in dicts if d])
     for key, value in all_items:
-        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+        if (
+            key in result
+            and isinstance(result[key], dict)
+            and isinstance(value, dict)
+        ):
             result[key] = merge_dicts_recursively(result[key], value)
         else:
             result[key] = value
@@ -239,50 +269,51 @@ def deep_map(obj, callback):
         return callback(obj)
 
 
-
 def filtered(items, selector: Selector = exists):
     if not selector:
         return items
 
     fn = testf(selector)
     if not fn:
-        return items 
+        return items
     if isinstance(items, dict):
         return {k: v for k, v in items.items() if fn(v)}
-    return [ item for item in items if fn(item) ] 
+    return [item for item in items if fn(item)]
 
 
 def walk(x, fn):
     nargs = fn.__code__.co_argcount
 
     def walker(v, k, parent, depth):
-
         if isinstance(v, (tuple, list, set)):
             items = [walker(el, k, v, depth + 1) for el in v]
             return filtered(items, not_none)
 
         if isinstance(v, dict):
-            return {
-                a: walker(b, a, v, depth + 1) for a, b in v.items()
-            }
+            return {a: walker(b, a, v, depth + 1) for a, b in v.items()}
 
         match nargs:
-            case 1: return fn(v)
-            case 2: return fn(v, k)
-            case 3: return fn(v, k, parent)
-            case 4: return fn(v, k, parent, depth)
+            case 1:
+                return fn(v)
+            case 2:
+                return fn(v, k)
+            case 3:
+                return fn(v, k, parent)
+            case 4:
+                return fn(v, k, parent, depth)
 
     return walker(x, None, None, 0)
 
-def reduce2(items, fn, *args, **kwargs):
-    '''
-        desc: 
-            the callback only takes one argument (v)
-            not the standard (k, v)
 
-            the rest of *args and **kwargs are injected
-            into the callback
-    '''
+def reduce2(items, fn, *args, **kwargs):
+    """
+    desc:
+        the callback only takes one argument (v)
+        not the standard (k, v)
+
+        the rest of *args and **kwargs are injected
+        into the callback
+    """
     store = {}
 
     for k, v in items.items():
@@ -294,6 +325,7 @@ def reduce2(items, fn, *args, **kwargs):
             else:
                 store[k] = value
     return store
+
 
 def reduce(o, fn, *args, **kwargs):
     store = {}
@@ -325,12 +357,11 @@ def assign_fresh(*dicts: dict) -> dict:
     return result
 
 
-
 def merge_dicts(*dcts):
     store = {}
     for dct in dcts:
         if dct:
-            for k,v in dct.items():
+            for k, v in dct.items():
                 store[k] = v
 
     return store
@@ -339,14 +370,17 @@ def merge_dicts(*dcts):
 def split_dict(d, keys):
     a = {}
     b = {}
-    for k,v in d.items():
+    for k, v in d.items():
         if k in keys:
             a[k] = v
         else:
             b[k] = v
     return a, b
 
-def map(x: Iterable, *args, callback = None, template = None, key = None, keys = None) -> Union[dict, list]:
+
+def map(
+    x: Iterable, *args, callback=None, template=None, key=None, keys=None
+) -> Union[dict, list]:
     if isinstance(x, (list, tuple, set)):
         if template:
             return [template.format(el) for el in x]
@@ -354,7 +388,7 @@ def map(x: Iterable, *args, callback = None, template = None, key = None, keys =
             return [callback(el, *args) for el in x]
         if key:
             return [(get_field_value(el, key)) for el in x]
-    raise Exception('only list like entries')
+    raise Exception("only list like entries")
 
 
 def filter_none(data):
@@ -375,42 +409,48 @@ def partition_by_functions(data, *funcs):
     """
     result = []
     remaining = list(data)
-    
+
     # Process each function
     for func in flat(funcs):
         matched = []
         not_matched = []
-        
+
         # Apply the current function to each remaining item
         for item in remaining:
             if func(item):
                 matched.append(item)
             else:
                 not_matched.append(item)
-                
+
         # Add matched items to the result
         result.append(matched)
-        
+
         # Update remaining items for the next function
         remaining = not_matched
-    
+
     # Add any remaining unmatched items as the last partition
     result.append(remaining)
-    
+
     return result
 
 
 def dictf(ref):
     def callback(key):
         fallback = key
-        return ref.get(key, fallback) if isinstance(ref, dict) else getattr(ref, key, fallback)
+        return (
+            ref.get(key, fallback)
+            if isinstance(ref, dict)
+            else getattr(ref, key, fallback)
+        )
+
     return callback
 
 
 def flat_map(items, fn):
     return [fn(el) for el in flat(items)]
 
-def filter_seen(items, key = None):
+
+def filter_seen(items, key=None):
     if key:
         store = []
         seen = set()
@@ -425,60 +465,57 @@ def filter_seen(items, key = None):
         return list(set(items))
 
 
-
 def dict_partition(kwargs, *funcs):
     """
     Partition a dictionary into multiple bins based on functions.
-    
+
     Args:
         kwargs: Dictionary to partition
         *funcs: Functions that take (key, value) and return True if item belongs in that bin
-    
+
     Returns:
         List of dictionaries - one for each function, plus a default bin at the end
     """
     # Initialize bins: one for each function + one default bin
     bins = [dict() for _ in range(len(funcs) + 1)]
-    
+
     for key, value in kwargs.items():
         placed = False
-        
+
         # Try each function in order
         for i, func in enumerate(funcs):
             if func(key, value):
                 bins[i][key] = value
                 placed = True
                 break
-        
+
         # If no function matched, put in default bin (last bin)
         if not placed:
             bins[-1][key] = value
-    
+
     return bins
-
-
 
 
 def list_partition(items, *funcs):
     # Initialize bins: one for each function + one default bin
     bins = [list() for _ in range(len(funcs) + 1)]
-    
+
     for item in items:
         placed = False
-        
+
         for i, func in enumerate(funcs):
             if func(item):
                 bins[i].append(item)
                 placed = True
                 break
-        
+
         if not placed:
             bins[-1].append(item)
-    
+
     return bins
 
 
-def modify_array(items, func, key = None):
+def modify_array(items, func, key=None):
     for i, item in enumerate(items):
         value = func(item)
         if value is not None:
@@ -487,6 +524,7 @@ def modify_array(items, func, key = None):
             else:
                 items[i] = valuee
     return items
+
 
 def edit_dict(dct, key, editor: dict):
     """
@@ -515,3 +553,81 @@ def edit_dict(dct, key, editor: dict):
     return dct
 
 
+def array_to_dict(data, key):
+    store = {}
+    for arg in data:
+        store[key(arg) if callable(key) else arg[key]] = arg
+    return store
+
+
+def unique(x):
+    return [el for el in set(x) if el is not None]
+
+def dict_setter(base, *args):
+    def merge(a, b):
+        if is_array(b):
+            return a + b
+        if is_object(b):
+            return deep_assign(a, b)
+        return b
+
+    first = args[0] if len(args) else None
+    if not first:
+        return base
+    if is_object(first):
+        return deep_assign(base, first)
+
+    ref = base
+    length = len(args) - 1
+    for i in range(length):
+        arg = args[i]
+        if i == length - 1:
+            value = args[i + 1]
+            current = ref.get(arg)
+            ref[arg] = merge(current, value)
+            return base
+        else:
+            if arg not in ref:
+                ref[arg] = {}
+            ref = ref[arg]
+
+def dict_getter(base, *args):
+    if not args[-1]:
+        return 
+    length = len(args)
+    if length == 1 and "." in args[0]:
+        args = args[0].split(".")
+        length = len(args)
+
+    try:
+        if length == 1:
+            return base[args[0]]
+        if length == 2:
+            return base[args[0]][args[1]]
+        if length == 3:
+            return base[args[0]][args[1]][args[2]]
+        if length == 4:
+            return base[args[0]][args[1]][args[2]][args[3]]
+        if length == 5:
+            return base[args[0]][args[1]][args[2]][args[3]][args[4]]
+    except Exception as e:
+        return None
+
+
+
+# def object_getter(o, key):
+#     if not is_string(key):
+#         return
+#     if is_object(o) and key in o:
+#         return o[key]
+#     elif hasattr(o, key):
+#         return getattr(o, key)
+#
+#
+# def gather_object(o, keys):
+#     def gatherer(key):
+#         value = object_getter(o, key)
+#         if value != None:
+#             return (key, value)
+#
+#     return reduce(list(keys), gatherer)

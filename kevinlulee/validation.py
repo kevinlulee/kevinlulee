@@ -203,3 +203,17 @@ def is_object_array(s):
 
 def is_nested_array(s):
     return s and is_array(s) and all(is_array(el) for el in s)
+
+def is_lenable(x):
+    return x and hasattr(x, '__iter__')
+
+
+def has_comment(s, filetype=None):
+    if filetype == "python":
+        return s.startswith("#")
+
+    if filetype == "typst":
+        return s.startswith("//")
+
+    comment_pattern = '^ *(?:#|//|--|<!--)'
+    return test(s, comment_pattern)

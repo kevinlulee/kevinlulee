@@ -1,4 +1,4 @@
-def fancy_filetree(root_dir):
+def fancy_file_tree(root_dir):
     """
     Generates a string representation of the file tree for a given directory,
     expanding the directory path using os.path.expanduser().

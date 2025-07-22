@@ -2,6 +2,7 @@ import re
 import yaml
 import textwrap
 
+from kevinlulee.string_utils import trimdent
 from kevinlulee.validation import is_array, is_string
 from kevinlulee.ao import flat, smallify, to_array
 
@@ -336,5 +337,17 @@ def strict_extract_frontmatter(text):
     return content, frontmatter_dict
 
 if __name__ == '__main__':
-    print(newline_indent('hi\nbye\n    abc asdfasdf\n\n\n'))
+    # print(newline_indent('hi\nbye\n    abc asdfasdf\n\n\n'))
+
+    s = '''
+    ---
+    a: alphasdasd
+    sdfsdf: |
+        asdfadsf
+        asdfadsf
+        asdfadsf
+        asdfadsf
+    ---
+    '''
+    print(strict_extract_frontmatter(trimdent(s)))
 

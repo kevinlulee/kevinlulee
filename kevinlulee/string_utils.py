@@ -357,3 +357,113 @@ def oxford_or(names):
         s+= name
 
     return s
+
+
+def remove_quotes(s):
+    if s.startswith('"') and s.endswith('"'):
+        return s[1:-1]
+    elif s.startswith("'") and s.endswith("'"):
+        return s[1:-1]
+    else:
+        return s
+
+
+def remove_commented_lines(s, filetype=None):
+    r = '^( *)(?:#+|//+|") *.*'
+    return re.sub(r, "", s, flags=re.M)
+
+
+
+def match_case(original, replacement):
+        if original.isupper():
+            return replacement.upper()
+        elif original[0].isupper():
+            return replacement.capitalize()
+        else:
+            return replacement
+
+def get_number_from_string(text):
+    """Extract the first number (int or float) from a string."""
+    # Look for numbers (including decimals and negative numbers)
+    match = re.search(r"-?\d+\.?\d*", text)
+    if match:
+        num_str = match.group()
+        # Convert to int if it's a whole number, otherwise float
+        if "." in num_str:
+            return float(num_str)
+        else:
+            return int(num_str)
+    return None
+
+
+def escape_quotes(s, quote_type = '"', num_backslashes = 1):
+    quotes = {
+        '"': '"',
+        '""': '"',
+        "'": "'",
+        "''": "''",
+    }
+    quote_type = quotes[quote_type]
+    backslashes = '\\' * (num_backslashes + 1)
+    return re.sub(quote_type, backslashes + quote_type, s)
+
+
+def mgetall(s, regex, flags = 0):
+    # string_utils
+    matches = []
+    
+    def replacer(match):
+        matches.append(match.group(1))
+        return ''
+        
+    result = re.sub(regex, replacer, s.strip(), flags=flags).strip()
+    return result, matches
+
+def re_wrap(iterable, template=""):
+    ref = {
+        "": "(?:$1)",
+        "start": "^(?:$1)\\b",
+        "b": "\\b(?:$1)\\b",
+        "bc": "\\b($1)\\b",
+    }
+    s = ref.get(template, template)
+    keys = list(iterable)
+
+    def replacer(x):
+        key = x.group(0)
+        start, end = x.span()
+        prev = s[start - 1] if s and start > 0 else None
+        # next = s[end + 1] if s and end < length else None
+        if prev == "[":
+            assert all(len(key) == 1 for key in keys)
+            return "".join(keys)
+        else:
+            symbols = [re.escape(key) for key in keys]
+            return "|".join(symbols)
+        
+    length = len(s)
+    return re.sub("\$1", replacer, s)
+
+
+
+def dreplace(s, ref, boundary = True, flags = 0):
+    keys = list(ref)
+    b = '\\b' if boundary else ''
+    middle = f'[{"".join(keys)}]' if all(len(k) == 1 for k in keys) else f'(?:{"|".join(keys)})'
+    regex = f'{b}{middle}{b}'
+
+    def replacer(x):
+        key = x.group(0)
+        return ref.get(key)
+        
+    return re.sub(regex, replacer, s, flags = flags)
+def replacef(regex, replacement, flags = 0):
+        
+    def replacer(x):
+        key = x.group(0)
+        return
+        
+    def wrapper(s):
+        return re.sub(regex, replacement, s, flags = flags)
+
+    return wrapper

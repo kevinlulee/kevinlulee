@@ -1,6 +1,7 @@
 import inspect
 from pprint import pprint
 from kevinlulee.typing import Selector
+from typing import Callable
 import re
 
 
@@ -146,9 +147,9 @@ def coerce_type(val, expected):
 def coerce_argument(x):
         if not isinstance(x, str):
             return x
-        if x == 'false': return False
-        if x == 'true': return True
-        if x.startswith("\""):
+        if x == 'false' or x == 'False': return False
+        if x == 'true' or x == 'True': return True
+        if x.startswith("\"") or x.startswith("'"):
             return x[1:1]
         if re.search('^\d+\.?\d*$', x):
             if '.' in x:
@@ -327,3 +328,83 @@ def panic(*args, **kwargs):
         print(arg)
     display(kwargs)
     stop()
+
+def bring_to_life(code, scope=None) -> Callable:
+    """
+    Evaluates Python function code and returns the callable.
+    
+    Args:
+        code (str): Python function code as a string
+        scope (dict, optional): Dictionary to use as the global scope for exec.
+                               If None, uses an empty dictionary.
+                               
+    Returns:
+        callable: The function defined in the code
+    """
+    scope = scope or globals()
+    # Create a local namespace for execution
+    local_namespace = {}
+    # Execute the code in the provided scope
+    exec(code, scope, local_namespace)
+    
+    # Find the function name by parsing the code
+    lines = code.strip().split('\n')
+    first_line = lines[0].strip()
+    
+    # Extract function name from the def statement
+    import re
+    match = re.match(r'def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', first_line)
+    
+    if not match:
+        raise ValueError("Could not find function definition in the provided code")
+    
+    function_name = match.group(1)
+    
+    # Return the function from the local namespace
+    if function_name not in local_namespace:
+        raise ValueError(f"Function '{function_name}' was not defined in the provided code")
+    
+    return local_namespace[function_name]
+
+def keycache(key_func):
+    cache = {}
+
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            key = key_func(*args, **kwargs)
+            if key in cache:
+                return cache[key]
+            result = fn(*args, **kwargs)
+            cache[key] = result
+            return result
+
+        return wrapper
+
+    return decorator
+
+class Watcher:
+    def __init__(self, key_func = repr):
+        self.seen = set()
+        self.store = []
+        self.count = 0
+        self.key_func = key_func
+        
+    def __contains__(self, item):
+        reference = self.key_func(item)
+        if reference in self.seen:
+            return True
+        else:
+            self.seen.add(reference)
+            return False
+
+def must(input, key):
+    if not input:
+        return
+
+    if key in input:
+        return input[key]
+
+    raise Exception(f"{key} was not in found in {input.keys()}")
+
+

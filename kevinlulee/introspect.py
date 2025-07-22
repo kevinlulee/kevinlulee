@@ -69,7 +69,8 @@ def get_caller(offset=0, skippable=[], ignore_list=[]) -> inspect.FrameInfo:
     ]
 
     items: list = inspect.stack()
-
+    # for item in items:
+        # print(item.function)
     # find_index
     start = find_index(
         items,
@@ -119,12 +120,23 @@ class Foo:
     def __init__(self):
         pass
 
-    def create(self):
-        print(get_caller())
-        pass
+    def abc(self):
+        kx.pprint(get_caller(2))
+
+def create():
+    Foo().abc()
     
+class Bar:
+    def __init__(self):
+        self.run_gogogo()
+    
+    def run_gogogo(self):
+        create()
+
 
 if __name__ == '__main__':
     # print(gobo(foobar))
-    # Foo().create()
-    print(get_parameters_and_fallbacks(foobar))
+    # print(get_parameters_and_fallbacks(foobar))
+
+    # testing get_caller
+    Bar()

@@ -1,4 +1,4 @@
-from kevinlulee import kx
+import kevinlulee as kx
 
 class LiveObject:
     """Base class for live data structures that automatically persist to disk."""
