@@ -74,9 +74,21 @@ def join_comma(items, max_length=60, newline=False, ending_comma=False):
 
 
 def join_comma(*args, newline=False, ending_comma=False):
+    elements = kx.flat(args, validator=kx.not_none)
+    computed = [str(x) for x in elements]
+
     space = "\n" if newline else " "
     delimiter = "," + space
-    p = delimiter.join(kx.flat(args, validator=kx.not_none))
+    p = delimiter.join(computed)
     if ending_comma:
         return p + ","
     return p
+
+
+
+
+
+def join(*args, delimiter = ' '):
+    els = kx.flat(args)
+    return delimiter.join(els)
+    

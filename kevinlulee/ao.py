@@ -17,8 +17,10 @@ def dotaccess(val, key):
 
 
 def smallify(arr):
-    return arr[0] if len(arr) == 1 else arr
-
+    if is_array(arr):
+        return arr[0] if len(arr) == 1 else arr
+    else:
+        return arr
 
 def to_array(items):
     if not items: return []
@@ -27,6 +29,8 @@ def to_array(items):
 def to_lines(x):
     if isinstance(x, str):
         return x.splitlines()
+    elif is_dict(x):
+        return json.dumps(x, indent=2).splitlines()
     elif is_object_array(x):
         if is_dict(x[0]):
             return json.dumps(x, indent=2).splitlines()

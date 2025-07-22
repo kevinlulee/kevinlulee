@@ -329,6 +329,7 @@ def get_most_recent_file(directory, pattern="*"):
 def clip(s, ext = 'txt'):
     if not s:
         return 
+
     file = os.path.expanduser('~/.kdog3682/scratch/clip.' + ext)
     writefile(file, s)
     webbrowser.open(file)
@@ -443,6 +444,7 @@ def cpfile(source, dest, debug=False, soft = False):
 
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     shutil.copy2(source, dest)
+    return dest
 
 
 
@@ -996,6 +998,10 @@ def resolve_directory(path):
         return os.path.dirname(path)
     return path
 
+def remove_extension(file):
+    return file.replace('.' + get_extension(file), '')
+def get_filename(file):
+    return remove_extension(os.path.basename(file))
 
 def text_getter(s) -> str:
     return (readfile(s) if is_file(s) else s).strip()

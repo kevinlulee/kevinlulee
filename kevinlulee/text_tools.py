@@ -2,7 +2,7 @@ import re
 import yaml
 import textwrap
 
-from kevinlulee.validation import is_array
+from kevinlulee.validation import is_array, is_string
 from kevinlulee.ao import flat, smallify, to_array
 
 
@@ -212,6 +212,13 @@ def toggle_comment(text: str, filetype: str) -> str:
 
 
 def join_text(*contents, conservative = False):
+
+    # 2025-07-21 fix
+    # early escape when it is just a single string content
+    # kx.join_text("hi") -> "hi"
+    # fixes: print(kx.join_text(set_layout(parse_layout(input_text))))
+    if len(contents) == 1 and is_string(contents[0]):
+        return contents[0]
 
     if conservative:
         contents = flat(contents)

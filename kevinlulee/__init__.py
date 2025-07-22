@@ -28,6 +28,7 @@ import kevinlulee.ascii as ascii
 import kevinlulee.introspect as introspect
 import kevinlulee.lorem as lorem
 import kevinlulee.rng as rng
+import kevinlulee.env as env
 from collections import defaultdict
 
 import re
@@ -382,23 +383,7 @@ def instantiate_cls(cls):
     return cls() if is_class_constructor(cls) else cls
 
 
-def oxford_or(names):
-    """
-    sam, bob, or galpha
-    """
-    s = ''
-    names = list(names)
-    max = len(names) - 1
-    for i, name in enumerate(names):
-        if i == 0:
-            pass
-        elif i == max:
-            s+= ', '
-        else:
-            s+= ', or'
-        s+= name
 
-    return s
 
 
 def bug_print(s):
@@ -480,7 +465,7 @@ def re_wrap(iterable, template=""):
         prev = s[start - 1] if s and start > 0 else None
         # next = s[end + 1] if s and end < length else None
         if prev == "[":
-            assert every(keys, lambda x: len(x)== 1)
+            assert all(len(key) == 1 for key in keys)
             return "".join(symbols)
         else:
             return "|".join(symbols)
@@ -488,6 +473,3 @@ def re_wrap(iterable, template=""):
     length = len(s)
     return re.sub("\$1", replacer, s)
 
-
-def pluralize(s):
-    return s if s.endswith("s") else s + "s"

@@ -334,6 +334,15 @@ def parse_day_and_time(day_time_obj):
     time_obj = parse_time(time_str)  # Parse the flexible time string
     return day, time_obj
 
+def to_timestamp(x):
+    if isinstance(x, (int, float)):
+        return x
+    return to_datetime(x).timestamp()
+
+def is_recent(x, **opts):
+    cutoff = resolve_timedelta(**opts)
+    return to_timestamp(x) >= cutoff
+
 
 def is_time_between(start: str | dict, end: str | dict):
     start_day, start_time = parse_day_and_time(start)

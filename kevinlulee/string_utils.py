@@ -274,3 +274,86 @@ def suffix_join(key, suffix, delimiter = '_'):
         return f'{key}{delimiter}{suffix}'
     else:
         return key
+
+
+
+def pluralize(s):
+    return s if s.endswith("s") else s + "s"
+
+def count_words(text: str, include_emojis: bool = True) -> int:
+    """
+    Count words in text.
+    
+    Args:
+        text: Input text
+        include_emojis: Whether to include emojis in word count
+        
+    Returns:
+        Number of words
+    """
+    if not text:
+        return 0
+    
+    # Remove emojis if not including them
+    if not include_emojis:
+        # Remove emojis using regex (basic emoji pattern)
+        emoji_pattern = re.compile("["
+            u"\U0001F600-\U0001F64F"  # emoticons
+            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+            u"\U0001F680-\U0001F6FF"  # transport & map symbols
+            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+            u"\U00002500-\U00002BEF"  # chinese char
+            u"\U00002702-\U000027B0"
+            u"\U00002702-\U000027B0"
+            u"\U000024C2-\U0001F251"
+            u"\U0001f926-\U0001f937"
+            u"\U00010000-\U0010ffff"
+            u"\u2640-\u2642" 
+            u"\u2600-\u2B55"
+            u"\u200d"
+            u"\u23cf"
+            u"\u23e9"
+            u"\u231a"
+            u"\ufe0f"  # dingbats
+            u"\u3030"
+            "]+", re.UNICODE)
+        text = emoji_pattern.sub(r'', text)
+    
+    # Split by whitespace and filter out empty strings
+    words = [word for word in text.split() if word.strip()]
+    return len(words)
+def count_sentences(text: str) -> int:
+    """
+    Count sentences in text.
+    
+    Args:
+        text: Input text
+        
+    Returns:
+        Number of sentences
+    """
+    if not text:
+        return 0
+    
+    # Split by sentence endings and filter out empty strings
+    sentences = [s.strip() for s in re.split(r'[.!?]+', text) if s.strip()]
+    return len(sentences)
+
+
+def oxford_or(names):
+    """
+    sam, bob, or galpha
+    """
+    s = ''
+    names = list(names)
+    max = len(names) - 1
+    for i, name in enumerate(names):
+        if i == 0:
+            pass
+        elif i == max:
+            s+= ', '
+        else:
+            s+= ', or'
+        s+= name
+
+    return s
