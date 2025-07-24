@@ -7,7 +7,6 @@ def mutate_value(value, k_factor = 0.3):
         if not isinstance(value, (int, float)):
             return value
 
-        # Calculate mutation range
         if value == 0:
             # Special case for zero - use small absolute range
             mutation_range = k_factor
@@ -24,7 +23,7 @@ def mutate_value(value, k_factor = 0.3):
         else:
             return mutated
 
-def generate_mutated_variations(data, targets=None, n=5, k=0.1):
+def generate_mutated_variations(data, targets=None, n=5, k=0.1, num_range = None):
     """
     Mutates numeric values in a dictionary and returns a list of mutated copies.
     
@@ -39,6 +38,8 @@ def generate_mutated_variations(data, targets=None, n=5, k=0.1):
     """
     
     
+    num_range = num_range or (1, 1000)
+
     # Determine which keys to mutate
     if targets is None:
         # Find all keys with numeric values
@@ -57,6 +58,7 @@ def generate_mutated_variations(data, targets=None, n=5, k=0.1):
     # Generate n-1 mutated copies, ensuring no duplicates
     max_attempts = n * 100  # Prevent infinite loops
     attempts = 0
+
     
     while len(result) < n and attempts < max_attempts:
         mutated_dict = copy.deepcopy(data)
@@ -65,8 +67,16 @@ def generate_mutated_variations(data, targets=None, n=5, k=0.1):
         # raise Exception(targets, mutated_dict)
         for key in targets:
             if key in mutated_dict:
-                mutated_dict[key] = mutate_value(mutated_dict[key], k)
-        
+                ref = mutated_dict[key]
+                while True:
+                    value = mutate_value(ref, k)
+                    if num_range[0] <= value <= num_range[1]:
+                        mutated_dict[key] = value
+                        break
+                    else:
+                        attempts += 1
+                        assert attempts < max_attempts, "max attempts exceeded"
+
         # Check if this dictionary is unique
         dict_signature = frozenset(mutated_dict.items())
         if dict_signature not in seen_dicts:
@@ -189,13 +199,7 @@ def generate_centered_sequence(center_val, center_index=2, length=5, k=0.5, posi
 
     return sorted(lower) + [center_val] + sorted(higher)
 
-# Example usage
-if __name__ == "__main__":
     
-    sequence2 = generate_centered_sequence(2, 2, 4, 0.8)
-    print(f"\nCustom parameters: {sequence2}")
-    
-# if __name__ == '__main__':
-#     rect_state = {'width': 5, 'height': 3}
-#     rows = generate_mutated_variations(rect_state, k = 0.8, targets = ('width'))
-#     print(rows)
+
+if __name__ == '__main__':
+    mod.commander_run(generate_mutated_variations, rect_state, k = 0.8)
