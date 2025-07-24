@@ -123,12 +123,12 @@ def modular_increment_indexes(items, i, dir):
             return i - 1
 
 
+def modular_increment_values(items, key, dir = 1):
+    if key is None:
+        return items[0]
+    i = items.index(key)
+    return items[modular_increment_indexes(items, i, dir)]
 def modular_increment(items, item, dir=1):
-    def modular_increment_values(items, item, dir):
-        if item is None:
-            return items[0]
-        i = items.index(item)
-        return items[modular_increment_indexes(items, i, dir)]
 
     if isinstance(item, int):
         return modular_increment_indexes(items, item, dir)
