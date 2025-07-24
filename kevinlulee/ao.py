@@ -281,16 +281,19 @@ def filtered(items, selector: Selector = exists):
     return [item for item in items if fn(item)]
 
 
-def walk(x, fn):
+def walk(x, fn, override_condition = None):
     nargs = fn.__code__.co_argcount
 
     def walker(v, k, parent, depth):
-        if isinstance(v, (tuple, list, set)):
-            items = [walker(el, k, v, depth + 1) for el in v]
-            return filtered(items, not_none)
+        if override_condition and override_condition(v):
+            pass
+        else:
+            if isinstance(v, (tuple, list, set)):
+                items = [walker(el, k, v, depth + 1) for el in v]
+                return filtered(items, not_none)
 
-        if isinstance(v, dict):
-            return {a: walker(b, a, v, depth + 1) for a, b in v.items()}
+            if isinstance(v, dict):
+                return {a: walker(b, a, v, depth + 1) for a, b in v.items()}
 
         match nargs:
             case 1:
