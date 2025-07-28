@@ -75,7 +75,7 @@ def xtest(x, selector: Selector = None, key=None, flags=0, anti=0):
         if isinstance(selector, str):
             return bool(re.search(selector, x, flags=flags))
         elif isinstance(selector, re.Pattern):
-            return bool(selector.search(x, flags=flags))
+            return bool(selector.search(x))
         elif isinstance(selector, (list, tuple, set)):
             return x in selector
         elif callable(selector):
@@ -393,6 +393,8 @@ def map(
             return [(get_field_value(el, key)) for el in x]
     raise Exception("only list like entries")
 
+def map(items, fn):
+    return [fn(el) for el in items]
 
 def filter_none(data):
     if isinstance(data, (list, tuple, set)):

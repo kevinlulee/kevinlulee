@@ -69,6 +69,30 @@ class FileTreeNode:
             self.children[name] = FileTreeNode(name, is_file)
         return self.children[name]
 
+# 2025-07-26 aicmp: reimplement
+def get_common_root_from_filepaths(paths):
+    """
+        given a list of file paths,
+        return the shared root
+
+        input: [
+            'abc/def/ghi/foo.py',
+            'abc/def/x.py',
+            'abc/def/scratch/moo.py',
+        ]
+
+        output: 'abc/def'
+
+        note: 
+            a preliminary step is to expand all paths.
+    """
+    parts = ['projects', 'scratch']
+    root = '/home/kdog3682'
+    for path in paths:
+        for part in parts:
+            if part in path:
+                return os.path.join(root, part)
+            
 def build_file_tree(file_paths):
     """
     Build a file tree from a list of file paths.
@@ -81,9 +105,11 @@ def build_file_tree(file_paths):
     """
     root = FileTreeNode("root")
     
+    replacement = get_common_root_from_filepaths(file_paths)
     for path in file_paths:
         # Normalize path separators and split into parts
-        path = path.replace('/home/kdog3682/projects', '')
+        path = path.replace(replacement, '')
+        # path = path.replace('/home/kdog3682/', '')
         parts = path.replace('\\', '/').strip('/').split('/')
         current_node = root
         

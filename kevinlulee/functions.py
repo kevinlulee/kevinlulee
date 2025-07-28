@@ -51,7 +51,10 @@ def to_string(x):
     if callable(x):
         return kx.inspect.getsource(x)
 
-    return kx.json.dumps(x, indent=2)
+    try:
+        return kx.json.dumps(x, indent=2)
+    except Exception as e:
+        return str(x)
 
 
 def infer_lang(value):
@@ -90,5 +93,44 @@ def join_comma(*args, newline=False, ending_comma=False):
 
 def join(*args, delimiter = ' '):
     els = kx.flat(args)
+    if els[-1] in [',', '/', '.', ' ', '\n']:
+        return els[-1].join(els[:-1])
     return delimiter.join(els)
     
+
+
+
+def bug_call(*args, **kwargs):
+    from codefmt.python import pythonfmt
+    caller = kx.introspect.get_caller(1).function
+    call_expr = pythonfmt.call(caller, args, kwargs, condensed = True)
+    print('[DEBUG]', call_expr)
+
+
+
+def get_qualified_func_name(func):
+    """
+        returns Foo.bar if the func is a method or a abcde() if it is a function
+    """
+    mod = getattr(func, '__module__', None)
+    name = func.__qualname__
+    cname = kx.join(mod, name, '.')
+    return cname
+
+
+def get_class_methods(cls, pattern="^[a-z]") -> list[callable]:
+    store = []
+
+    def add(name, func):
+        if callable(func):
+            if not pattern or (pattern and kx.test(name, pattern)):
+                store.append(func)
+
+    if kx.is_class_constructor(cls):
+        for name, func in cls.__dict__.items():
+            add(name, func)
+    elif kx.is_class_instance(cls):
+        for key in dir(cls):
+            add(key, getattr(cls, key))
+
+    return store

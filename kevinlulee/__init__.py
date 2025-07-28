@@ -3,6 +3,8 @@ import os
 
 from collections import defaultdict
 from typing import *
+from dataclasses import dataclass
+
 
 from .base import *
 from .date_utils import *
@@ -26,7 +28,6 @@ from typing import *
 from .git import GitRepo
 from .pythonfmt import pythonfmt
 from .typstfmt import typstfmt
-from .func_ops import *
 from .functions import *
 import kevinlulee.yb as yb
 import kevinlulee.ascii as ascii
@@ -41,7 +42,14 @@ from .extensions import *
 
 get_caller = introspect.get_caller
 
-def pretty_print(el):
-    if not el:
-        return 
-    pprint(el)
+pretty_print = prettyprint
+
+
+def fparse(input, *args, **kwargs):
+    if callable(input):
+        return input(*args, **kwargs)
+    else:
+        return input
+
+
+DLDIR = '/mnt/chromeos/MyFiles/Downloads/'

@@ -217,3 +217,13 @@ def has_comment(s, filetype=None):
 
     comment_pattern = '^ *(?:#|//|--|<!--)'
     return test(s, comment_pattern)
+
+def is_approximately_equal(a, b):
+    if isinstance(a, str) and isinstance(b, str):
+        a = a.strip()
+        b = b.strip()
+        if a.startswith(b) or b.startswith(a) or a.endswith(b) or b.endswith(a):
+            return True
+
+    else:
+        return a == b

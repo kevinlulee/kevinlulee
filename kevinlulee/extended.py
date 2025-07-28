@@ -197,8 +197,7 @@ def sort_by_date(files, reverse=True):
 
 
 def looks_like_path(x):
-    raise Exception("deprecated")
-    return test(x, "^[/~]")
+    return test(x, "^(?:[/~])|\./")
 
 
 def instantiate_cls(cls):

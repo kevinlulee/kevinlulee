@@ -9,7 +9,7 @@ import importlib
 
 from kevinlulee.ao import flat
 from kevinlulee.base import noop
-from kevinlulee.file_utils import get_extension
+from kevinlulee.file_utils import get_extension, is_dir
 from kevinlulee.string_utils import matchstr
 
 from pathlib import Path
@@ -25,7 +25,7 @@ def collect_python_paths():
     for path in paths:
         if path not in store and home in path and not re.search(exclude, path):
             store.append(re.sub("/$", "", path))
-    return sorted(store, reverse=True)
+    return sorted(store, key = len, reverse = True)
     return store
 
 
@@ -183,6 +183,11 @@ def get_module_directory(modname) -> Path:
     module = importlib.import_module(modname)
     return Path(os.path.dirname(inspect.getabsfile(module)))
 
-
-
+def get_root_directory_via_python_paths(key):
+    for path in PYTHON_MODULE_PATHS:
+        j = os.path.join(path, key)
+        if is_dir(j):
+            return j
+if __name__ == '__main__':
+    pprint(PYTHON_MODULE_PATHS)
 # print(get_modname_from_file('/home/kdog3682/projects/python/maelstrom/lib/nvim/plugins/v1/file_runner.py'))

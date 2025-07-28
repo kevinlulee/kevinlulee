@@ -37,6 +37,9 @@ class StringBuilder:
 
     def add_field(self, key, value):
         if exists(value):
+            if isinstance(value, str):
+                value = trimdent(value)
+            
             self.add("field", (key, value))
         return self
 

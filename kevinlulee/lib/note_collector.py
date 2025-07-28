@@ -1,7 +1,7 @@
 import kevinlulee as kx
 
 
-class NoteCollector:
+class NoteCollectorMixin:
     collection_pattern = "^-{3,}"
 
     def collect(self, s):
@@ -12,7 +12,9 @@ class NoteCollector:
 
     def parse(self, s):
         raise Exception("abstract")
-class SimpleNoteCollector(NoteCollector):
+
+
+class SimpleNoteCollector(NoteCollectorMixin):
     """
 
     Text looks like the following:
@@ -42,7 +44,6 @@ class SimpleNoteCollector(NoteCollector):
     # hence, by stopping at 45, the whole of the table can be collected
     # this is hacky and unreliable ... but can be made more robust in the future
 
-
     def __init__(self, src_text):
         super().__init__()
         self.src_text = src_text
@@ -51,8 +52,8 @@ class SimpleNoteCollector(NoteCollector):
         text, fm = kx.extract_frontmatter(s)
         if not fm:
             return
-        if fm.get('ignore'):
-            return 
+        if fm.get("ignore"):
+            return
         if kx.exists(text):
             fm["text"] = text
         return fm
@@ -69,3 +70,36 @@ def to_dict(s) -> dict:
 
 
 # kx.pprint(to_dict('/home/kdog3682/projects/python/maelstrom/lib/aicmp/prompts.txt'))
+
+
+class BraceNoteCollector:
+    collection_pattern = "^-{3,}"
+
+    def collect(self, s):
+        return kx.split(
+            kx.text_getter(s), self.collection_pattern, flags=kx.re.M
+        )
+
+    def run(self, s):
+        return kx.mapfilter(self.collect(s), self.parse)
+
+    def parse(self, s):
+        args = kx.split(s, "^\[([a-zA-Z].*?)\]", flags=kx.re.M)
+        return dict(kx.partition(args))
+
+    def get_value(self, el):
+        return el
+
+    def get_key(self, el):
+        return el.get("key")
+
+    def to_dict(self, s):
+        return {self.get_key(el): self.get_value(el) for el in self.run(s)}
+
+
+if __name__ == "__main__":
+    kx.pprint(
+        BraceNoteCollector().to_dict(
+            "/home/kdog3682/projects/python/maelstrom/lib/aicmp/templates.txt"
+        )
+    )

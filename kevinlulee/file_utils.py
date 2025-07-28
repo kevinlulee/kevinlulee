@@ -17,6 +17,7 @@ from typing import Any, Unpack
 from pathlib import Path
 import shutil
 
+from kevinlulee import introspect
 from kevinlulee.ao import smallify, partition, xtest
 from kevinlulee.base import yes, no
 from kevinlulee.resolve_ops import resolve_filetype
@@ -86,6 +87,8 @@ EXT_REFERENCE_MAP = {
   "c++": "cpp",
   "markdown": "md",
   "mdown": "md",
+  "yml": "yml",
+  "yaml": "yaml",
   "typst": "typ",
   "pdf": "pdf",
   "typ": "typ",
@@ -95,7 +98,7 @@ EXT_REFERENCE_MAP = {
 
 
 extensions = list(set(EXT_REFERENCE_MAP.values()))
-
+EXTENSIONS = extensions
 
 def has_extension(el):
         if not el or not isinstance(el, str):
@@ -121,7 +124,8 @@ def get_extension(file_path: str) -> str:
         if file_path.startswith('.'):
             return EXT_REFERENCE_MAP.get(file_path, None)
         return ''
-    return os.path.splitext(file_path)[1].lstrip(".").lower()
+    ext = os.path.splitext(file_path)[1].lstrip(".").lower()
+    return ext if ext in EXTENSIONS else None
 
 
 def readfile(path: str) -> Any:
@@ -148,7 +152,10 @@ def readfile(path: str) -> Any:
         if extension == "md":
             return f.read()
         if extension == "json":
-            return json.load(f)
+            try:
+                return json.load(f)
+            except Exception as e:
+                return None
         if extension == "yb":
             import yb
             return yb.load(f)
@@ -383,6 +390,8 @@ def cpfile(source, dest, debug=False, soft = False, mkdir = False):
 
 
 def comment(text, filepath):
+    if text is None:
+        return 
     def hash_comment(t):
         return '\n'.join(f'# {line}' for line in t.splitlines())
 
@@ -416,6 +425,7 @@ def comment(text, filepath):
         'markdown': markdown_comment
     }
 
+    filetype = resolve_filetype(filepath)
     formatter = comment_styles.get(filetype, hash_comment)
     return formatter(text)
 
@@ -426,46 +436,57 @@ def writefile(filepath: str, data: Any, debug = False, verbose = True, strict = 
     if strict: assert data, "Data must be existant. Empty strings or None are not allowed."
     assert os.path.splitext(filepath)[1], f"Filepath must have an extension: {filepath}"
 
-    expanded_file_path = os.path.expanduser(filepath)
-    value = serialize_data(data, expanded_file_path, ensure_ascii = ensure_ascii)
+    path = os.path.expanduser(filepath)
+    value = serialize_data(data, path, ensure_ascii = ensure_ascii)
 
-    if debug: return print(f'[DEBUG] writefile "{expanded_file_path}"')
+    if debug: 
+        return debug_print(path, value, debug)
 
-    ensure_directory_exists(expanded_file_path)
-    with open(expanded_file_path, "w") as file:
+    ensure_directory_exists(path)
+    with open(path, "w") as file:
         file.write(value)
 
-    return expanded_file_path
+    return path
 
 def appendfile(path, data, debug = False, verbose = False):
     path = os.path.expanduser(path)
-    e = get_extension(path)
+    as_append = False
+    def getter(path, data):
+        as_array = isinstance(data, (list, tuple))
+        prev = readfile(path) or ([] if as_array else {})
+        prev.extend(data) if as_array else prev.update(data)
+        return prev
+
+    def get(path, data):
+        nonlocal as_append
+        e = get_extension(path)
+
+        if e == "json":
+            prev = getter(path, data)
+            return json.dumps(prev, indent=2, ensure_ascii=False)
+
+        elif e == "yml":
+            import yaml
+            prev = getter(path, data)
+            return yaml.dumps(prev)
+
+        elif e == 'yb': 
+            as_append = True
+            prev = getter(path, data)
+            return yb_parse(prev)
+        else:
+            as_append = True
+            return "\n"+  data if is_file(path) else data
+
+    cdata = get(path, data)
+    if debug: 
+        return debug_print(path, cdata, debug)
+
     ensure_directory_exists(path)
 
-    if e == "json":
-        def get(path, data):
-            as_array = isinstance(data, (list, tuple))
-            prev = readfile(path) or ([] if as_array else {})
-            prev.extend(data) if as_array else prev.update(data)
-            return prev
-
-        payload = get(path, data)
-        with open(path, "w") as f:
-            json.dump(payload, f, indent=4, ensure_ascii=False)
-
-    elif e == "yml":
-        payload = get(path, data)
-        yaml.dump(path, payload)
-
-    elif e == 'yb': 
-        with open(path, "a") as f:
-            f.write(yb_parse(data))
-    else:
-        with open(path, "a") as f:
-            if is_file(path):
-                f.write("\n" + data)
-            else:
-                f.write(data)
+    mode = 'a' if  as_append else 'w'
+    with open(path, mode) as f:
+        f.write(cdata)
 
     return path
 
@@ -705,12 +726,11 @@ def cp(source_file, destination_directory, name=None):
     return destination_path
 
 def add_extension_if_not_present(file_name: str, extension: str) -> str:
-    # 3b1b/manim
-    if(file_name[-len(extension):] != extension):
-        return file_name + '.' + extension
-    else:
+    
+    if not extension or get_extension(file_name):
         return file_name
 
+    return file_name + '.' + extension
 class FilepathValidator:
     ignore_dirs = [
         "__pycache__",
@@ -933,7 +953,10 @@ def resolve_directory(path):
     return path
 
 def remove_extension(file):
-    return file.replace('.' + get_extension(file), '')
+    ext = get_extension(file)
+    if not ext:
+        return file
+    return file.replace('.' + ext, '')
 def get_filename(file):
     return remove_extension(os.path.basename(file))
 
@@ -979,10 +1002,33 @@ def looks_like_directory(path_str):
     
     return False
 
+
+def liner(m):
+        l = len(m)
+        l = min(l, 60)
+        t = '-' * l
+        print(t)
+        print(m)
+        print()
+        print()
+        # print(t)
+def debug_print(file, content, debug):
+    
+    mode = introspect.get_caller(1).function
+    if debug == True:
+        print(f'[DEBUG] {mode}: "{file}"')
+    else:
+        print(content)
+        # m = '... content shown above ...'
+        # liner(m)
+        liner(f'[DEBUG] {mode}: "{file}" (content shown above)')
+        
 if __name__ == '__main__':
     # print(resolve_dotted_path('~/.foo.py', '/home/kdog3682/projects/python/kevinlulee/kevinlulee/file_utils.py'))
 
     # p = PathValidator()
     # p.add_exclusion_rule(stem = ['hii'])
     # print(p.validate('hii.py'))
-    print(fnamemodify('/home/kdog3682/scratch/scratch.py', ext = 'hii', dir = lambda x: x + 'boo', name = lambda x: x + 'hi'))
+    # print(fnamemodify('/home/kdog3682/scratch/scratch.py', ext = 'hii', dir = lambda x: x + 'boo', name = lambda x: x + 'hi'))
+    # writefile('asdf.py', 'asdfddsf', debug = str)
+    pass
