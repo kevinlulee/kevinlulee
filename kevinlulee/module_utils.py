@@ -1,5 +1,6 @@
 from os.path import isdir
 from pathlib import Path
+import pathlib
 import sys
 from typing import Union
 import re
@@ -9,11 +10,13 @@ import importlib
 
 from kevinlulee.ao import flat
 from kevinlulee.base import noop
-from kevinlulee.file_utils import get_extension, is_dir
-from kevinlulee.string_utils import matchstr
+from kevinlulee.file_utils import get_extension, is_dir, remove_extension
+from kevinlulee.string_utils import matchstr, remove_ending_slash
 
 from pathlib import Path
 import os
+
+from kevinlulee.validation import is_word
 
 
 
@@ -184,10 +187,45 @@ def get_module_directory(modname) -> Path:
     return Path(os.path.dirname(inspect.getabsfile(module)))
 
 def get_root_directory_via_python_paths(key):
+
+    assert is_word(key), f"the provided key '{key}' ... must be something like 'yoya'"
+
     for path in PYTHON_MODULE_PATHS:
         j = os.path.join(path, key)
         if is_dir(j):
             return j
+
+
+def get_root_directory_from_path(path):
+    """
+    print(get_root_directory_from_path("/home/kdog3682/projects/python/maelstrom/lib/aicmp/agent/code_request.py")) returns aicmp
+    """
+    p = Path(path)
+    for part in p.parents:
+        directory = remove_ending_slash(part.parent)
+        if directory in PYTHON_MODULE_PATHS:
+            return os.path.join(directory, part.name)
+
+def path_expand(path):
+    """
+    this is a more robust implementation than the previous nvim.pathfix.
+    nothing is hardcoded. the directories are retrieved from python path.
+    """
+    if path.startswith('@'):
+        def replacer(x):
+            key = x.group(1)
+            root = get_root_directory_via_python_paths(key)
+            assert root, f"unable to determine a root for '{key}'"
+            return root
+
+        return re.sub('^@(\w+)', replacer, path)
+
+    if path.startswith('~'):
+        return os.path.expanduser(path)
+
+    return path
 if __name__ == '__main__':
-    pprint(PYTHON_MODULE_PATHS)
+    # pprint(PYTHON_MODULE_PATHS)
+    # print(path_expand('@yoya/utils/foobar.py'))
+    print(get_root_directory_from_path("/home/kdog3682/projects/python/maelstrom/lib/aicmp/agent/code_request.py"))
 # print(get_modname_from_file('/home/kdog3682/projects/python/maelstrom/lib/nvim/plugins/v1/file_runner.py'))
