@@ -136,6 +136,8 @@ def dash_case(s):
     return s.lower()  # Convert to lowercase
 
 def split(s, r="\s+", flags=0, maxsplit = 0):
+    if flags == 0 and r.startswith('^'):
+        flags = re.M
     base = re.split(r, str(s).strip(), flags=flags, maxsplit = maxsplit)
     items = [s.strip() for s in base if s.strip()]
     return items
