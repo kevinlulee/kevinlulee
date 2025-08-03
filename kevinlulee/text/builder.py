@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from kevinlulee.ao import flat
+from kevinlulee.serialize_ops import serialize_data
 from kevinlulee.string_utils import parens, trimdent
 from kevinlulee.text_tools import join_text
 from kevinlulee.validation import exists
@@ -31,7 +32,7 @@ class StringBuilder:
     def newline(self):
         self.add('text', '\n')
     def add_text(self, text, bold = False):
-        base = trimdent(text)
+        base = trimdent(text) if isinstance(text, str) else serialize_data(text)
         s = f'** {base} **' if bold else base
         return self.add("text", s)
 

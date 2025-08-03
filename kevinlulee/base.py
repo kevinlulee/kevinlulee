@@ -88,11 +88,14 @@ def stop(*args, **kwargs):
 
 def each(items, fn, *args, **kwargs):
     params = get_parameters(fn)
-    if len(params) > 1 and params[1] in ('i', "index"):
-        return [
-            fn(item, index, *args, **kwargs)
-            for index, item in enumerate(items)
-        ]
+    if len(params) > 1:
+        if params[1] in ('i', "index"):
+            return [
+                fn(item, index, *args, **kwargs)
+                for index, item in enumerate(items)
+            ]
+        elif isinstance(items[0], (list, tuple)):
+            return [fn(*item, *args, **kwargs) for item in items]
     else:
         return [fn(item, *args, **kwargs) for item in items]
 
@@ -236,6 +239,10 @@ def testf(selector: Selector, flags=0, anti=0, key=None):
     else:
         return fn
 
+
+def testf2(selectors):
+    testers = [testf(a) for a in selectors]
+    return lambda x: all(test(x) for test in testers)
 
 def n2char(num: int) -> str:
     """Convert a number (0-25) to a corresponding lowercase letter (a-z)."""

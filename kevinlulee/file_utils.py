@@ -17,7 +17,7 @@ from typing import Any, Unpack
 from pathlib import Path
 import shutil
 
-from kevinlulee import introspect
+from kevinlulee import DLDIR, introspect
 from kevinlulee.ao import smallify, partition, xtest
 from kevinlulee.base import yes, no
 from kevinlulee.resolve_ops import resolve_filetype
@@ -45,6 +45,8 @@ EXT_REFERENCE_MAP = {
   "typescript": "ts",
   "html": "html",
   "css": "css",
+  "txt": "txt",
+  "text": "txt",
   "json": "json",
   "xml": "xml",
   "yb": "yb",
@@ -61,6 +63,8 @@ EXT_REFERENCE_MAP = {
   "ts": "ts",
   "html": "html",
   "css": "css",
+  "yb": "yb",
+  "br": "br",
   "json": "json",
   "xml": "xml",
   "java": "java",
@@ -262,6 +266,36 @@ def get_most_recent_file(directory, pattern="*"):
     
     most_recent = max(files, key=os.path.getmtime)
     return most_recent
+
+
+def get_most_recently_downloaded_file():
+    return get_most_recent_file(DLDIR)
+
+def get_most_recent_file_groups(dir, pattern = '.', minutes=3):
+    files = getfiles(dir, pattern)
+    files = reverse(sorted(files, key=os.path.getmtime))
+    store = []
+
+    last_date = None
+
+    for file in files:
+        file_date = os.path.getmtime(file)
+
+        if last_date == None:
+            store.append(file)
+        else:
+            delta = abs(file_date - last_date)
+            limit = resolve_timedelta(minutes=minutes)
+            if delta < limit:
+                store.append(file)
+            else:
+                break
+        last_date = file_date
+
+    return reverse(store)
+
+def get_most_recently_downloaded_files():
+    return get_most_recent_file_groups(DLDIR)
 
 def clip(s, ext = 'txt'):
     if not s:

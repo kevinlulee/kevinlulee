@@ -1,3 +1,4 @@
+import re
 import kevinlulee as kx
 
 
@@ -134,3 +135,43 @@ def get_class_methods(cls, pattern="^[a-z]") -> list[callable]:
             add(key, getattr(cls, key))
 
     return store
+
+
+def brace_templater(s, ref):
+    """
+        a simpler version of templater. 
+        uses {braces}.
+
+        class objects are allowed
+        the entity contained in {brace} must be an expression.
+        otherwise it will not be pattern matched.
+
+    """
+    text = kx.trimdent(s)
+
+    TEMPLATER_PATTERN2 = re.compile(
+        r"""
+        (?:(\n)([ \t]+))?  # optional newline spaces
+        {([a-zA-Z]\w+(?:\.\w+(?:\(.*?\))?)*)}   # bracket containing an expr-like string
+    """,
+        flags=re.VERBOSE,
+    )
+
+    def get(expr):
+        if kx.test(expr, r'\bself\b'):
+            s = eval(expr, ref)
+            return s
+
+        return ref.get(expr)
+
+    def replacer(match):
+        newline, ind, expr = match.groups()
+        payload = kx.serialize_data(get(expr))
+        return newline_indent(payload, ind) if newline else payload
+        
+    s = re.sub(TEMPLATER_PATTERN2, replacer, text)
+    return s
+
+
+def run_tests(tests, func):
+    kx.prettyprint(kx.map(kx.to_lines(kx.trimdent(tests)), func))

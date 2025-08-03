@@ -1,8 +1,10 @@
 import re
 import kevinlulee as kx
+from kevinlulee.string_utils import newline_indent
 
-BLANK = '<BLANK>'
-TEMPLATER_PATTERN = re.compile(r'''
+BLANK = "<BLANK>"
+TEMPLATER_PATTERN = re.compile(
+    r"""
     (?:(^|\n)(\s*)([-*•]|\d+[.)])(\s+))?  # Optional leading bullet (•, *, -, or numbered)
     \$                                  # Literal $ symbol
     (?:
@@ -11,21 +13,28 @@ TEMPLATER_PATTERN = re.compile(r'''
         (\w+)                           # Simple word variable
         (,?)                            # Optional trailing comma
     )
-''', flags=re.VERBOSE)
+""",
+    flags=re.VERBOSE,
+)
+
+
+
+
+
 
 
 class Templater:
     def __init__(self):
         self.scope = {}
-    
+
     def replace(self, match):
         groups = match.groups()
         newline, ind, bullet, after_spaces, bracket_expr, word, comma = groups
-        comma = comma or ''
+        comma = comma or ""
 
         def get(bracket_expr, word):
             if bracket_expr:
-                rendered = self.format(bracket_expr.strip('{}'), self.scope)
+                rendered = self.format(bracket_expr.strip("{}"), self.scope)
                 return str(eval(rendered))
             elif word:
                 m = self.getter(word)
@@ -43,27 +52,44 @@ class Templater:
                     def fix(i, bullet):
                         def replacer(x):
                             return str(int(x.group(0)) + i)
-                        return re.sub(r'\d', replacer, bullet)
+
+                        return re.sub(r"\d", replacer, bullet)
 
                     length = len(value)
                     for i, arg in enumerate(value):
                         if i == length - 1:
                             s += ind + fix(i, bullet) + after_spaces + str(arg)
                         else:
-                            s += ind + fix(i, bullet) + after_spaces + str(arg) + comma + "\n"
-                            
+                            s += (
+                                ind
+                                + fix(i, bullet)
+                                + after_spaces
+                                + str(arg)
+                                + comma
+                                + "\n"
+                            )
+
                     return s
                 else:
-                    return newline + ind + bullet + after_spaces + str(value) + comma
+                    return (
+                        newline
+                        + ind
+                        + bullet
+                        + after_spaces
+                        + str(value)
+                        + comma
+                    )
             else:
                 if isinstance(value, (str, int, float)):
                     return str(value) + comma
                 else:
                     return BLANK
-                assert isinstance(value, (str, int, float)), f"without bullets, the value must be a primitive. the provided value <<{value}>> does not match."
+                assert isinstance(
+                    value, (str, int, float)
+                ), f"without bullets, the value must be a primitive. the provided value <<{value}>> does not match."
                 return str(value) + comma
 
-        value = get(bracket_expr, word) 
+        value = get(bracket_expr, word)
         return add_spacing(value, newline, ind, bullet, after_spaces, comma)
 
     def format(self, s, scope=None):
@@ -78,28 +104,30 @@ class Templater:
         text = kx.trimdent(s)
         s = re.sub(TEMPLATER_PATTERN, self.replace, text)
         if BLANK in s:
-            return re.sub(f'\n\s*{BLANK} *', '', s)
+            return re.sub(f"\n\s*{BLANK} *", "", s)
         return s
+
 
 templater = Templater().format
 
 import re
 from typing import Any, Dict, Type
 
+
 class AbstractTemplater:
-    PATTERN = ''
+    PATTERN = ""
 
     def build_scope(self, scopes):
         big_scope = {}
         for scope in scopes:
             # 2025-05-20 aicmp: implement
             if kx.is_class_instance(scope):
-                big_scope['self'] = scope
+                big_scope["self"] = scope
             else:
                 big_scope.update(scope)
         return big_scope
 
-    def __init__(self, *scopes, flags = 0):
+    def __init__(self, *scopes, flags=0):
         self.base_scope = self.build_scope(scopes)
         self.flags = flags
         self.regex = re.compile(self.PATTERN)
@@ -110,10 +138,11 @@ class AbstractTemplater:
         return self.sub(text)
 
     def sub(self, text):
-        return re.sub(self.regex, self.replacer, text, flags = self.flags)
+        return re.sub(self.regex, self.replacer, text, flags=self.flags)
+
 
 class ClassTemplater(AbstractTemplater):
-    PATTERN = '''{(.*?)}'''
+    PATTERN = """{(.*?)}"""
 
     def apply(self, key):
         if key in self.scope:
@@ -123,20 +152,31 @@ class ClassTemplater(AbstractTemplater):
             try:
                 return eval(key, {}, self.scope)
             except Exception as e:
-                return f'{str(e)}: {key}'
-                print('key', key)
-                print('scope', self.scope)
+                return f"{str(e)}: {key}"
+                print("key", key)
+                print("scope", self.scope)
                 raise e
-        
-    def replacer(self, match):
-        keys = kx.split(match.group(1), '&')
-        m = kx.join_text(kx.each(keys, self.apply))
-        return self.sub(m) # recursive replacement
 
-__all__ = ['ClassTemplater', 'templater']
+    def replacer(self, match):
+        keys = kx.split(match.group(1), "&")
+        m = kx.join_text(kx.each(keys, self.apply))
+        return self.sub(m)  # recursive replacement
+
+
+__all__ = ["ClassTemplater", "templater"]
+
+
+class Foo:
+    def __init__(self):
+        self.abc = 'a\nb\n\n'
+
+    def booga(self):
+        return self.abc
+    
 
 
 if __name__ == "__main__":
     # print(templater(''' hi\n$alphalphalpha\nbye ''', {'alphalpha': 1}))
-    c = ClassTemplater({'a': 'hi {b}', 'b': 'ccc'})
-    print(c.format('{a}'))
+    # c = ClassTemplater({"a": "hi {b}", "b": "ccc"})
+    # print(c.format("{a}"))
+    print(brace_templater('hi\n\n  {self.booga()} {1 = bye}', ref = dict(self = Foo(), bye = 'asd')))

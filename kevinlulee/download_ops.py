@@ -32,13 +32,3 @@ def fetch(url):
 
 
 
-def get_archive_org_text_document(url, query = 'pre'):
-    url = 'https://archive.org/stream/WalkTwoMoons/twomoon_djvu.txt'
-    from bs4 import BeautifulSoup
-    from kevinlulee.download_ops import fetch
-    html = fetch(url)
-
-    soup = BeautifulSoup(html, 'html.parser')
-    elements = soup.select(query)
-    for element in elements:
-        return element.text

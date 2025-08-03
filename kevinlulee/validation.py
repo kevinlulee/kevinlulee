@@ -227,3 +227,6 @@ def is_approximately_equal(a, b):
 
     else:
         return a == b
+
+def is_letter(s):
+    return test(s, "[a-zA-Z]")

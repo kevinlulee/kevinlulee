@@ -55,3 +55,14 @@ alphabet = [
 ]
 
 dct = dict(a = 1, b = 2)
+
+def paragraph(n):
+    base_text = (
+        "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt "
+        "ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco "
+        "laboris nisi ut aliquip ex ea commodo consequat"
+    )
+    words = base_text.split()
+    repeated_words = (words * ((n // len(words)) + 1))[:n]
+    return ' '.join(repeated_words)
+

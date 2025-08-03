@@ -1,5 +1,5 @@
 import json
-from kevinlulee.base import get_field_value, testf
+from kevinlulee.base import get_field_value, testf, testf2
 import re
 import itertools
 from kevinlulee.typing import Selector, Union
@@ -280,6 +280,15 @@ def filtered(items, selector: Selector = exists):
         return {k: v for k, v in items.items() if fn(v)}
     return [item for item in items if fn(item)]
 
+
+def not_in(arr):
+    arr = to_array(arr)
+    return lambda x: x not in arr
+def filtered2(items, *selectors: Selector):
+    fn = testf2(selectors)
+    if isinstance(items, dict):
+        return {k: v for k, v in items.items() if fn(v)}
+    return [item for item in items if fn(item)]
 
 def walk(x, fn, override_condition = None):
     nargs = fn.__code__.co_argcount
@@ -636,3 +645,22 @@ def dict_getter(base, *args):
 #             return (key, value)
 #
 #     return reduce(list(keys), gatherer)
+
+def owalk(x, fn):
+
+    def walker(v, k, parent, depth):
+        value = fn(v)
+        if value is not  None:
+            return value
+
+        if isinstance(v, (tuple, list, set)):
+            items = [walker(el, k, v, depth + 1) for el in v]
+            return filtered(items, not_none)
+
+        if isinstance(v, dict):
+            return {a: walker(b, a, v, depth + 1) for a, b in v.items()}
+
+        return v
+
+    return walker(x, None, None, 0)
+

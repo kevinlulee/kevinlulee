@@ -60,11 +60,17 @@ class SimpleNoteCollector(NoteCollectorMixin):
 
     def to_dict(self):
         return {
-            el.get("name"): el.get("text") for el in self.run(self.src_text)
+            el.get("name") or el.get("key"): el.get("text")
+            for el in self.run(self.src_text)
         }
 
 
 def to_dict(s) -> dict:
+    s = kx.text_getter(s)
+    return SimpleNoteCollector(s).to_dict()
+
+
+def collect_dict(s) -> dict:
     s = kx.text_getter(s)
     return SimpleNoteCollector(s).to_dict()
 
@@ -97,9 +103,51 @@ class BraceNoteCollector:
         return {self.get_key(el): self.get_value(el) for el in self.run(s)}
 
 
-if __name__ == "__main__":
-    kx.pprint(
-        BraceNoteCollector().to_dict(
-            "/home/kdog3682/projects/python/maelstrom/lib/aicmp/templates.txt"
+class AbstractNoteCollection:
+    collection_pattern = "^-{3,}"
+
+    def __init__(self, text):
+        parts = kx.split(
+            kx.text_getter(text), self.collection_pattern, flags=kx.re.M
         )
+        data = kx.mapfilter(parts, self.parse)
+        self.data = {self.get_key(el): self.get_value(el) for el in data}
+
+    def get_value(self, el):
+        return el
+
+    def get_key(self, el):
+        return el.get("key") or el.get("name")
+
+    def get(self, key):
+        return self.data.get(key)
+
+    def to_dict(self):
+        return self.data
+
+class PromptLibCollection(AbstractNoteCollection):
+    text_key = "text"
+
+    def parse(self, s):
+        text, fm = kx.extract_frontmatter(s)
+        assert fm, "frontmatter must exist for PromptLibCollection"
+        if not fm:
+            return
+        if fm.get("ignore"):
+            return
+        if kx.exists(text):
+            fm[self.text_key] = text
+        return fm
+
+
+if __name__ == "__main__":
+    # kx.pprint(
+    #     BraceNoteCollector().to_dict(
+    #         "/home/kdog3682/projects/python/maelstrom/lib/aicmp/templates.txt"
+    #     )
+    # )
+    kx.pprint(
+        PromptLibCollection(
+            "/home/kdog3682/projects/python/maelstrom/lib/aicmp/templates/coder.txt"
+        ).to_dict()
     )

@@ -175,6 +175,16 @@ def toggle(state, key):
 
 
 
+def state_toggle(state, key):
+    if is_dict(state):
+        v = state.get(key)
+        new = opposite(v)
+        state[key] = new
+    else:
+        v = getattr(state, key, False)
+        new = opposite(v)
+        setattr(state, key, new)
+    return state
 
 
 

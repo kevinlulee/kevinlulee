@@ -206,6 +206,18 @@ def get_root_directory_from_path(path):
         if directory in PYTHON_MODULE_PATHS:
             return os.path.join(directory, part.name)
 
+def path_unexpand(path):
+    """
+    this is a more robust implementation than the previous nvim.pathfix.
+    nothing is hardcoded. the directories are retrieved from python path.
+    """
+    path = os.path.expanduser(path)
+    root = get_root_directory_from_path(path)
+    if root:
+        return path.replace(root, '@' + remove_ending_slash(os.path.basename(root)))
+    else:
+        return path.replace(os.path.expanduser('~/'), '')
+
 def path_expand(path):
     """
     this is a more robust implementation than the previous nvim.pathfix.
@@ -227,5 +239,6 @@ def path_expand(path):
 if __name__ == '__main__':
     # pprint(PYTHON_MODULE_PATHS)
     # print(path_expand('@yoya/utils/foobar.py'))
-    print(get_root_directory_from_path("/home/kdog3682/projects/python/maelstrom/lib/aicmp/agent/code_request.py"))
+    print(path_unexpand("~/projects/python/maelstrosdm/lasdib/aidscmp/agent/code_request.py"))
+    # print(get_root_directory_from_path("/home/kdog3682/projects/python/maelstrom/lib/aicmp/agent/code_request.py"))
 # print(get_modname_from_file('/home/kdog3682/projects/python/maelstrom/lib/nvim/plugins/v1/file_runner.py'))

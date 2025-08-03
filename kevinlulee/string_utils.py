@@ -469,3 +469,10 @@ def replacef(regex, replacement, flags = 0):
         return re.sub(regex, replacement, s, flags = flags)
 
     return wrapper
+
+
+def remove_ending_slash(s):
+    return re.sub('/$', '', str(s))
+
+def get_words(s):
+    return re.findall('\\b[a-zA-Z]\w+', s)
