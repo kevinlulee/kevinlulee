@@ -17,13 +17,15 @@ from typing import Any, Unpack
 from pathlib import Path
 import shutil
 
-from kevinlulee import DLDIR, introspect
+from kevinlulee.constants import DLDIR
+from kevinlulee.introspect import get_caller
 from kevinlulee.ao import smallify, partition, xtest
 from kevinlulee.base import yes, no
 from kevinlulee.resolve_ops import resolve_filetype
 from kevinlulee.serialize_ops import serialize_data
+import kevinlulee.yb as yb
 from kevinlulee.date_utils import strftime, resolve_timedelta
-from kevinlulee.string_utils import mget, prefix_join, split, split_once
+from kevinlulee.string_utils import mget, prefix_join, remove_ending_slash, split, split_once, remove_starting_slash
 
 def yb_parse(kwargs):
             assert isinstance(kwargs, dict), "yb data must be in the form of a dict"
@@ -96,6 +98,7 @@ EXT_REFERENCE_MAP = {
   "typst": "typ",
   "pdf": "pdf",
   "typ": "typ",
+  "log": "log",
 
 }
 
@@ -132,7 +135,7 @@ def get_extension(file_path: str) -> str:
     return ext if ext in EXTENSIONS else None
 
 
-def readfile(path: str) -> Any:
+def readfile(path: str, raw = False) -> Any:
     """Reads a file and returns its content.
     Supports JSON, YAML, TOML, and raw text/binary formats.
 
@@ -153,6 +156,8 @@ def readfile(path: str) -> Any:
 
     mode = "rb" if extension in ("img", "jpg", "jpeg", "png", "gif", "svg") else "r"
     with open(expanded_path, mode) as f:
+        if raw:
+            return f.read()
         if extension == "md":
             return f.read()
         if extension == "json":
@@ -397,8 +402,10 @@ def fnamemodify(file, dir = None, name = None, ext = None):
 
     if dir: _dir = dir(_dir) if callable(dir) else dir
     if ext: _ext = ext(_ext) if callable(ext) else ext
-    if name: _name = name(_name) if callable(name) else name
+    if name: _name = name(_name) if callable(name) else remove_starting_slash(name)
     ext_value = '.' + _ext if _ext else ''
+    if get_extension(name) and ext is None:
+        ext_value = ''
     return os.path.join(_dir, f"{_name}{ext_value}")
 
 
@@ -483,6 +490,9 @@ def writefile(filepath: str, data: Any, debug = False, verbose = True, strict = 
     return path
 
 def appendfile(path, data, debug = False, verbose = False):
+    if path.endswith('yml.txt'):
+        return yb.append_file(path, data)
+
     path = os.path.expanduser(path)
     as_append = False
     def getter(path, data):
@@ -1048,7 +1058,7 @@ def liner(m):
         # print(t)
 def debug_print(file, content, debug):
     
-    mode = introspect.get_caller(1).function
+    mode = get_caller(1).function
     if debug == True:
         print(f'[DEBUG] {mode}: "{file}"')
     else:
@@ -1063,6 +1073,7 @@ if __name__ == '__main__':
     # p = PathValidator()
     # p.add_exclusion_rule(stem = ['hii'])
     # print(p.validate('hii.py'))
-    # print(fnamemodify('/home/kdog3682/scratch/scratch.py', ext = 'hii', dir = lambda x: x + 'boo', name = lambda x: x + 'hi'))
+    print(fnamemodify('/home/kdog3682/scratch/scratch.json', name = '/asdf/foo.json'))
     # writefile('asdf.py', 'asdfddsf', debug = str)
+
     pass

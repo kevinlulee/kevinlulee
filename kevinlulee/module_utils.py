@@ -38,7 +38,10 @@ PYTHON_MODULE_PATHS = collect_python_paths()
 
 def get_modname_from_file(file):
     if not file.endswith(".py"):
-        return 
+        if '.' in file:
+            return file
+        else:
+            return 
 
     path = os.path.expanduser(file)
     for root in PYTHON_MODULE_PATHS:
@@ -116,7 +119,16 @@ def get_module_func_from_string(s):
     parts = s.split('.')
     fname = parts.pop()
     modname = '.'.join(parts)
-    func = getattr(get_module(modname, reload = True), fname,None)
+    module = get_module(modname, reload = True)
+    func = getattr(module, fname,None)
+    return func
+
+def get_implicit_module_func(s):
+    parts = s.split('.')
+    fname = parts[-1]
+    modname = '.'.join(parts)
+    module = get_module(modname, reload = True)
+    func = getattr(module, fname,None)
     return func
 
 def run_module_func(s, *args, reload = True, **kwargs):
@@ -211,7 +223,11 @@ def path_unexpand(path):
     this is a more robust implementation than the previous nvim.pathfix.
     nothing is hardcoded. the directories are retrieved from python path.
     """
+        
     path = os.path.expanduser(path)
+    if '/scratch/' in path:
+        name = os.path.basename(path)
+        return f'@scratch/{name}'
     root = get_root_directory_from_path(path)
     if root:
         return path.replace(root, '@' + remove_ending_slash(os.path.basename(root)))
@@ -239,6 +255,9 @@ def path_expand(path):
 if __name__ == '__main__':
     # pprint(PYTHON_MODULE_PATHS)
     # print(path_expand('@yoya/utils/foobar.py'))
-    print(path_unexpand("~/projects/python/maelstrosdm/lasdib/aidscmp/agent/code_request.py"))
+    # print(path_unexpand("~/projects/python/maelstrosdm/lasdib/aidscmp/agent/code_request.py"))
     # print(get_root_directory_from_path("/home/kdog3682/projects/python/maelstrom/lib/aicmp/agent/code_request.py"))
-# print(get_modname_from_file('/home/kdog3682/projects/python/maelstrom/lib/nvim/plugins/v1/file_runner.py'))
+    # print(get_modname_from_file('/home/kdog3682/projects/python/maelstrom/lib/nvim/plugins/v1/file_runner.py'))
+    # content = get_implicit_module_func('yoya.utils.prepare_text')
+    pass
+    # print(content)

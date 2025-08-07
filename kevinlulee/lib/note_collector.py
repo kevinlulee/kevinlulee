@@ -110,8 +110,12 @@ class AbstractNoteCollection:
         parts = kx.split(
             kx.text_getter(text), self.collection_pattern, flags=kx.re.M
         )
-        data = kx.mapfilter(parts, self.parse)
-        self.data = {self.get_key(el): self.get_value(el) for el in data}
+        self.setup()
+        self.items = kx.mapfilter(parts, self.parse)
+        self.data = {self.get_key(el): self.get_value(el) for el in self.items}
+
+    def setup(self):
+        pass
 
     def get_value(self, el):
         return el
@@ -122,6 +126,8 @@ class AbstractNoteCollection:
     def get(self, key):
         return self.data.get(key)
 
+    def to_list(self):
+        return self.items
     def to_dict(self):
         return self.data
 
@@ -138,6 +144,13 @@ class PromptLibCollection(AbstractNoteCollection):
         if kx.exists(text):
             fm[self.text_key] = text
         return fm
+
+class NvimTestScaffoldCollection(AbstractNoteCollection):
+        
+    def parse(self, s):
+        args = kx.split(s, "^\[([a-zA-Z].*?)\]", flags=kx.re.M)
+        return dict(kx.partition(args))
+    
 
 
 if __name__ == "__main__":

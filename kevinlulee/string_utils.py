@@ -461,16 +461,14 @@ def dreplace(s, ref, boundary = True, flags = 0):
     return re.sub(regex, replacer, s, flags = flags)
 def replacef(regex, replacement, flags = 0):
         
-    def replacer(x):
-        key = x.group(0)
-        return
-        
     def wrapper(s):
         return re.sub(regex, replacement, s, flags = flags)
 
     return wrapper
 
 
+def remove_starting_slash(s):
+    return re.sub('^/', '', str(s))
 def remove_ending_slash(s):
     return re.sub('/$', '', str(s))
 

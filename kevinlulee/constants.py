@@ -120,3 +120,5 @@ user_installed_pip_packages = [
     "yapf",  # Yet another Python formatter (alternative to black/autopep8)
 ]
 
+
+DLDIR = '/mnt/chromeos/MyFiles/Downloads/'

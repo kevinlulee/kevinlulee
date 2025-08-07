@@ -52,5 +52,27 @@ def fparse(input, *args, **kwargs):
         return input
 
 
-DLDIR = '/mnt/chromeos/MyFiles/Downloads/'
+def newline_padding(s, padding):
+    if not padding:
+        return s
 
+    a, b = padding if is_array(padding) else (padding, padding)
+    return "\n" * (a) + s + "\n" * (b)
+
+
+def path_in(paths, src_path):
+    src_path = os.path.expanduser(src_path)
+    for path in paths:
+        path = os.path.expanduser(path)
+        if path in src_path:
+            return path
+
+
+def announce(*args, **kwargs):
+    print(*args, **kwargs)
+def throw_on(x):
+    def foo(el):
+        if el == x:
+            raise Exception(f"throw on {x}")
+        return el
+    return foo

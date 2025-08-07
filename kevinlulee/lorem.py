@@ -66,3 +66,13 @@ def paragraph(n):
     repeated_words = (words * ((n // len(words)) + 1))[:n]
     return ' '.join(repeated_words)
 
+
+nested_object = {
+    'a': {
+        'b': 'hi',
+        'c': {
+            'd': 'bye',
+            'a': '1'
+        }
+    }
+}

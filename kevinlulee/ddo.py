@@ -4,7 +4,18 @@ import kevinlulee as kx
 class LiveObject:
     """Base class for live data structures that automatically persist to disk."""
 
-    def __init__(self, data_path, loader=kx.identity, dumper=kx.identity, fallback = None):
+    def __enter__(self):
+        # Suppress any auto‐saves during the with‐block
+        self.auto_save = False
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Re‐enable auto‐saves and do one final write
+        self.auto_save = True
+        self.save()
+
+    def __init__(self, data_path, auto_save = True, loader=kx.identity, dumper=kx.identity, fallback = None):
+        self.auto_save = auto_save
         self._data_path = kx.os.path.expanduser(data_path)
         self._loader = loader
         self._dumper = dumper
@@ -44,10 +55,14 @@ class LiveObject:
             return fallback or self._default_fallback()
         return self._loader(raw_data)
 
+    def save(self):
+        kx.writefile(self._data_path, self._dumper(self._data), strict=False)
+        # falsy at strictness means empty objects can be passed in.
+
     def _save(self):
         """Save data to disk using custom dumper or default method."""
-        serialized_data = self._dumper(self._data)
-        kx.writefile(self._data_path, serialized_data, strict=False)
+        if self.auto_save:
+            self.save()
 
     def __len__(self):
         return len(self._data)
@@ -67,6 +82,14 @@ class LiveDict(LiveObject):
 
     def _default_fallback(self):
         return {}
+
+    def __getitem__(self, index):
+        item = self._data.get(index)
+        wrapped = self._wrap_if_mutable(item)
+        if wrapped is not item:
+            # Replace the original with the wrapped version
+            self._data[index] = wrapped
+        return wrapped
 
     def __setitem__(self, key, value):
         self._data[key] = value
@@ -294,10 +317,16 @@ class LiveArray(LiveObject):
 
 
 if __name__ == "__main__":
-    a = LiveDict("/home/kdog3682/.cache/maelstrom/pam.json", fallback=dict(a = 1))
-    # a["foo"] = ["alphalphaa"]
-    a['a'] = 121
-    print(a)
+    with LiveDict("/home/kdog3682/.cache/maelstrom/pam.json", fallback=dict(a = 1)) as foo:
+        foo['asdf'] = 11111111112818181
+
+    # # a["foo"] = ["alphalphaa"]
+    # if a['a'] == 121:
+    #     del a['a']
+    # elif 'a' in a:
+    #     print(a)
+    # else:
+    #     a['a'] = 123
 
     # it becomes too complicated below...
     # a['bookmarks'][1]['b'] = 'c'

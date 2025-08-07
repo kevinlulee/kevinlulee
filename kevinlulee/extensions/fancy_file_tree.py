@@ -1,3 +1,11 @@
+import os
+import pathspec
+
+from kevinlulee.file_utils import create_gitignore_matcher
+
+
+create_gitignore_matcher
+
 def fancy_file_tree(root_dir):
     """
     Generates a string representation of the file tree for a given directory,

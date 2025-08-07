@@ -148,11 +148,13 @@ def brace_templater(s, ref):
 
     """
     text = kx.trimdent(s)
+    if kx.is_array(ref):
+        ref = kx.array_to_dict(ref)
 
     TEMPLATER_PATTERN2 = re.compile(
         r"""
         (?:(\n)([ \t]+))?  # optional newline spaces
-        {([a-zA-Z]\w+(?:\.\w+(?:\(.*?\))?)*)}   # bracket containing an expr-like string
+        {(\d+|[a-zA-Z]\w*(?:\.\w+(?:\(.*?\))?)*)}   # bracket containing an expr-like string
     """,
         flags=re.VERBOSE,
     )
@@ -174,4 +176,36 @@ def brace_templater(s, ref):
 
 
 def run_tests(tests, func):
-    kx.prettyprint(kx.map(kx.to_lines(kx.trimdent(tests)), func))
+    items = kx.to_lines(kx.trimdent(tests))
+    kx.prettyprint(kx.map(items, func))
+
+
+
+
+def printable(**kwargs):
+    s = kx.StringBuilder()
+    for k, v in kwargs.items():
+        s.add_field(k, v)
+
+    return kx.stop(s)
+
+
+def file_cache(cache_path: str, **time_opts):
+    
+    def decorator(func):
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+
+            if kx.is_recent(cache_path, **time_opts):
+                return kx.readfile(cache_path)
+
+            result = func(*args, **kwargs)
+            if cache_path:
+                kx.writefile(cache_path, result)
+            return result
+
+        return wrapper
+    return decorator
+
+            # Otherwise call the function and cache its result

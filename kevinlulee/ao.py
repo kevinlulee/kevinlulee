@@ -567,7 +567,12 @@ def edit_dict(dct, key, editor: dict):
     return dct
 
 
-def array_to_dict(data, key):
+def array_to_dict(data, key = None):
+    if not key:
+        return {
+            str(i + 1): arg for  i, arg in enumerate(data)
+        }
+        
     store = {}
     for arg in data:
         store[key(arg) if callable(key) else arg[key]] = arg
@@ -663,4 +668,15 @@ def owalk(x, fn):
         return v
 
     return walker(x, None, None, 0)
+
+
+
+def object_mutation(o, **kwargs):
+    """
+    given kwargs like dict(a = run_func) ... it will apply it to all primitives
+    in the provided object
+    """
+    def walker(v, k):
+        return kwargs[k](v) if k in kwargs else v
+    return walk(o, walker)
 
