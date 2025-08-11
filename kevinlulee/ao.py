@@ -39,7 +39,7 @@ def to_array(items):
 
 def to_lines(x):
     if isinstance(x, str):
-        return x.splitlines()
+        return x.split("\n")
     elif is_dict(x):
         return json.dumps(x, indent=2).splitlines()
     elif is_object_array(x):
