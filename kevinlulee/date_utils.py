@@ -57,6 +57,15 @@ def datetime_from_str(s: str) -> datetime:
     return dt
 
 
+
+def rough_unit_from_digits(ts: int | str) -> Literal["s","ms","us","ns"]:
+    """Quick heuristic by digit length: 10≈s, 13≈ms, 16≈µs, 19≈ns."""
+    n = len(str(abs(int(ts))))
+    if n >= 19: return "ns"
+    if n >= 16: return "us"
+    if n >= 13: return "ms"
+    return "s"
+
 def to_datetime(x=None):
     if x is None:
         return datetime.now()
@@ -69,6 +78,8 @@ def to_datetime(x=None):
         else:
             return datetime_from_str(x)
     if isinstance(x, (int, float)):
+        if rough_unit_from_digits(x) == 'ms':
+            x /= 1000
         return datetime.fromtimestamp(x)
     return x
 
@@ -497,4 +508,3 @@ def extract_datetime_str_from_dictionary(x: dict) -> Optional[str]:
 
 def now():
     return datetime.now()
-# print(to_datetime(dict(date = '5/5/2025')))
