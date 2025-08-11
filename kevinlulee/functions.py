@@ -1,4 +1,5 @@
 import re
+import shutil
 import kevinlulee as kx
 import functools
 
@@ -227,10 +228,16 @@ import os
 
 def mv(a, b):
     a = os.path.expanduser(str(a))
+    b = os.path.expanduser(str(b))
     if not os.path.exists(a):
         return
-    b = os.path.expanduser(str(b))
     return kx.bash3("mv", a, b)
+
+def mvfile(a, b):
+    
+    a = os.path.expanduser(str(a))
+    b = os.path.expanduser(str(b))
+    shutil.move(a, b)
 
 
 def read_write(file, func, *args, raw=False, dst_path=None, **kwargs):
