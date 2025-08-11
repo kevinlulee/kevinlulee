@@ -68,7 +68,7 @@ def extract_frontmatter(text: str):
     if a[1]:
         return a
 
-    frontmatter_pattern = re.compile(r"^\s*\w+:|^\s+-")
+    frontmatter_pattern = re.compile(r"^\s*\w+: |^\s+-")
 
     lines = text.split("\n")
     if not lines or not frontmatter_pattern.match(lines[0]):
