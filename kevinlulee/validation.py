@@ -230,3 +230,6 @@ def is_approximately_equal(a, b):
 
 def is_letter(s):
     return test(s, "[a-zA-Z]")
+
+def is_absolute_path(s):
+    return test(s, '^[~/]')

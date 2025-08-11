@@ -12,13 +12,59 @@ class TimeOpts(TypedDict):
     years: int = 0
     months: int = 0
 
+
+from datetime import datetime, timezone
+from typing import Optional, Iterable
+
+
+def datetime_from_str(s: str) -> datetime:
+    dt = None
+    if dt is None:
+        from dateutil import parser as _du
+
+        dt = _du.parse(s)
+
+    if dt is None:
+        fmts = [
+            "%Y-%m-%d",
+            "%Y-%m-%d %H:%M",
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d %H:%M:%S.%f",
+            "%Y-%m-%dT%H:%M",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S.%f",
+            "%m/%d/%Y",
+            "%m/%d/%Y %H:%M",
+            "%m/%d/%Y %H:%M:%S",
+            "%d/%m/%Y",
+            "%d/%m/%Y %H:%M",
+            "%Y%m%dT%H%M%SZ",  # Zulu w/out offset
+        ]
+
+        for fmt in fmts:
+            try:
+                dt = datetime.strptime(s, fmt)
+                break
+            except Exception:
+                pass
+
+    if dt is None:
+        raise ValueError(f"Could not parse datetime string: {s!r}")
+
+    return dt
+
+
 def to_datetime(x=None):
     if x is None:
         return datetime.now()
+    if isinstance(x, dict):
+        return datetime_from_str(extract_datetime_str_from_dictionary(x))
     if isinstance(x, str):
         path = os.path.expanduser(x)
-        assert os.path.isfile(path), f'Not a valid file: {path}'
-        return datetime.fromtimestamp(os.path.getmtime(path))
+        if os.path.isfile(path):
+            return datetime.fromtimestamp(os.path.getmtime(path))
+        else:
+            return datetime_from_str(x)
     if isinstance(x, (int, float)):
         return datetime.fromtimestamp(x)
     return x
@@ -45,6 +91,7 @@ def strftime(source=None, mode="iso8601"):
         "wordy": "%A %B %d, %Y",
         "date": "%A %-I:%M%p %m/%d/%Y",
         "usa": "%m/%d/%Y %I:%M:%S %p",
+        "detailed": "%m/%d/%Y %I:%M:%S %p",
     }
 
     return to_datetime(source).strftime(templates.get(mode, mode))
@@ -53,15 +100,9 @@ def strftime(source=None, mode="iso8601"):
 def timestamp():
     return datetime.now().timestamp()
 
+
 def resolve_timedelta(
-    hours=0,
-    seconds=0,
-    minutes=0,
-    days=0,
-    weeks=0,
-    months=0,
-    years=0,
-    **kwargs
+    hours=0, seconds=0, minutes=0, days=0, weeks=0, months=0, years=0, **kwargs
 ):
     now = datetime.now()
     cutoff = now - timedelta(
@@ -74,17 +115,9 @@ def resolve_timedelta(
     # print(cutoff)
     return cutoff.timestamp()
 
-def is_recentf(mode = "after", key = None, **opts):
-    cutoff = resolve_timedelta(**opts)
-    if mode == "after" or mode == "recent" or mode == 'near':
-        fn = lambda x: x >= cutoff
-    else:
-        fn = lambda x: x < cutoff
 
-    if key:
-        return lambda x: fn(x[key])
-    else:
-        return fn
+
+
 def timeago(time, now=None):
     def seconds_to_ago_string(seconds):
         # Define time units in seconds
@@ -93,14 +126,14 @@ def timeago(time, now=None):
         day = 24 * hour
         week = 7 * day
         month = 30.44 * day  # Average month length
-    
+
         # Calculate the time units
         months, remainder = divmod(seconds, month)
         weeks, remainder = divmod(remainder, week)
         days, remainder = divmod(remainder, day)
         hours, remainder = divmod(remainder, hour)
         minutes, seconds = divmod(remainder, minute)
-    
+
         # Convert to integers
         units = [
             ("month", int(months)),
@@ -110,13 +143,13 @@ def timeago(time, now=None):
             ("minute", int(minutes)),
             ("second", int(seconds)),
         ]
-    
+
         # Filter out zero values and create the string
         parts = []
         for unit, value in units:
             if value > 0:
                 parts.append(f"{value} {unit}{'s' if value > 1 else ''}")
-    
+
         if len(parts) == 0:
             return "just now"
         elif len(parts) == 1:
@@ -134,158 +167,119 @@ def timeago(time, now=None):
     else:
         return s
 
+
 class DateAccess:
     """A class that provides access to various date and time properties."""
-    
+
     def __init__(self, date = None):
-        """
-        Initialize with either a specific date or the current date.
-        
-        Args:
-            date: Optional datetime or date object. Defaults to current date/time.
-        """
-        if date is None:
-            self._date = datetime.datetime.now()
-        elif isinstance(date, datetime.date) and not isinstance(date, datetime.datetime):
-            # Convert date to datetime at midnight
-            self._date = datetime.datetime.combine(date, datetime.time())
-        else:
-            self._date = date
-    
+        self.init_date(date)
+
+    def init_date(self, date):
+        try:
+            self._date = to_datetime(date)
+        except Exception as e:
+            self._date = None
+
+    @property
+    def date(self) -> datetime:
+        return getattr(self, '_date', None) or datetime.datetime.now()
+
     @property
     def year(self) -> int:
-        """Get the year as an integer."""
-        return self._date.year
-    
+        return self.date.year
+
     @property
     def month(self) -> int:
-        """Get the month as an integer (1-12)."""
-        return self._date.month
-    
+        """month as an integer (1-12)."""
+        return self.date.month
+
     @property
     def day(self) -> int:
-        """Get the day of month as an integer."""
-        return self._date.day
-    
+        """day of month as an integer."""
+        return self.date.day
+
     @property
     def hour(self) -> int:
         """Get the hour as an integer (0-23)."""
-        return self._date.hour
-    
+        return self.date.hour
+
     @property
     def minute(self) -> int:
-        """Get the minute as an integer (0-59)."""
-        return self._date.minute
-    
+        return self.date.minute
+
     @property
     def second(self) -> int:
-        """Get the second as an integer (0-59)."""
-        return self._date.second
-    
+        return self.date.second
+
     @property
-    def month(self) -> str:
+    def month_name(self) -> str:
         """Get the full month name (e.g., 'January')."""
-        return calendar.month_name[self._date.month]
-    
+        return calendar.month_name[self.date.month]
+
     @property
-    def month_name_short(self) -> str:
+    def short_month_name(self) -> str:
         """Get the abbreviated month name (e.g., 'Jan')."""
-        return calendar.month_abbr[self._date.month]
-    
+        return calendar.month_abbr[self.date.month]
+
     @property
     def weekday(self) -> int:
         """Get the weekday as an integer (0=Monday, 6=Sunday)."""
-        return self._date.weekday()
-    
+        return self.date.weekday()
+
     @property
     def weekday_name(self) -> str:
         """Get the full weekday name (e.g., 'Monday')."""
-        return calendar.day_name[self._date.weekday()]
-    
+        return calendar.day_name[self.date.weekday()]
+
     @property
-    def weekday_name_short(self) -> str:
+    def short_weekday_name(self) -> str:
         """Get the abbreviated weekday name (e.g., 'Mon')."""
-        return calendar.day_abbr[self._date.weekday()]
-    
+        return calendar.day_abbr[self.date.weekday()]
+
     @property
     def day_of_year(self) -> int:
         """Get the day of the year (1-366)."""
-        return self._date.timetuple().tm_yday
-    
+        return self.date.timetuple().tm_yday
+
     @property
     def week_of_year(self) -> int:
         """Get the ISO week number of the year (1-53)."""
-        return self._date.isocalendar()[1]
-    
+        return self.date.isocalendar()[1]
+
     @property
     def quarter(self) -> int:
         """Get the quarter of the year (1-4)."""
-        return (self._date.month - 1) // 3 + 1
-    
-    @property
+        return (self.date.month - 1) // 3 + 1
+
     def is_leap_year(self) -> bool:
         """Check if the current year is a leap year."""
-        return calendar.isleap(self._date.year)
-    
+        return calendar.isleap(self.date.year)
+
     @property
-    def days_in_month(self) -> int:
+    def get_days_in_month(self) -> int:
         """Get the number of days in the current month."""
-        return calendar.monthrange(self._date.year, self._date.month)[1]
-    
+        return calendar.monthrange(self.date.year, self.date.month)[1]
+
     @property
     def timestamp(self) -> float:
         """Get the UNIX timestamp."""
-        return self._date.timestamp()
-    
-    @property
-    def iso_format(self) -> str:
-        """Get the date in ISO format (YYYY-MM-DD)."""
-        return self._date.date().isoformat()
-    
-    @property
-    def iso_datetime(self) -> str:
-        """Get the date and time in ISO format."""
-        return self._date.isoformat()
-    
+        return self.date.timestamp()
+
     @property
     def american_date(self) -> str:
         """Get the date in American format (MM/DD/YYYY)."""
-        return f"{self._date.month:02d}/{self._date.day:02d}/{self._date.year}"
-    
-    @property
-    def european_date(self) -> str:
-        """Get the date in European format (DD/MM/YYYY)."""
-        return f"{self._date.day:02d}/{self._date.month:02d}/{self._date.year}"
-    
-    @property
-    def ordinal_day(self) -> str:
-        """Get the day with ordinal suffix (1st, 2nd, 3rd, etc.)."""
-        day = self._date.day
-        if 10 <= day % 100 <= 20:
-            suffix = 'th'
-        else:
-            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
-        return f"{day}{suffix}"
+        return f"{self.date.month:02d}/{self.date.day:02d}/{self.date.year}"
 
 
-
-def get_recency_validator(mode: Literal['recent', 'distant'], **opts):
+def get_recency_validator(mode: Literal["recent", "distant"], **opts):
     cutoff = resolve_timedelta(**opts)
-    if mode == 'recent':
+    if mode == "recent":
         return lambda x: x >= cutoff
     else:
         return lambda x: x < cutoff
 
 
-# if __name__ == '__main__':
-    # import vim
-    # a = vim.funcs.getbufinfo(54)
-    # print(a[0]['lastused'], 'X')
-    # print(get_recency_validator('recent',minutes = 1)( a[0]['lastused'] ))
-
-
-
-from datetime import datetime 
+from datetime import datetime
 
 # Mapping full day names and abbreviations to integers (Mon=0, ..., Sun=6)
 DAY_MAPPING = {
@@ -334,15 +328,23 @@ def parse_day_and_time(day_time_obj):
     time_obj = parse_time(time_str)  # Parse the flexible time string
     return day, time_obj
 
+
 def to_timestamp(x):
     if isinstance(x, (int, float)):
         return x
     return to_datetime(x).timestamp()
 
+
 def is_recent(x, **opts):
     cutoff = resolve_timedelta(**opts)
     return to_timestamp(x) >= cutoff
 
+def is_recentf(mode="after", key=None, **opts):
+    cutoff = resolve_timedelta(**opts)
+    recency_modes = ['after', 'recent', 'near']
+    fn = lambda x: to_timestamp(x) >= cutoff if mode in recency_modes else lambda x: to_timestamp(x) < cutoff
+
+    return lambda x: fn(x[key]) if key else fn
 
 def is_time_between(start: str | dict, end: str | dict):
     start_day, start_time = parse_day_and_time(start)
@@ -351,8 +353,10 @@ def is_time_between(start: str | dict, end: str | dict):
     now = datetime.now()
     current_day = now.weekday()  # Monday = 0, Sunday = 6
     current_time = now.time()
-    if start_day == None: start_day = current_day
-    if end_day == None: end_day = current_day
+    if start_day == None:
+        start_day = current_day
+    if end_day == None:
+        end_day = current_day
 
     return (
         current_day >= start_day
@@ -361,56 +365,133 @@ def is_time_between(start: str | dict, end: str | dict):
         and current_time < end_time.time()
     )
 
+
 from datetime import datetime, timedelta
+
 
 def get_upcoming_day(target_day):
     """
     Get the date of the upcoming occurrence of a specific day of the week.
-    
+
     Args:
         target_day (str): Day of the week ('Monday', 'Tuesday', etc.)
                          Case insensitive, can be full name or 3-letter abbreviation
-    
+
     Returns:
         datetime: Date object for the upcoming occurrence of the target day
     """
     # Day name mappings
-    days_full = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-    days_abbr = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-    
+    days_full = [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+    ]
+    days_abbr = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
     target_day = target_day.lower().strip()
-    
+
     # Find the target day index
     if target_day in days_full:
         target_index = days_full.index(target_day)
     elif target_day in days_abbr:
         target_index = days_abbr.index(target_day)
     else:
-        raise ValueError(f"Invalid day: {target_day}. Use full name or 3-letter abbreviation.")
-    
+        raise ValueError(
+            f"Invalid day: {target_day}. Use full name or 3-letter abbreviation."
+        )
+
     # Get current date and day of week (0=Monday, 6=Sunday)
     today = datetime.now()
     current_day_index = today.weekday()
-    
+
     # Calculate days until target day
     days_ahead = (target_index - current_day_index) % 7
-    
+
     # If it's the same day, get next week's occurrence
     if days_ahead == 0:
         days_ahead = 7
-    
+
     # Return the upcoming date
     upcoming_date = today + timedelta(days=days_ahead)
     return upcoming_date.replace(hour=0, minute=0, second=0, microsecond=0)
 
+
 # Example usage and testing
-if __name__ == "__main__":
-    print(get_upcoming_day('sun'))
-    
+
 if __name__ == "__main__":
     start = {"day": "friday", "time": "1pm"}
     end = {"day": "sunday", "time": "11pm"}
     start = "1:40pm"
     end = "11pm"
+    # print(get_upcoming_day('sun'))
 
     # print(is_time_between(start, end))  # True
+
+
+def asdf(x, **opts):
+    cutoff = resolve_timedelta(**opts)
+    a = to_datetime(x)
+    print("datetime", a)
+    print("datetime.timestamp", a.timestamp())  # the time the file was modified
+    print("the file", strftime(a, mode="detailed"))
+    print("the cutoff", strftime(cutoff, mode="detailed"))
+    print("cutoff > file", cutoff > a.timestamp())
+    # the file's touch time surpasses the cutoff date. that means it is a recent file.
+    # when the cutoff is greater than the file, it means it is no longer recent.
+    # the cutoff creates a buffer between the time it is right now and 50 minutes ago. so its value will be something like 566 seconds ago.
+
+
+# asdf('~/scratch/hanzi.json', minutes = 30)
+# print(to_datetime('5/6/2000 5:00am asdf asdf'))
+
+
+# 2025-08-11 Whereami
+
+
+def extract_datetime_str_from_dictionary(x: dict) -> Optional[str]:
+    date_field_names = [
+        "date",
+        "datetime",
+        "timestamp",
+        "created_at",
+        "updated_at",
+        "creation_date",
+        "modification_date",
+        "time",
+        "time_usec",
+        "time_ms",
+        "start_date",
+        "end_date",
+        "published_at",
+        "created_on",
+        "modified_on",
+        "date_created",
+        "date_modified",
+        "birth_date",
+        "expiry_date",
+    ]
+
+    # Check for exact matches
+    for field in date_field_names:
+        if field in x:
+            return x[field]
+
+    camels = [camel_case(field) for field in date_field_names]
+    for field in camels:
+        if field in x:
+            return x[field]
+
+    # Look for any key that contains 'date' or 'time'
+    for key in x:
+        m = re.search("date|time", key, flags=re.I)
+        if m:
+            return x[m]
+
+
+def now():
+    return datetime.now()
+# print(to_datetime(dict(date = '5/5/2025')))

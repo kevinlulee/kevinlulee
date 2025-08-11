@@ -76,3 +76,36 @@ def throw_on(x):
             raise Exception(f"throw on {x}")
         return el
     return foo
+
+
+def tprint(s):
+    print(trimdent(s))
+
+def json_load(x):
+    try:
+        return json.loads(x)
+    except Exception as e:
+        return x
+
+
+def ordinal(n: int) -> str:
+    # returns a string like 3rd or 4th or 5th or 66th
+        if 10 <= n % 100 <= 20:
+            suffix = 'th'
+        else:
+            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
+        return f"{n}{suffix}" 
+
+def slugify(title: str) -> str:
+    """
+    Conservative, filesystem-safe slug:
+    - normalize whitespace
+    - keep ASCII letters, digits, space, underscore, dash
+    - spaces -> single dash
+    """
+    t = re.sub(r"\s+", " ", title.strip())
+    t = re.sub(r"[^0-9A-Za-z _\-]", "", t)
+    t = re.sub(r"[\s]+", "-", t)
+    return t.lower()
+
+

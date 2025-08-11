@@ -51,7 +51,7 @@ def pycall(*args, **kwargs):
 def hashify(key):
     import hashlib
 
-    return hashlib.md5(key).hexdigest()
+    return hashlib.md5(key.encode()).hexdigest()
 
 
 # deprecate

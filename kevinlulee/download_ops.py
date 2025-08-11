@@ -25,10 +25,7 @@ def fetch(url):
     BROWSER_AGENT = "Mozilla/5.0 (X11; CrOS aarch64 13310.93.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.133 Safari/537.36"
     r = requests.get(url, {"user-agent": BROWSER_AGENT})
     if r.status_code == 200:
-        try:
-            return kx.json.loads(r.text)
-        except Exception as e:
-            return r.text
+        return kx.json_load(r.text)
 
 
 

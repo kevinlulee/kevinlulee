@@ -239,7 +239,10 @@ def path_expand(path):
     this is a more robust implementation than the previous nvim.pathfix.
     nothing is hardcoded. the directories are retrieved from python path.
     """
-    if path.startswith('@'):
+    crostini_str = 'file:///media/fuse/crostini_25bd1ae3ef71bac8d459747ce670faa67d509f14_termina_penguin/'
+    if path.startswith(crostini_str):
+        return os.path.expanduser(path.replace(crostini_str, '~/'))
+    if path.startswith('@') and re.search('^@\w+/', path):
         def replacer(x):
             key = x.group(1)
             root = get_root_directory_via_python_paths(key)
@@ -251,6 +254,8 @@ def path_expand(path):
     if path.startswith('~'):
         return os.path.expanduser(path)
 
+    if path.startswith('./'):
+        raise Exception('do not know how to handle "./" yet.')
     return path
 if __name__ == '__main__':
     # pprint(PYTHON_MODULE_PATHS)

@@ -33,12 +33,22 @@ def get_most_common_file_extension(dir, recursive=False):
     return most_common[0][0][1:] if most_common else None
 
 
-def unzip(file, dest):
+def zipread(src_path, dst_path = None) -> list[str]:
+    '''
+    items will be extracted into the same directory as the src
+    a list of paths (the extracted files) will be returned
+    '''
+    src_path = os.path.expanduser(src_path)
+    dst_path = os.path.expanduser(dst_path) if dst_path else os.path.dirname(src_path)
+
+    store = []
     import zipfile
 
-    file = os.path.expanduser(file)
-    ensure_directory_exists(dest)
-    dest = os.path.expanduser(dest)
+    with zipfile.ZipFile(src_path, "r") as zf:
+        items = zf.infolist()
+        for item in items:
+            store.append(os.path.join(dst_path, item.filename))
 
-    with zipfile.ZipFile(file, "r") as zf:
-        zf.extractall(dest)
+        zf.extractall(dst_path)
+
+        return store

@@ -415,7 +415,7 @@ def mgetall(s, regex, flags = 0):
     matches = []
     
     def replacer(match):
-        matches.append(match.group(1))
+        matches.append(get_match(match))
         return ''
         
     result = re.sub(regex, replacer, s.strip(), flags=flags).strip()
@@ -474,3 +474,15 @@ def remove_ending_slash(s):
 
 def get_words(s):
     return re.findall('\\b[a-zA-Z]\w+', s)
+
+
+def regex_word_boundary(s: str):
+    a = s[0]
+    b = s[-1]
+    _boundary_pat = re.compile(r"[_\W]")
+    boundary_start = re.search(_boundary_pat, s[0])
+    boundary_end = re.search(_boundary_pat, s[-1])
+    a = "" if boundary_start else "(?:(?<=[\s\W])|^)"
+    b = "" if boundary_end else "(?:(?=[\s\W])|$)"
+    # s = re.sub('(?<=[a-z])(?=[a-z])', '_?', s)
+    return a + s + b

@@ -22,7 +22,8 @@ def load(s):
 def parse(data):
     s = "\n---\n"
     for k, v in data.items():
-        s += f"{k}: {v}\n"
+        spaces = "\n\n" if '\n' in v else " "
+        s += f"{k}:{spaces}{v}\n"
 
     return s
 

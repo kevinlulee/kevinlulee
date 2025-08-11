@@ -680,3 +680,18 @@ def object_mutation(o, **kwargs):
         return kwargs[k](v) if k in kwargs else v
     return walk(o, walker)
 
+
+
+def partial_overlap(a, b):
+    a = to_array(a)
+    for el in a:
+        if el in b:
+            return True
+
+
+
+def omnifind(items, query):
+    return find(items, query, flags = re.I)
+
+
+

@@ -68,6 +68,7 @@ EXT_REFERENCE_MAP = {
   "yb": "yb",
   "br": "br",
   "json": "json",
+  "zip": "zip",
   "xml": "xml",
   "java": "java",
   "c": "c",
@@ -472,7 +473,7 @@ def comment(text, filepath):
 
 
 
-def writefile(filepath: str, data: Any, debug = False, verbose = True, strict = True, ensure_ascii = False) -> str:
+def writefile(filepath: str, data: Any, debug = False, verbose = False, strict = True, ensure_ascii = False) -> str:
 
     if strict: assert data, "Data must be existant. Empty strings or None are not allowed."
     assert os.path.splitext(filepath)[1], f"Filepath must have an extension: {filepath}"
@@ -486,6 +487,9 @@ def writefile(filepath: str, data: Any, debug = False, verbose = True, strict = 
     ensure_directory_exists(path)
     with open(path, "w") as file:
         file.write(value)
+
+    if verbose:
+        print('@writefile:', path)
 
     return path
 
@@ -534,25 +538,18 @@ def appendfile(path, data, debug = False, verbose = False):
 
     return path
 
-class FilepathValidator:
-    ignore_dirs = [
-        "__pycache__",
-        "node_modules",
-        ".git",
-    ]
 
-    def __init__(self, pattern="."):
-        self.regex = re.compile(pattern)
+def find_file_recursively(dir, pattern=".", flags = re.I):
+    validate = FilepathValidator(pattern=pattern, flags = flags)
+    dir = os.path.expanduser(dir)
 
-    def directory(self, name):
-        if name in self.ignore_dirs or os.path.basename in self.ignore_dirs:
-            return
-        return True
+    for root, dirs, files in os.walk(dir):
+        dirs[:] = [dir for dir in dirs if validate.directory(dir)]
 
-    def file(self, file):
-        if not re.search(self.regex, file):
-            return
-        return True
+        for file in files:
+            path = os.path.join(root, file)
+            if validate.file(path):
+                return path
 
 def getfiles(dir, pattern=".", recursive=False, sort=False) -> list[str]:
     validate = FilepathValidator(pattern=pattern)
@@ -782,8 +779,8 @@ class FilepathValidator:
         ".git",
     ]
 
-    def __init__(self, pattern="."):
-        self.regex = re.compile(pattern)
+    def __init__(self, pattern=".", flags = 0):
+        self.regex = re.compile(pattern, flags=flags)
 
     def directory(self, name):
         if name in self.ignore_dirs or os.path.basename in self.ignore_dirs:
@@ -1067,13 +1064,23 @@ def debug_print(file, content, debug):
         # liner(m)
         liner(f'[DEBUG] {mode}: "{file}" (content shown above)')
         
+class cd:
+    def __init__(self, path=None):
+        self.path = os.path.expanduser(path or os.getcwd())
+
+    def __enter__(self):
+        self.saved_path = os.getcwd()
+        os.chdir(self.path)
+
+    def __exit__(self, etype, value, traceback):
+        os.chdir(self.saved_path)
 if __name__ == '__main__':
     # print(resolve_dotted_path('~/.foo.py', '/home/kdog3682/projects/python/kevinlulee/kevinlulee/file_utils.py'))
 
     # p = PathValidator()
     # p.add_exclusion_rule(stem = ['hii'])
     # print(p.validate('hii.py'))
-    print(fnamemodify('/home/kdog3682/scratch/scratch.json', name = '/asdf/foo.json'))
+    # print(fnamemodify('/home/kdog3682/scratch/scratch.json', name = '/asdf/foo.json'))
     # writefile('asdf.py', 'asdfddsf', debug = str)
 
     pass

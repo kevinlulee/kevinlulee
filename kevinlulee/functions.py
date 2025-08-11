@@ -1,5 +1,8 @@
 import re
 import kevinlulee as kx
+import functools
+
+from kevinlulee.ao import reduce2
 
 
 def colon_dict(s, keys=None, allow_repeated_keys=False, transformers=None):
@@ -89,33 +92,28 @@ def join_comma(*args, newline=False, ending_comma=False):
     return p
 
 
-
-
-
-def join(*args, delimiter = ' '):
+def join(*args, delimiter=" "):
     els = kx.flat(args)
-    if els[-1] in [',', '/', '.', ' ', '\n']:
+    if els[-1] in [",", "/", ".", " ", "\n"]:
         return els[-1].join(els[:-1])
     return delimiter.join(els)
-    
-
 
 
 def bug_call(*args, **kwargs):
     from codefmt.python import pythonfmt
-    caller = kx.introspect.get_caller(1).function
-    call_expr = pythonfmt.call(caller, args, kwargs, condensed = True)
-    print('[DEBUG]', call_expr)
 
+    caller = kx.introspect.get_caller(1).function
+    call_expr = pythonfmt.call(caller, args, kwargs, condensed=True)
+    print("[DEBUG]", call_expr)
 
 
 def get_qualified_func_name(func):
     """
-        returns Foo.bar if the func is a method or a abcde() if it is a function
+    returns Foo.bar if the func is a method or a abcde() if it is a function
     """
-    mod = getattr(func, '__module__', None)
+    mod = getattr(func, "__module__", None)
     name = func.__qualname__
-    cname = kx.join(mod, name, '.')
+    cname = kx.join(mod, name, ".")
     return cname
 
 
@@ -137,19 +135,22 @@ def get_class_methods(cls, pattern="^[a-z]") -> list[callable]:
     return store
 
 
-def brace_templater(s, ref):
+def brace_templater(s, ref, cls=None):
     """
-        a simpler version of templater. 
-        uses {braces}.
+    a simpler version of templater.
+    uses {braces}.
 
-        class objects are allowed
-        the entity contained in {brace} must be an expression.
-        otherwise it will not be pattern matched.
+    class objects are allowed
+    the entity contained in {brace} must be an expression.
+    otherwise it will not be pattern matched.
 
     """
     text = kx.trimdent(s)
     if kx.is_array(ref):
         ref = kx.array_to_dict(ref)
+
+    if cls:
+        ref["self"] = cls
 
     TEMPLATER_PATTERN2 = re.compile(
         r"""
@@ -160,7 +161,7 @@ def brace_templater(s, ref):
     )
 
     def get(expr):
-        if kx.test(expr, r'\bself\b'):
+        if kx.test(expr, r"\bself\b"):
             s = eval(expr, ref)
             return s
 
@@ -169,8 +170,8 @@ def brace_templater(s, ref):
     def replacer(match):
         newline, ind, expr = match.groups()
         payload = kx.serialize_data(get(expr))
-        return newline_indent(payload, ind) if newline else payload
-        
+        return kx.newline_indent(payload, ind) if newline else payload
+
     s = re.sub(TEMPLATER_PATTERN2, replacer, text)
     return s
 
@@ -178,8 +179,6 @@ def brace_templater(s, ref):
 def run_tests(tests, func):
     items = kx.to_lines(kx.trimdent(tests))
     kx.prettyprint(kx.map(items, func))
-
-
 
 
 def printable(**kwargs):
@@ -190,22 +189,60 @@ def printable(**kwargs):
     return kx.stop(s)
 
 
-def file_cache(cache_path: str, **time_opts):
-    
-    def decorator(func):
+def file_cache(cache_path: str, update_on_touch=True, **time_opts):
+    if not time_opts:
+        time_opts = dict(minutes=30)
 
+    last_touched = None
+    is_recent = kx.is_recentf(**time_opts)
+
+    def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-
-            if kx.is_recent(cache_path, **time_opts):
+            if is_recent(cache_path):
                 return kx.readfile(cache_path)
 
+            elif (
+                update_on_touch
+                and last_touched
+                and kx.is_file(cache_path)
+                and is_recent(last_touched)
+            ):
+                return kx.readfile(cache_path)
+
+            # initialize because caching did yield a value
             result = func(*args, **kwargs)
             if cache_path:
                 kx.writefile(cache_path, result)
+                last_touched = kx.now()
             return result
 
         return wrapper
+
     return decorator
 
-            # Otherwise call the function and cache its result
+
+import os
+
+
+def mv(a, b):
+    a = os.path.expanduser(str(a))
+    if not os.path.exists(a):
+        return
+    b = os.path.expanduser(str(b))
+    return kx.bash3("mv", a, b)
+
+
+def read_write(file, func, *args, raw=False, dst_path=None, **kwargs):
+    if dst_path:
+        dst_path = kx.fnamemodify(file, **dst_path)
+    else:
+        dst_path = file
+
+    value = func(kx.readfile(file), *args, **kwargs)
+    path = kx.writefile(dst_path, value)
+    return path
+
+
+def reducef(func):
+    return lambda x: kx.reduce(x, func)
