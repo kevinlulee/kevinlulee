@@ -2,6 +2,49 @@ import kevinlulee as kx
 from codefmt.yaml import yamlfmt
 import re
 
+from typing import TypedDict, NotRequired, Literal, Any
+
+
+class Formatter(TypedDict):
+    # lock to the formatter you showed; change to `str` if you want to allow others
+    name: Literal["NoteFormatterV1"]
+
+
+class Frontmatter(TypedDict, total=False):
+    debug: bool
+    # bucket for any additional frontmatter options
+    options: NotRequired[dict[str, Any]]
+
+
+class Meta(TypedDict):
+    author: str
+    created_at: str      # ISO date, e.g. "2025-08-11"
+    date_range: str      # e.g. "August 2025 to August 2025"
+    debug: bool
+    formatter: Formatter
+    frontmatter: Frontmatter
+
+
+class ContentItemBase(TypedDict):
+    date: str                    # ISO date for the entry
+    type: str
+    text: str
+
+
+class ContentItem(ContentItemBase, total=False):
+    # optional, known fields
+    title: NotRequired[str]
+    tags: NotRequired[list[str]]
+    id: NotRequired[str]
+    # catch-all bag for any other per-item attributes
+    attrs: NotRequired[dict[str, Any]]
+
+
+class NotesDoc(TypedDict):
+    contents: list[ContentItem]
+    meta: Meta
+
+
 def error_wrapper(func, handler = None):
     def wrapper(*args, **kwargs):
         try:
@@ -168,12 +211,6 @@ class NoteFormatterV1:
         month1, year1 = dt1.month_name, dt1.year
         month2, year2 = dt2.month_name, dt2.year
 
-        debug = (
-            self.opts.get("debug")
-            or self.frontmatter.get("debug")
-            or (month1 == month2 and year1 == year2)
-        )
-
         date_range = f"{month1} {year1} to {month2} {year2}"
         data = {
             "contents": contents,
@@ -181,7 +218,6 @@ class NoteFormatterV1:
                 "author": "Kevin Lee",
                 "created_at": kx.strftime(),
                 "date_range": date_range,
-                "debug": debug,
                 "formatter": {
                     "name": kx.nameof(self),
                 },
@@ -190,6 +226,9 @@ class NoteFormatterV1:
         }
         return data
 
+    def load(self) -> KevNote:
+        path = kx.get_most_recent_file('~/data/kevnotes/compiled')
+        return kx.readfile(path)
     def dump(self, data):
         frontmatter = data['meta']['frontmatter']
         sb = kx.StringBuilder()
@@ -245,10 +284,3 @@ else:
     kx.pprint(formatter.format(s))
         
 
-"""
-there are some problems parsing dashes.
-i think we just let it be. 
-
-there are much much bigger fish to fry.
-the rule in the future is to disallow splitting via dashes.
-"""

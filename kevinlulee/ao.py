@@ -124,8 +124,15 @@ def modular_increment_indexes(items, i, dir):
 
 
 def modular_increment_values(items, key, dir = 1):
+    l = len(items)
+    if l == 1:
+        return items[0]
+    if l == 0:
+        return
+
     if key is None:
         return items[0]
+
     i = items.index(key)
     return items[modular_increment_indexes(items, i, dir)]
 def modular_increment(items, item, dir=1):
@@ -403,6 +410,8 @@ def map(
     raise Exception("only list like entries")
 
 def map(items, fn):
+    if isinstance(items, int):
+        items = range(1, items + 1)
     return [fn(el) for el in items]
 
 def filter_none(data):
@@ -693,5 +702,9 @@ def partial_overlap(a, b):
 def omnifind(items, query):
     return find(items, query, flags = re.I)
 
+
+
+def low_high(a, b):
+    return (a, b) if a <= b else (b, a)
 
 

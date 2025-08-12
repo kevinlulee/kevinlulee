@@ -48,7 +48,18 @@ def colon_dict(s, keys=None, allow_repeated_keys=False, transformers=None):
 def rpw(file, fn):
     kx.writefile(file, fn(kx.readfile(file)))
 
+def to_text(x):
+    if isinstance(x, str):
+        return str
 
+    if callable(x):
+        return kx.inspect.getsource(x)
+
+    for key in ("text", "body", "value", "content"):
+        if hasattr(x, key):
+            return getattr(x, key)
+
+    return x
 def to_string(x):
     if isinstance(x, str):
         return str
@@ -56,10 +67,14 @@ def to_string(x):
     if callable(x):
         return kx.inspect.getsource(x)
 
-    try:
+    for key in ("text", "body", "value", "content"):
+        if hasattr(x, key):
+            return getattr(x, key)
+
+    if isinstance(x, (list, tuple, set, dict)):
         return kx.json.dumps(x, indent=2)
-    except Exception as e:
-        return str(x)
+
+    return str(x)
 
 
 def infer_lang(value):

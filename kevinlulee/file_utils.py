@@ -410,7 +410,7 @@ def fnamemodify(file, dir = None, name = None, ext = None):
     return os.path.join(_dir, f"{_name}{ext_value}")
 
 
-def cpfile(source, dest, debug=False, soft = False, mkdir = False):
+def cpfile(source, dest, debug=False, soft = False, mkdir = False, verbose = False):
     dest = os.path.abspath(os.path.expanduser(dest))
     if soft and os.path.exists(dest):
         return 
@@ -427,6 +427,8 @@ def cpfile(source, dest, debug=False, soft = False, mkdir = False):
 
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     shutil.copy2(source, dest)
+    if verbose:
+        print(f"copy:\n  from: {source}\n    to: {dest}")
     return dest
 
 
