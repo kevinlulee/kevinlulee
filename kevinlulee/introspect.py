@@ -112,7 +112,7 @@ def get_parameters_and_fallbacks(func):
         return []
     defaults = list(p.defaults) if p.defaults else []
     defaults = [None] * (len(args) - len(defaults)) + defaults
-    return list(zip(args, defaults))
+    return dict(zip(args, defaults))
 def foobar(a, b, c = 1, d = 123):
     pass
 
