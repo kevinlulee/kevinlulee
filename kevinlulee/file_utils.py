@@ -128,6 +128,16 @@ def get_extension(file_path: str) -> str:
         The file extension in lowercase without the leading dot (string).
         Returns an empty string if no extension is found.
     """
+    dot_files = [
+        '.ignore',
+        '.bashrc',
+        '.vimrc',
+        '.vim',
+        '.env',
+    ]
+    bn = os.path.basename(file_path)
+    if bn in dot_files:
+        return bn[1:]
     if not '.' in file_path:
         if file_path.startswith('.'):
             return EXT_REFERENCE_MAP.get(file_path, None)
@@ -433,14 +443,15 @@ def cpfile(source, dest, debug=False, soft = False, mkdir = False, verbose = Fal
 
 
 
-def comment(text, filepath):
+def comment(text, filepath, as_documentation = False):
     if text is None:
-        return 
+        return ''
     def hash_comment(t):
         return '\n'.join(f'# {line}' for line in t.splitlines())
 
     def slash_comment(t):
-        return '\n'.join(f'// {line}' for line in t.splitlines())
+        delim = '///' if as_documentation else '//'
+        return '\n'.join(f'{delim} {line}' for line in t.splitlines())
 
     def block_comment(t):
         return f'/* {t} */'
@@ -478,7 +489,7 @@ def comment(text, filepath):
 def writefile(filepath: str, data: Any, debug = False, verbose = False, strict = True, ensure_ascii = False) -> str:
 
     if strict: assert data, "Data must be existant. Empty strings or None are not allowed."
-    assert os.path.splitext(filepath)[1], f"Filepath must have an extension: {filepath}"
+    assert get_extension(filepath), f"Filepath must have an extension: {filepath}"
 
     path = os.path.expanduser(filepath)
     value = serialize_data(data, path, ensure_ascii = ensure_ascii)
