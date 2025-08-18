@@ -233,3 +233,20 @@ def is_letter(s):
 
 def is_absolute_path(s):
     return test(s, '^[~/]')
+
+
+def instanceof(*args):
+    return lambda x: isinstance(x, args)
+
+
+def has_chinese(char: str) -> bool:
+    for s in char:
+        if is_chinese(s):
+            return True
+        
+    return "\u4e00" <= char <= "\u9fff"
+def is_chinese(char: str) -> bool:
+    return "\u4e00" <= char <= "\u9fff"
+
+def is_english(text: str) -> bool:
+    return all((c.isalpha() and c.isascii()) or c.isspace() for c in text)

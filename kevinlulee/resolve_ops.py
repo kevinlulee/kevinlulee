@@ -1,8 +1,32 @@
 import os
-def resolve_filetype(filepath):
-    if not filepath:
+filetypes = [
+    "python",
+    "javascript",
+    "typescript",
+    "html",
+    "typst",
+    "css",
+    "yaml",
+    "yaml",
+    "text",
+    "log",
+    "vue",
+    "json",
+    "markdown",
+    "c",
+    "cpp",
+    "java",
+    "shell",
+    "zip",
+    "ruby"
+]
+def resolve_filetype(x):
+    if not x:
         return 
-    ext = os.path.splitext(filepath)[1].lower()
+    if x in filetypes:
+        return x 
+
+    ext = os.path.splitext(x)[1].lower()
     return {
         '.py': 'python',
         '.js': 'javascript',
@@ -25,3 +49,7 @@ def resolve_filetype(filepath):
         '.zip': 'zip',
         '.rb': 'ruby'
     }.get(ext, 'text')
+
+
+
+

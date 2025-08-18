@@ -1,4 +1,5 @@
 import re
+from _collections_abc import dict_values, dict_keys, dict_items
 import shutil
 import kevinlulee as kx
 import functools
@@ -62,7 +63,7 @@ def to_text(x):
     return x
 def to_string(x):
     if isinstance(x, str):
-        return str
+        return x
 
     if callable(x):
         return kx.inspect.getsource(x)
@@ -71,7 +72,7 @@ def to_string(x):
         if hasattr(x, key):
             return getattr(x, key)
 
-    if isinstance(x, (list, tuple, set, dict)):
+    if isinstance(x, (list, tuple, set, dict, dict_keys, dict_values, dict_items)):
         return kx.json.dumps(x, indent=2)
 
     return str(x)
@@ -249,11 +250,16 @@ def mv(a, b):
     return kx.bash3("mv", a, b)
 
 def mvfile(a, b):
-    
     a = os.path.expanduser(str(a))
     b = os.path.expanduser(str(b))
+    kx.assert_file(a)
     shutil.move(a, b)
 
+def mvdir(a, b):
+    a = os.path.expanduser(str(a))
+    b = os.path.expanduser(str(b))
+    kx.assert_directory(a)
+    shutil.move(a, b)
 
 def read_write(file, func, *args, raw=False, dst_path=None, **kwargs):
     if dst_path:
@@ -268,3 +274,101 @@ def read_write(file, func, *args, raw=False, dst_path=None, **kwargs):
 
 def reducef(func):
     return lambda x: kx.reduce(x, func)
+
+
+import inspect, re
+from typing import Iterable
+
+default_ignored_methods = [
+    'construct', '__init__', '__str__', 'setup', 'load'
+]
+def get_class_method_names(obj_or_cls,
+                      pattern: str = r"^[a-z]",
+                      ignore_methods: Iterable[str] | None = default_ignored_methods,
+                      ignore_parents: Iterable[str] | None = None,
+                      ignore_inherited: bool = True,
+                      ignore_static: bool = True,
+                      ignore_classmethods: bool = True) -> list[str]:
+    """
+    Return method *names* on a class (or instance's class), filtered by regex.
+    Safe: reads class __dict__ (no getattr on instance), so properties/descriptors won't run.
+
+    - ignore_inherited=True  -> only methods defined directly on the class
+    - ignore_static=True     -> exclude @staticmethod
+    - ignore_classmethods=True -> exclude @classmethod
+    """
+    klass = obj_or_cls if inspect.isclass(obj_or_cls) else obj_or_cls.__class__
+    rx = re.compile(pattern) if pattern else None
+    ignore_methods = set(ignore_methods or [])
+    names, seen = [], set()
+
+    classes = [klass] if ignore_inherited else list(klass.__mro__)
+
+    for C in classes:
+        for name, attr in C.__dict__.items():
+            if rx and not rx.match(name):
+                continue
+            if name in ignore_methods:
+                continue
+
+            # Handle staticmethod / classmethod explicitly
+            if isinstance(attr, staticmethod):
+                if ignore_static:
+                    continue
+                func = attr.__func__
+            elif isinstance(attr, classmethod):
+                if ignore_classmethods:
+                    continue
+                func = attr.__func__
+            else:
+                func = attr
+
+            # Keep only plain functions (i.e., instance methods before binding)
+            if not inspect.isfunction(func):
+                continue
+
+            # Optional parent filtering when scanning MRO
+            if not ignore_inherited and ignore_parents:
+                qual_candidates = (func.__qualname__, f"{C.__name__}.{name}", C.__name__)
+                if any(
+                    any(qc == p or qc.startswith(p if p.endswith('.') else p + '.') for qc in qual_candidates)
+                    for p in ignore_parents
+                ):
+                    continue
+
+            if name not in seen:
+                seen.add(name)
+                names.append(name)
+
+    return names
+
+
+
+class Base:
+    def base_method(self): ...
+    @property
+    def before_render(self):
+        raise RuntimeError("should not run")
+
+class Child(Base):
+    def render(self): ...
+    @staticmethod
+    def util(): ...
+    @classmethod
+    def build(cls): ...
+
+# print(get_class_method_names(Child))
+
+
+
+def assertion_factory(t):
+    def runner(x):
+        assert isinstance(x, t), kx.trimdent(f'''
+            the input is of type "{type(x)}". the required type is {t}.
+        ''')
+
+    return runner
+
+assert_str= assertion_factory(str)
+assert_dict = assertion_factory(dict)
+assert_list = assertion_factory((list, tuple, set))

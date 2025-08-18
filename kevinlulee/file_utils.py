@@ -1087,13 +1087,9 @@ class cd:
 
     def __exit__(self, etype, value, traceback):
         os.chdir(self.saved_path)
-if __name__ == '__main__':
-    # print(resolve_dotted_path('~/.foo.py', '/home/kdog3682/projects/python/kevinlulee/kevinlulee/file_utils.py'))
 
-    # p = PathValidator()
-    # p.add_exclusion_rule(stem = ['hii'])
-    # print(p.validate('hii.py'))
-    # print(fnamemodify('/home/kdog3682/scratch/scratch.json', name = '/asdf/foo.json'))
-    # writefile('asdf.py', 'asdfddsf', debug = str)
 
-    pass
+def assert_file(a):
+    assert is_file(a), "the provided input: '{a}' is not a valid file path."
+def assert_directory(a):
+    assert is_dir(a), "the provided input: '{a}' is not a valid directory path."

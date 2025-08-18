@@ -10,7 +10,7 @@ import importlib
 
 from kevinlulee.ao import flat
 from kevinlulee.base import noop
-from kevinlulee.file_utils import get_extension, is_dir, remove_extension
+from kevinlulee.file_utils import EXTENSIONS, add_extension_if_not_present, get_extension, is_dir, remove_extension
 from kevinlulee.string_utils import matchstr, remove_ending_slash
 
 from pathlib import Path
@@ -242,9 +242,12 @@ def path_expand(path):
     crostini_str = 'file:///media/fuse/crostini_25bd1ae3ef71bac8d459747ce670faa67d509f14_termina_penguin/'
     if path.startswith(crostini_str):
         return os.path.expanduser(path.replace(crostini_str, '~/'))
-    if path.startswith('@') and re.search('^@\w+/', path):
+    if path.startswith('@') and re.search('^@\w+(?:/|$)', path):
         def replacer(x):
             key = x.group(1)
+            c = os.path.join(os.path.expanduser('~/projects'), key)
+            if is_dir(c):
+                return c
             root = get_root_directory_via_python_paths(key)
             assert root, f"unable to determine a root for '{key}'"
             return root
@@ -257,7 +260,19 @@ def path_expand(path):
     if path.startswith('./'):
         raise Exception('do not know how to handle "./" yet.')
     return path
+
+def path_join(*args):
+    assert len(args) > 1, "path_join requires at least 2 arguments"
+    a, *rest, last = args
+    a = os.path.expanduser(a)
+    if last in EXTENSIONS:
+        rest[-1] = add_extension_if_not_present(rest[-1], last)
+    else:
+        rest.append(last)
+    return os.path.join(path_expand(a), *rest)
+        
 if __name__ == '__main__':
+    # print(path_join('@hammymathclass', 'a', 'typ'))
     # pprint(PYTHON_MODULE_PATHS)
     # print(path_expand('@yoya/utils/foobar.py'))
     # print(path_unexpand("~/projects/python/maelstrosdm/lasdib/aidscmp/agent/code_request.py"))

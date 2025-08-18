@@ -50,7 +50,7 @@ def real(x):
         return [Real(el) for el in x]
     if isinstance(x, dict):
         return {
-            k: Real(v) for k,v in dict.items()
+            k: Real(v) for k,v in x.items()
         }
     return Real(x)
 
@@ -275,6 +275,8 @@ def bar(n=50, dash_delimiter = '-'):
 
 def prettyprint(*args, **kwargs):
     for arg in args:
+        if not arg:
+            continue
         if isinstance(arg, (float, int, complex, str, bool)):
             print(arg)
         else:

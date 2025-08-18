@@ -130,7 +130,7 @@ def modular_increment_values(items, key, dir = 1):
     if l == 0:
         return
 
-    if key is None:
+    if key is None or key == '':
         return items[0]
 
     i = items.index(key)
@@ -344,7 +344,14 @@ def reduce2(items, fn, *args, **kwargs):
             else:
                 store[k] = value
     return store
+def list_reduce(o, fn):
+    store = {}
 
+    for k in o:
+        value = fn(k)
+        if value is not None:
+            store[k] = value
+    return store
 
 def reduce(o, fn, *args, **kwargs):
     store = {}
@@ -643,22 +650,23 @@ def dict_getter(base, *args):
 
 
 
-# def object_getter(o, key):
-#     if not is_string(key):
-#         return
-#     if is_object(o) and key in o:
-#         return o[key]
-#     elif hasattr(o, key):
-#         return getattr(o, key)
-#
-#
-# def gather_object(o, keys):
-#     def gatherer(key):
-#         value = object_getter(o, key)
-#         if value != None:
-#             return (key, value)
-#
-#     return reduce(list(keys), gatherer)
+def object_getter(o, key):
+    if o is None:
+        return 
+    if not isinstance(key, str):
+        return
+    if isinstance(o, dict) and key in o:
+        return o[key]
+    elif hasattr(o, key):
+        return getattr(o, key)
+
+
+def gather_state(o, *keys):
+    def gatherer(key):
+        assert isinstance(key, str), "key must be a string"
+        return object_getter(o, key)
+
+    return list_reduce(keys, gatherer)
 
 def owalk(x, fn):
 
@@ -675,6 +683,31 @@ def owalk(x, fn):
             return {a: walker(b, a, v, depth + 1) for a, b in v.items()}
 
         return v
+
+    return walker(x, None, None, 0)
+def owalk2(x, fn):
+    nargs = fn.__code__.co_argcount
+
+    def walker(v, k, parent, depth):
+        value = fn(v, k)
+        if value is None:
+            return 
+
+        if isinstance(v, (tuple, list, set)):
+            items = [walker(el, k, v, depth + 1) for el in v]
+            return filtered(items, not_none)
+
+        if isinstance(v, dict):
+            store = {}
+            for a, b in v.items():
+                value = walker(b, a, v, depth + 1)
+                if value is not None:
+                    store[a] = value
+            return store
+            # return {a: walker(b, a, v, depth + 1) for a, b in v.items()}
+
+        return value
+
 
     return walker(x, None, None, 0)
 

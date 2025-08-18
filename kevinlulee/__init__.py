@@ -46,7 +46,7 @@ pretty_print = prettyprint
 
 
 def fparse(input, *args, **kwargs):
-    if callable(input):
+    if not is_primitive(input) and callable(input):
         return input(*args, **kwargs)
     else:
         return input
@@ -108,4 +108,22 @@ def slugify(title: str) -> str:
     t = re.sub(r"[\s]+", "-", t)
     return t.lower()
 
+def compose(*funcs):
+    start = len(funcs) - 1
+    def wrapper(*args, **kwargs):
+        result = None
+        for i in range(start, 0, -1):
+            if i == start:
+                result = funcs[i](*args, **kwargs)
+            else:
+                result = funcs[i](result)
 
+        return result
+            
+
+    return wrapper
+
+
+
+def slice_quotes(template):
+    return re.sub(r'^[\'"]|[\'"]$', '', template)

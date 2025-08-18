@@ -222,7 +222,7 @@ def split_in_half(s):
     mid = len(s) // 2
     return s[:mid], s[mid:]
 
-def parens(s, key = '()', newline = False, ind = 4):
+def parens(s, key = '()', newline = False, ind = 4, leading_newline = False):
     brackets = {
         "()": ("(", ")"),
         "[]": ("[", "]"),
@@ -247,7 +247,8 @@ def parens(s, key = '()', newline = False, ind = 4):
     }
     a, b = brackets.get(key) or split_in_half(key)
     if newline:
-        return a + newline_indent(s, ind) + "\n" + b
+        top_newline = "\n" if leading_newline and "\n" in s else ''
+        return a + top_newline + newline_indent(s, ind) + "\n" + b
     return a + str(s) + b
 
 

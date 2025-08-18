@@ -98,8 +98,8 @@ def possibly_normalize_number(value):
     if isinstance(value, float):
         if value.is_integer():
             return int(value)
-        return value
-    return value
+        return float(value)
+    return int(value)
 
 
 # def join_comma(*args, newline = False, ending_comma = False):
