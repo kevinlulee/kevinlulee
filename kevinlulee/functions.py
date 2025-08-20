@@ -5,6 +5,7 @@ import kevinlulee as kx
 import functools
 
 from kevinlulee.ao import reduce2
+from kevinlulee.validation import existant, exists
 
 
 def colon_dict(s, keys=None, allow_repeated_keys=False, transformers=None):
@@ -25,14 +26,18 @@ def colon_dict(s, keys=None, allow_repeated_keys=False, transformers=None):
     items = kx.partition(parts)
 
     storage = kx.defaultdict(list)
-    for a, b in items:
-        base = kx.coerce_argument(b)
-        value = (
-            transformers[a](base)
-            if transformers and a in transformers
-            else base
-        )
-        storage[a].append(value)
+    try:
+        for a, b in items:
+            base = kx.coerce_argument(b)
+            value = (
+                transformers[a](base)
+                if transformers and a in transformers
+                else base
+            )
+            storage[a].append(value)
+    except Exception as e:
+        kx.stop(items)
+        raise e
 
     store = {}
     for k, v in storage.items():
@@ -129,6 +134,8 @@ def get_qualified_func_name(func):
     returns Foo.bar if the func is a method or a abcde() if it is a function
     """
     mod = getattr(func, "__module__", None)
+    if mod == '__main__':
+        mod = None
     name = func.__qualname__
     cname = kx.join(mod, name, ".")
     return cname
@@ -372,3 +379,22 @@ def assertion_factory(t):
 assert_str= assertion_factory(str)
 assert_dict = assertion_factory(dict)
 assert_list = assertion_factory((list, tuple, set))
+def assert_existance(x, message = ''):
+    assert existant(x), kx.trimdent(message or f'''
+        the provided input {type(x)} MUST exist. 
+    ''')
+
+
+def get_data(key):
+    def replacer(x):
+        key = x.group(0)
+        return key
+        
+    key = re.sub("^\w+", replacer, key, flags = 0)
+    file = kx.add_extension_if_not_present(kx.dash_case(key), 'json')
+    path = f'~/data/{file}'
+    return kx.readfile(path)
+
+def get_doc_string(func):
+    return kx.trimdent(func.__doc__)
+

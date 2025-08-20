@@ -415,7 +415,7 @@ def fnamemodify(file, dir = None, name = None, ext = None):
     if ext: _ext = ext(_ext) if callable(ext) else ext
     if name: _name = name(_name) if callable(name) else remove_starting_slash(name)
     ext_value = '.' + _ext if _ext else ''
-    if get_extension(name) and ext is None:
+    if name and get_extension(name) and ext is None:
         ext_value = ''
     return os.path.join(_dir, f"{_name}{ext_value}")
 

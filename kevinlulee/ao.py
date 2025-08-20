@@ -12,6 +12,7 @@ from kevinlulee.validation import (
     is_primitive_array,
     is_object_array,
 )
+import string
 
 
 def dotaccess(val, key):
@@ -584,15 +585,29 @@ def edit_dict(dct, key, editor: dict):
 
 
 def array_to_dict(data, key = None):
-    if not key:
+    if key is None:
         return {
             str(i + 1): arg for  i, arg in enumerate(data)
         }
+    if key  == 'a':
+        return {
+            string.ascii_lowercase[i]: arg for  i, arg in enumerate(data)
+        }
         
-    store = {}
-    for arg in data:
-        store[key(arg) if callable(key) else arg[key]] = arg
-    return store
+    if key  == 'A':
+        return {
+            string.ascii_uppercase[i]: arg for  i, arg in enumerate(data)
+        }
+
+    if isinstance(key, str):
+        return {
+            arg[key]: arg for arg in data
+        }
+
+    if callable(key):
+        return {
+            key(arg): arg for arg in data
+        }
 
 
 def unique(x):

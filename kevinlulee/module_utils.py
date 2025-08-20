@@ -75,7 +75,6 @@ def get_file_from_modname(modname):
         if os.path.isdir(candidate):
             p = os.path.join(candidate, "__init__.py")
             if os.path.isfile(p):
-                print(p)
                 return p
             else:
                 return candidate

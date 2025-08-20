@@ -250,3 +250,19 @@ def is_chinese(char: str) -> bool:
 
 def is_english(text: str) -> bool:
     return all((c.isalpha() and c.isascii()) or c.isspace() for c in text)
+
+
+
+def existant(x):
+    if x is None:
+        return False
+
+    if x == '':
+        return False
+
+    if is_array(x) or is_dict(x):
+        if len(x) == 0:
+            return False
+
+
+    return True

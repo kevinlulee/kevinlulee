@@ -122,3 +122,6 @@ user_installed_pip_packages = [
 
 
 DLDIR = '/mnt/chromeos/MyFiles/Downloads/'
+
+
+EMDASH = '–'
