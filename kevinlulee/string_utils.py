@@ -487,3 +487,35 @@ def regex_word_boundary(s: str):
     b = "" if boundary_end else "(?:(?=[\s\W])|$)"
     # s = re.sub('(?<=[a-z])(?=[a-z])', '_?', s)
     return a + s + b
+
+
+def highlight_alias_with_bracket(word: str, alias: str) -> str:
+    """
+    Highlight the first case-insensitive occurrence of `alias` in `word`.
+    - If `alias` appears contiguously, wrap that substring once: [ ... ].
+    - Else, treat `alias` as a subsequence and wrap each matched character.
+    If no complete match, return `word` unchanged.
+    """
+    if not alias:
+        return word
+
+    lw, la = word.lower(), alias.lower()
+
+    # 1) Prefer a contiguous match if present
+    i = lw.find(la)
+    if i != -1:
+        j = i + len(alias)
+        return word[:i] + f"[{word[i:j]}]" + word[j:]
+
+    # 2) Otherwise, find the first subsequence match (greedy)
+    pos = 0
+    idxs = []
+    for ch in la:
+        k = lw.find(ch, pos)
+        if k == -1:
+            return word  # no complete subsequence match
+        idxs.append(k)
+        pos = k + 1
+
+    match_set = set(idxs)
+    return "".join(f"[{c}]" if idx in match_set else c for idx, c in enumerate(word))

@@ -237,6 +237,7 @@ def file_cache(cache_path: str, update_on_touch=True, **time_opts):
                 and kx.is_file(cache_path)
                 and is_recent(last_touched)
             ):
+                last_touched = kx.timestamp()
                 return kx.readfile(cache_path)
 
             # initialize because caching did yield a value
@@ -255,6 +256,7 @@ import os
 
 
 def mv(a, b):
+    raise Exception("use mvfile or mvdir")
     a = os.path.expanduser(str(a))
     b = os.path.expanduser(str(b))
     if not os.path.exists(a):
@@ -419,3 +421,23 @@ s = """
     howdy
 """
 # print(brace_templater(s, dict(snippet = None)))
+
+
+def normalize_padding(padding, fallback = 0):
+    """
+    Return (px, py) as INTs.
+    Accepts an int or a 2-sequence [px, py]. Any extra elements are ignored.
+    """
+    if isinstance(padding, (list, tuple)):
+        if len(padding) == 0:
+            return fallback, fallback
+        if len(padding) == 1:
+            v = padding[0]
+            return v, v
+        return padding
+
+    return v, v
+
+
+def text_frame(s):
+    return kx.newline_indent(s) + "\n"

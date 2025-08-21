@@ -234,3 +234,194 @@ if __name__ == '__main__':
     # long_text = "\n".join([f"Line {i}" for i in range(1, 101)])
     # shortened = shorten(long_text, max_lines=10)
 
+
+import math
+from typing import List
+
+def close_pack(items: List[str], max_width: int = 70, gap: int = 2) -> List[str]:
+    """
+    Pack strings into columns, filling DOWN the columns, choosing the most columns
+    that fit within max_width. Returns a list of rendered text lines.
+    """
+    if not items:
+        return []
+    n = len(items)
+    L = [len(s) for s in items]
+
+    best = None  # (cols, rows, col_widths, leftover)
+    for cols in range(1, n + 1):
+        # rows is ceil(n / cols)
+        rows = (n + cols - 1) // cols
+
+        # How many items per column when filling down?
+        # First `full_cols` columns will have `rows` items, the rest `rows-1`.
+        full_cols = n % rows if rows else 0
+        # Build columns as slices of the items list
+        cols_data = []
+        idx = 0
+        for c in range(cols):
+            take = rows if (full_cols == 0 or c < full_cols) else rows - 1
+            cols_data.append(items[idx:idx + take])
+            idx += take
+
+        # Column widths
+        col_widths = [max((len(x) for x in col), default=0) for col in cols_data]
+        total = sum(col_widths) + (cols - 1) * gap
+
+        if total <= max_width:
+            leftover = max_width - total
+            # Prefer more columns; if tied, prefer less leftover
+            if best is None or cols > best[0] or (cols == best[0] and leftover < best[3]):
+                best = (cols, rows, col_widths, leftover, cols_data)
+
+    # If nothing fits (e.g., one very long string), fall back to single column
+    if best is None:
+        cols, rows = 1, n
+        col_widths = [max(L)]
+        cols_data = [items[:]]
+    else:
+        cols, rows, col_widths, _, cols_data = best
+
+    # Render by rows (row-major), pulling the i-th element from each column
+    lines = []
+    for r in range(rows):
+        parts = []
+        for c in range(cols):
+            col = cols_data[c]
+            if r < len(col):
+                s = col[r]
+                if c < cols - 1:
+                    parts.append(s.ljust(col_widths[c] + gap))
+                else:
+                    parts.append(s)  # last column no trailing spaces
+            else:
+                # No entry in this column at this row; pad (except last column)
+                if c < cols - 1:
+                    parts.append(" " * (col_widths[c] + gap))
+        lines.append("".join(parts).rstrip())
+    return "\n".join(lines)
+
+def fence(text, max_width=80, continuation="..."):
+    import textwrap
+
+    # Normalize input into a list of lines
+    if isinstance(text, str):
+        text = textwrap.dedent(text).strip()
+        raw_lines = text.splitlines() or [""]
+    else:
+        # Fallback if 'text' is already an iterable of lines
+        raw_lines = [str(l) for l in text] or [""]
+
+    # Ensure delimiter is sensible
+    cont = str(continuation) if continuation else ""
+    cont_len = len(cont)
+
+    wrapped_lines = []
+    for line in raw_lines:
+        if max_width <= 0:
+            # Degenerate case: show as-is (no wrapping possible)
+            wrapped_lines.append(line)
+            continue
+
+        if len(line) <= max_width or cont_len >= max_width:
+            # Either already short enough, or delimiter would exceed width
+            wrapped_lines.append(line[:max_width])
+            continue
+
+        # Wrap so that, when we add the continuation marker to all but the last
+        # segment, no segment exceeds max_width.
+        base_width = max_width - cont_len
+        segments = textwrap.wrap(
+            line,
+            width=base_width,
+            break_long_words=True,
+            break_on_hyphens=False,
+        ) or [""]
+
+        # Add continuation delimiter to all but the last segment
+        for i, seg in enumerate(segments):
+            if i < len(segments) - 1:
+                wrapped_lines.append(seg + cont)
+            else:
+                wrapped_lines.append(seg)
+
+    # Compute box size from wrapped lines
+    content_width = max(len(line) for line in wrapped_lines) if wrapped_lines else 0
+    top = "+" + "-" * (content_width + 2) + "+"
+    bottom = top
+    bordered_lines = [f"| {line:<{content_width}} |" for line in wrapped_lines]
+
+    return "\n".join([top] + bordered_lines + [bottom])
+
+
+def fence(text, max_width=80, continuation_marker="...", continuation_newline = True):
+    import textwrap
+
+    # Normalize input into a list of lines
+    if isinstance(text, str):
+        text = textwrap.dedent(text).strip("\n")
+        raw_lines = text.splitlines() or [""]
+    else:
+        raw_lines = [str(l) for l in text] or [""]
+
+    cont = str(continuation_marker) if continuation_marker else ""
+    cont += ' '
+    cont_len = len(cont)
+
+
+    def split_to_segments(s, first_width, cont_width):
+        """Wrap s into segments: first segment uses first_width,
+        subsequent segments use cont_width. Prefer breaking at spaces."""
+        out = []
+        remaining = s
+        first = True
+        while True:
+            width = first_width if first else cont_width
+            if width <= 0:
+                # Degenerate: can't fit any content; emit as-is and break
+                out.append(remaining)
+                break
+            if len(remaining) <= width:
+                out.append(remaining)
+                break
+            # Try to break at the last space within width
+            cut = remaining.rfind(" ", 0, width + 1)
+            if cut <= 0:
+                # No space to break; hard-wrap
+                out.append(remaining[:width])
+                remaining = remaining[width:]
+            else:
+                out.append(remaining[:cut])
+                remaining = remaining[cut + 1:]  # drop the space
+            first = False
+        return out
+
+    wrapped_lines = []
+    for line in raw_lines:
+        # First line can use full max_width; continued lines must leave room for the marker
+        segments = split_to_segments(
+            line,
+            first_width=max_width,
+            cont_width=max_width - cont_len
+        )
+        if not segments:
+            wrapped_lines.append("")
+            continue
+        # First segment as-is, subsequent segments prefixed with the marker
+        wrapped_lines.append(segments[0])
+        for seg in segments[1:]:
+            wrapped_lines.append(f"{cont}{seg}")
+
+        if continuation_newline:
+            if len(segments) > 1:
+                wrapped_lines.append("")
+
+    # Compute box width from the actual wrapped lines
+    content_width = max((len(l) for l in wrapped_lines), default=0)
+    top = "+" + "-" * (content_width + 2) + "+"
+    bottom = top
+    bordered = [f"| {l:<{content_width}} |" for l in wrapped_lines]
+    return "\n".join([top] + bordered + [bottom])
+
+# print(kx.newline_indent(fence("A very long line " * 10 + "\nhi\nbyeajsdfkahdfjkashfkasjdfhaskdjfhaksdfhjasdfkj", max_width=30)))
+
