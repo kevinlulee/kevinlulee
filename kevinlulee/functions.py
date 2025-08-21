@@ -200,7 +200,8 @@ def brace_templater(s, ref, cls=None):
 
     s = kx.trimdent(s)
     s = re.sub(TEMPLATER_PATTERN2, replacer, s)
-    s = re.sub("(?:---\n)? *<EMPTY> *(?:\n---)?", '', s).strip()
+    # print([s])
+    s = re.sub("(?:.+\n)?(?:---\n)? *<EMPTY> *(?:\n---\n+)?", '', s).strip()
     return s
 
 
@@ -408,6 +409,9 @@ def get_doc_string(func):
 
 s = """
 
+    hi
+
+    asfasdf
     ---
     {snippet}
     ---
