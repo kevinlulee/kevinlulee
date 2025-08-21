@@ -169,7 +169,6 @@ def brace_templater(s, ref, cls=None):
     otherwise it will not be pattern matched.
 
     """
-    text = kx.trimdent(s)
     if kx.is_array(ref):
         ref = kx.array_to_dict(ref)
 
@@ -193,10 +192,15 @@ def brace_templater(s, ref, cls=None):
 
     def replacer(match):
         newline, ind, expr = match.groups()
-        payload = kx.serialize_data(get(expr))
+        g = get(expr)
+        if not g:
+            return '<EMPTY>'
+        payload = kx.serialize_data(g)
         return kx.newline_indent(payload, ind) if newline else payload
 
-    s = re.sub(TEMPLATER_PATTERN2, replacer, text)
+    s = kx.trimdent(s)
+    s = re.sub(TEMPLATER_PATTERN2, replacer, s)
+    s = re.sub("(?:---\n)? *<EMPTY> *(?:\n---)?", '', s).strip()
     return s
 
 
@@ -398,3 +402,16 @@ def get_data(key):
 def get_doc_string(func):
     return kx.trimdent(func.__doc__)
 
+
+
+
+
+s = """
+
+    ---
+    {snippet}
+    ---
+
+    howdy
+"""
+# print(brace_templater(s, dict(snippet = None)))
