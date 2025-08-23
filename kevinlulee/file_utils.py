@@ -40,74 +40,13 @@ def yb_parse(kwargs):
         
             return s
 
-EXT_REFERENCE_MAP = {
-  # File type to canonical extension
-  "python": "py",
-  "javascript": "js",
-  "typescript": "ts",
-  "html": "html",
-  "css": "css",
-  "txt": "txt",
-  "text": "txt",
-  "json": "json",
-  "xml": "xml",
-  "yb": "yb",
-  "java": "java",
-  "c": "c",
-  "cpp": "cpp",
-  "ruby": "rb",
-  "go": "go",
-  "php": "php",
-
-  # Canonical extensions mapping to themselves
-  "py": "py",
-  "js": "js",
-  "ts": "ts",
-  "html": "html",
-  "css": "css",
-  "yb": "yb",
-  "br": "br",
-  "json": "json",
-  "zip": "zip",
-  "xml": "xml",
-  "java": "java",
-  "c": "c",
-  "cpp": "cpp",
-  "rb": "rb",
-  "go": "go",
-  "php": "php",
-  "jpg": "jpg",
-  "tif": "tif",
-  "md": "md",
-
-  # Extension aliases mapping to canonical extensions
-  "pyw": "py",
-  "jsx": "js",
-  "tsx": "ts",
-  "htm": "html",
-  "jpeg": "jpg",
-  "jpe": "jpg",
-  "tiff": "tif",
-  "mjs": "js",
-  "cxx": "cpp",
-  "cc": "cpp",
-  "c++": "cpp",
-  "markdown": "md",
-  "mdown": "md",
-  "yml": "yml",
-  "yaml": "yaml",
-  "typst": "typ",
-  "pdf": "pdf",
-  "typ": "typ",
-  "log": "log",
-
-}
 
 
 
-extensions = list(set(EXT_REFERENCE_MAP.values()))
-EXTENSIONS = extensions
+from kevinlulee.consts.file_types import FILETYPE_TO_EXT, EXTENSIONS
 
+def get_extension_from_filetype(lang):
+    return EXT_REFERENCE_MAP[lang]
 def has_extension(el):
         if not el or not isinstance(el, str):
             return False
@@ -1089,7 +1028,51 @@ class cd:
         os.chdir(self.saved_path)
 
 
+from pathlib import Path, PurePosixPath
+
+def has_valid_existing_parent(dst_dir: Path) -> bool:
+    """
+    Return True if at least one ancestor of dst_dir already exists,
+    excluding the user's home directory and the filesystem root.
+    """
+    home = Path('~/').expanduser()
+    dst_dir = Path(dst_dir)
+    for anc in dst_dir.parents:  # parent -> ... -> anchor
+        if not anc.exists():
+            continue
+        if anc == home:
+            continue  # skip ~/ as requested
+        if anc == Path(anc.anchor):
+            continue  # skip filesystem root
+        return True
+    return False
+
+
+
 def assert_file(a):
-    assert is_file(a), "the provided input: '{a}' is not a valid file path."
-def assert_directory(a):
-    assert is_dir(a), "the provided input: '{a}' is not a valid directory path."
+    assert is_file(a), f"the provided path: '{a}' is not a valid file path."
+def assert_directory(a, exists = True):
+    if exists:
+        assert is_dir(a), f"the provided path: '{a}' is not a valid directory path."
+    else:
+        assert not is_dir(a), "the provided path: '{a}' must not exist."
+
+
+
+
+def mvfile(a, b):
+    a = os.path.expanduser(str(a))
+    b = os.path.expanduser(str(b))
+    assert_file(a)
+    shutil.move(a, b)
+
+def mvdir(a, b):
+    a = os.path.expanduser(str(a))
+    b = os.path.expanduser(str(b))
+    assert_directory(a)
+    shutil.move(a, b)
+
+def rmfile(a):
+    a = os.path.expanduser(str(a))
+    os.unlink(a)
+    

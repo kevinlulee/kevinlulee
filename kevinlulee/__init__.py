@@ -127,3 +127,14 @@ def compose(*funcs):
 
 def slice_quotes(template):
     return re.sub(r'^[\'"]|[\'"]$', '', template)
+
+
+
+def auto_cast(s):
+    try:
+        return int(s)
+    except Exception:
+        try:
+            return float(s)
+        except Exception:
+            return s

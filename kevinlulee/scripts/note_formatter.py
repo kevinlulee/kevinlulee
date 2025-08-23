@@ -253,7 +253,7 @@ class NoteFormatterV1:
     def run(self, src_path):
         data = self.format(kx.readfile(src_path))
 
-        date_range = data["meta"]["date_range"]
+        date_range = data["meta"]["date_range"].replace(' ', '_')
         debug = data["meta"]["debug"]
         contents = data["contents"]
 

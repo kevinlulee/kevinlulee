@@ -519,3 +519,13 @@ def highlight_alias_with_bracket(word: str, alias: str) -> str:
 
     match_set = set(idxs)
     return "".join(f"[{c}]" if idx in match_set else c for idx, c in enumerate(word))
+
+
+def strip_quotes(s: str) -> str:
+    if len(s) >= 2 and ((s[0] == s[-1] == '"') or (s[0] == s[-1] == "'")):
+        return s[1:-1]
+    return s
+
+
+def depluralize(s):
+    return re.sub('s$', '', s)

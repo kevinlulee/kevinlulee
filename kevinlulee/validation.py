@@ -266,3 +266,7 @@ def existant(x):
 
 
     return True
+
+
+def is_plural(s):
+    return s.endswith('s')

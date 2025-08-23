@@ -36,14 +36,9 @@ PYTHON_MODULE_PATHS = collect_python_paths()
 
 
 
-def get_modname_from_file(file):
-    if not file.endswith(".py"):
-        if '.' in file:
-            return file
-        else:
-            return 
-
+def _get_modname(file):
     path = os.path.expanduser(file)
+    path = remove_ending_slash(path)
     for root in PYTHON_MODULE_PATHS:
         m = path.replace(root + '/', "")
         if len(m) < len(path):
@@ -56,6 +51,20 @@ def get_modname_from_file(file):
             if b.startswith(a + "." + a):
                 return b[len(a) + 1 :]
             return b
+
+def get_modname_from_directory(path):
+    if not is_dir(path):
+        return 
+    
+    return _get_modname(path)
+def get_modname_from_file(file):
+    if not file.endswith(".py"):
+        if '.' in file:
+            return file
+        else:
+            return 
+
+    return _get_modname(file)
 
 
 def get_file_from_modname(modname):
@@ -260,6 +269,12 @@ def path_expand(path):
         raise Exception('do not know how to handle "./" yet.')
     return path
 
+def get_directory_from_modname(modname):
+    suffix = modname.replace(".", "/")
+    for root in PYTHON_MODULE_PATHS:
+        candidate = os.path.join(root, suffix)
+        if os.path.isdir(candidate):
+            return candidate
 def path_join(*args):
     assert len(args) > 1, "path_join requires at least 2 arguments"
     a, *rest, last = args
@@ -280,3 +295,5 @@ if __name__ == '__main__':
     # content = get_implicit_module_func('yoya.utils.prepare_text')
     pass
     # print(content)
+    # print(get_modname_from_directory('/home/kdog3682/projects/python/kevinlulee/kevinlulee/'))
+    print(get_directory_from_modname('kevinlulee'))

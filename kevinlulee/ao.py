@@ -755,4 +755,5 @@ def omnifind(items, query):
 def low_high(a, b):
     return (a, b) if a <= b else (b, a)
 
-
+def objectf(key):
+    return lambda x: x.get(key)

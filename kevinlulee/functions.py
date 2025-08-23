@@ -263,18 +263,6 @@ def mv(a, b):
         return
     return kx.bash3("mv", a, b)
 
-def mvfile(a, b):
-    a = os.path.expanduser(str(a))
-    b = os.path.expanduser(str(b))
-    kx.assert_file(a)
-    shutil.move(a, b)
-
-def mvdir(a, b):
-    a = os.path.expanduser(str(a))
-    b = os.path.expanduser(str(b))
-    kx.assert_directory(a)
-    shutil.move(a, b)
-
 def read_write(file, func, *args, raw=False, dst_path=None, **kwargs):
     if dst_path:
         dst_path = kx.fnamemodify(file, **dst_path)
@@ -398,7 +386,7 @@ def get_data(key):
         return key
         
     key = re.sub("^\w+", replacer, key, flags = 0)
-    file = kx.add_extension_if_not_present(kx.dash_case(key), 'json')
+    file = kx.add_extension_if_not_present(key, 'json')
     path = f'~/data/{file}'
     return kx.readfile(path)
 
@@ -441,3 +429,35 @@ def normalize_padding(padding, fallback = 0):
 
 def text_frame(s):
     return kx.newline_indent(s) + "\n"
+
+def get_capitalizer_function(key) -> callable:
+    """
+    returns a function based on an input for how to capitalize it.
+    """
+    if key == key.upper():
+        return lambda x: x.upper()
+    elif key == key.lower():
+        if "-" in key:
+            return kx.dash_case
+        elif '_' in key:
+            return kx.snake_case
+        else:
+            return kx.identity
+    elif re.search("^[A-Z]", key):
+        return kx.pascal_case
+    else:
+        return kx.camel_case
+
+import json
+def minimized_json(s):
+            return json.dumps(s)
+
+
+def quick_template_clip(s, *args):
+    def replacer(x):
+        key = x.group(1)
+        return kx.parens(key, '{}')
+        
+    template = kx.re.sub("\$(\d+)", replacer, s, flags = 0)
+    ref = kx.array_to_dict(args)
+    kx.clip(kx.brace_templater(template, ref))

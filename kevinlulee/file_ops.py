@@ -5,6 +5,8 @@ secondary file_operations
 import os
 from collections import Counter
 
+from kevinlulee.file_utils import assert_file, is_file, has_valid_existing_parent
+
 
 def get_most_common_file_extension(dir, recursive=False):
     current_dir = os.path.expanduser(dir)
@@ -32,14 +34,18 @@ def get_most_common_file_extension(dir, recursive=False):
     most_common = extension_counts.most_common(1)
     return most_common[0][0][1:] if most_common else None
 
-
 def zipread(src_path, dst_path = None) -> list[str]:
     '''
-    items will be extracted into the same directory as the src
+    items will be extracted into the same directory as the src if dst_path
+    is not provided
+
     a list of paths (the extracted files) will be returned
     '''
     src_path = os.path.expanduser(src_path)
     dst_path = os.path.expanduser(dst_path) if dst_path else os.path.dirname(src_path)
+
+    assert has_valid_existing_parent(dst_path), f"{dst_path} no ancestor in dst_path exists"
+    assert_file(src_path)
 
     store = []
     import zipfile
@@ -52,3 +58,7 @@ def zipread(src_path, dst_path = None) -> list[str]:
         zf.extractall(dst_path)
 
         return store
+
+
+if __name__ == "__main__":
+    zipread('asdf', '~/data/asdf')

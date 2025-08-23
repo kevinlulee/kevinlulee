@@ -70,7 +70,10 @@ def to_datetime(x=None):
     if x is None:
         return datetime.now()
     if isinstance(x, dict):
-        return datetime_from_str(extract_datetime_str_from_dictionary(x))
+        d = extract_datetime_str_from_dictionary(x)
+        if not d:
+            return resolve_timedelta2(**x)
+        return datetime_from_str(d)
     if isinstance(x, str):
         path = os.path.expanduser(x)
         if os.path.isfile(path):
@@ -114,7 +117,16 @@ def strftime(source=None, mode="iso8601"):
 def timestamp():
     return datetime.now().timestamp()
 
-
+def resolve_timedelta2(
+    hours=0, seconds=0, minutes=0, days=0, weeks=0, months=0, years=0, **kwargs
+):
+    now = datetime.now()
+    return now - timedelta(
+        hours=hours,
+        seconds=seconds,
+        minutes=minutes,
+        days=days + weeks * 7 + months * 30 + years * 365,
+    )
 def resolve_timedelta(
     hours=0, seconds=0, minutes=0, days=0, weeks=0, months=0, years=0, **kwargs
 ):
@@ -356,9 +368,12 @@ def is_recent(x, **opts):
 def is_recentf(mode="after", key=None, **opts):
     cutoff = resolve_timedelta(**opts)
     recency_modes = ['after', 'recent', 'near']
-    fn = lambda x: to_timestamp(x) >= cutoff if mode in recency_modes else lambda x: to_timestamp(x) < cutoff
+    if mode in recency_modes:
+        return lambda x: to_timestamp(x) >= cutoff
+    else:
+        return lambda x: to_timestamp(x) < cutoff
 
-    return lambda x: fn(x[key]) if key else fn
+    # return lambda x: fn(x[key]) if key else fn
 
 def is_time_between(start: str | dict, end: str | dict):
     start_day, start_time = parse_day_and_time(start)
@@ -469,6 +484,7 @@ def asdf(x, **opts):
 def extract_datetime_str_from_dictionary(x: dict) -> Optional[str]:
     date_field_names = [
         "date",
+        'Date',
         "datetime",
         "timestamp",
         "created_at",
@@ -508,3 +524,6 @@ def extract_datetime_str_from_dictionary(x: dict) -> Optional[str]:
 
 def now():
     return datetime.now()
+
+
+# resolve_timedelta2().min
