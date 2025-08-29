@@ -1,5 +1,7 @@
 import re
 from _collections_abc import dict_values, dict_keys, dict_items
+from kevinlulee.typing import Selector, Optional
+from typing import Union, Sequence, Any, Callable, Optional, Iterable
 
 def not_none(x):
     return x is not None
@@ -218,16 +220,15 @@ def has_comment(s, filetype=None):
     comment_pattern = '^ *(?:#|//|--|<!--)'
     return test(s, comment_pattern)
 
-def is_approximately_equal(a, b):
+def has_same_starting_text(a, b):
     if isinstance(a, str) and isinstance(b, str):
         a = a.strip()
         b = b.strip()
         if a.startswith(b) or b.startswith(a) or a.endswith(b) or b.endswith(a):
             return True
 
-    else:
-        return a == b
-
+def is_approximately_equal(a, b):
+    return a == b
 def is_letter(s):
     return test(s, "[a-zA-Z]")
 
@@ -270,3 +271,25 @@ def existant(x):
 
 def is_plural(s):
     return s.endswith('s')
+
+
+def is_sequence(obj: Any) -> bool:
+    return isinstance(obj, (list, tuple))
+
+def value_as_str(x: Any) -> str:
+    return "" if x is None else str(x)
+
+
+def match_value(value: Any, selector: Optional[Selector], prefer_exact: bool = True) -> bool:
+    if callable(selector):
+        return bool(selector(value))
+    if is_sequence(selector):
+        return any(match_value(value, s, prefer_exact) for s in selector)
+    if isinstance(selector, re.Pattern):
+        return bool(selector.search(value_as_str(value)))
+    s = value_as_str(selector)
+    v = value_as_str(value)
+    return v == s if prefer_exact else s in v
+
+def is_primitive_dict(x):
+    return is_dict(x) and all(is_primitive(el) for el in x.values())

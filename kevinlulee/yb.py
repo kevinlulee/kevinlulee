@@ -1,6 +1,7 @@
 from kevinlulee.ao import partition
 import os
 from kevinlulee.base import coerce_argument
+# from kevinlulee.file_utils import ensure_directory_exists
 from kevinlulee.string_utils import split
 import re
 
@@ -29,6 +30,8 @@ def parse(data):
 
 
 def append_file(path, data):
+    if not data:
+        return 
     path = os.path.expanduser(path)
     with open(path, "a") as f:
         f.write(parse(data))

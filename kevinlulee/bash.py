@@ -12,20 +12,36 @@ from kevinlulee.module_utils import get_modname_from_file
 from kevinlulee.string_utils import split
 from kevinlulee.ao import join_spaces
 
-from .file_utils import ensure_directory_exists, find_git_directory, find_project_root, writefile
+from .file_utils import (
+    ensure_directory_exists,
+    find_git_directory,
+    find_project_root,
+    writefile,
+)
 from .base import display
 from .validation import empty
 import subprocess
 
 from typing import TypedDict
 
-def bash(*args, cwd=None, on_error=None, silent=True, debug = False, strict = False, shell = False):
+
+def bash(
+    *args,
+    cwd=None,
+    on_error=None,
+    silent=True,
+    debug=False,
+    strict=False,
+    shell=False,
+):
     cwd = os.path.expanduser(cwd) if cwd else None
     s = join_spaces(args)
     if debug:
-        return print('[DEBUG]', s)
-    cmd = s if shell else s.split(' ')
-    result = subprocess.run(cmd, text=True, cwd=cwd, capture_output=True, shell = shell, check = True)
+        return print("[DEBUG]", s)
+    cmd = s if shell else s.split(" ")
+    result = subprocess.run(
+        cmd, text=True, cwd=cwd, capture_output=True, shell=shell, check=True
+    )
 
     err = result.stderr.strip()
     success = result.stdout.strip()
@@ -35,7 +51,6 @@ def bash(*args, cwd=None, on_error=None, silent=True, debug = False, strict = Fa
         print(success)
 
     if err and result.returncode:
-            
         if on_error:
             return on_error(err)
         elif strict:
@@ -46,7 +61,16 @@ def bash(*args, cwd=None, on_error=None, silent=True, debug = False, strict = Fa
 
     return success
 
-def bash2(*args, cwd=None, on_error=None, strict = False, verbose = False, debug = False, silent = None):
+
+def bash2(
+    *args,
+    cwd=None,
+    on_error=None,
+    strict=False,
+    verbose=False,
+    debug=False,
+    silent=None,
+):
     if silent is not None:
         verbose = not silent
     cwd = os.path.expanduser(cwd) if cwd else None
@@ -54,15 +78,16 @@ def bash2(*args, cwd=None, on_error=None, strict = False, verbose = False, debug
 
     if debug:
         print(cmd)
-        return 
+        return
     try:
-        result = subprocess.run(cmd, text=True, cwd=cwd, capture_output=True, check = True)
+        result = subprocess.run(
+            cmd, text=True, cwd=cwd, capture_output=True, check=True
+        )
         stdout = result.stdout.strip()
         if verbose:
             print(stdout)
         return stdout
     except Exception as e:
-
         if on_error:
             return on_error(e)
         elif strict:
@@ -71,13 +96,17 @@ def bash2(*args, cwd=None, on_error=None, strict = False, verbose = False, debug
             stdout = e.stdout.strip()
             stderr = e.stderr.strip()
 
-            print('[STDOUT]', stdout)
-            print('[STDERR]', stderr)
+            print("[STDOUT]", stdout)
+            print("[STDERR]", stderr)
 
 
-
-
-def typst(inpath, outpath='~/scratch/temp.pdf', open=False, mode="compile", on_error = None):
+def typst(
+    inpath,
+    outpath="~/scratch/temp.pdf",
+    open=False,
+    mode="compile",
+    on_error=None,
+):
     """
     params:
         inpath: the inpath typ file
@@ -91,33 +120,44 @@ def typst(inpath, outpath='~/scratch/temp.pdf', open=False, mode="compile", on_e
     ensure_directory_exists(outpath)
 
     open = "--open" if open else ""
-    return bash2("typst", mode, inpath, outpath, open, "--root", "/", on_error=on_error)
+    return bash2(
+        "typst", mode, inpath, outpath, open, "--root", "/", on_error=on_error
+    )
 
 
-def python3(file, *args, as_module=False, on_error = None):
+def python3(file, *args, as_module=False, on_error=None):
     if as_module:
         module_path = get_modname_from_file(file)
-        cwd = '~/projects/python'
+        cwd = "~/projects/python"
         if module_path:
-            display(module_path = module_path, cwd = cwd)
-            return bash("python3", "-m", module_path, *args, cwd=cwd, on_error=on_error, silent=False)
+            display(module_path=module_path, cwd=cwd)
+            return bash(
+                "python3",
+                "-m",
+                module_path,
+                *args,
+                cwd=cwd,
+                on_error=on_error,
+                silent=False,
+            )
         else:
-            print('could not find a module_path for the current file')
+            print("could not find a module_path for the current file")
     else:
         return bash("python3", file, *args, on_error=on_error, silent=False)
 
-def typstfile(s, src_path = None,pdf_outpath =None, open = False, debug = False):
-        if debug:
-            print(s)
-            return 
-        if not pdf_outpath:
-            pdf_outpath = '~/projects/hammymathclass/dist/untitled.pdf'
-        if not src_path:
-            src_path = '~/scratch/temp.typ'
-            # src_path = '~/projects/hammymathclass/'
-        writefile(src_path, s)
-        typst(src_path, pdf_outpath, open = open)
-        return os.path.expanduser(pdf_outpath)
+
+def typstfile(s, src_path=None, pdf_outpath=None, open=False, debug=False):
+    if debug:
+        print(s)
+        return
+    if not pdf_outpath:
+        pdf_outpath = "~/projects/hammymathclass/dist/untitled.pdf"
+    if not src_path:
+        src_path = "~/scratch/temp.typ"
+        # src_path = '~/projects/hammymathclass/'
+    writefile(src_path, s)
+    typst(src_path, pdf_outpath, open=open)
+    return os.path.expanduser(pdf_outpath)
 
 
 def bash3(*args, cwd=None, on_error=None):
@@ -132,7 +172,9 @@ def bash3(*args, cwd=None, on_error=None):
     cmd = filtered(args)
 
     try:
-        result = subprocess.run(cmd, text=True, cwd=cwd, capture_output=True, check = True)
+        result = subprocess.run(
+            cmd, text=True, cwd=cwd, capture_output=True, check=True
+        )
         return result.stdout.strip()
     except Exception as e:
         if on_error:
@@ -140,6 +182,6 @@ def bash3(*args, cwd=None, on_error=None):
         raise e
 
 
-def pip(key, cwd = None):
-    return bash('pip', 'install', key, '--break-system-packages', cwd = cwd)
+def pip(key, cwd=None):
+    return bash("pip", "install", key, "--break-system-packages", cwd=cwd)
 

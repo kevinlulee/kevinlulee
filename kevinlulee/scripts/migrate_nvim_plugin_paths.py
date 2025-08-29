@@ -14,13 +14,15 @@ DATA_PATH_RE = re.compile(
     r'data_path\s*=\s*(["\'])~\/\.cache\/maelstrom\/([^"\']+)\1'
 )
 
-# Pattern to *find files* with your kx.fd (a bit looser, to ensure we catch variants/spacing)
-FD_PAT = r'data_path\s*=\s*["\']~/.cache/maelstrom/.*?["\']'
+# Pattern to *find files* with your kx.rg (a bit looser, to ensure we catch variants/spacing)
+RG_PAT = r'data_path\s*=\s*["\']~/.cache/maelstrom/.*?["\']'
+RG_PAT = ''' data_path\s*=\s*["']~/.cache/maelstrom/[^"']*["'] '''.strip()
+RG_PAT = '~/.cache/maelstrom'
 
 
 def migrate_nvim_plugin_paths(
     root_dir: str = ROOT_DIR,
-    fd_pat: str = FD_PAT,
+    rg_pat: str = RG_PAT,
     old_root_tilde: str = OLD_ROOT_TILDE,
     new_root_tilde: str = NEW_ROOT_TILDE,
 ):
@@ -32,7 +34,7 @@ def migrate_nvim_plugin_paths(
 
     Prints a short log of what it changed/copied.
     """
-    files = list(kx.fd(root_dir, fd_pat))
+    files = list(kx.rg(root_dir, rg_pat))
     if not files:
         print("[INFO] No files matched the data_path pattern.")
         return
@@ -43,13 +45,14 @@ def migrate_nvim_plugin_paths(
     updated_files = 0
     total_rewrites = 0
 
-    for path in files:
-        with open(path, "r", encoding="utf-8") as f:
-            text = f.read()
+    for file in files:
+        path = file["path"]
+        lnum = file["lnum"]
+        text = kx.readfile(path)
 
         matches = list(DATA_PATH_RE.finditer(text))
         if not matches:
-            # File matched fd_pat but didn't match the stricter parser; skip gracefully.
+            # File matched rg_pat but didn't match the stricter parser; skip gracefully.
             continue
 
         # Plan copies for each match
@@ -71,20 +74,19 @@ def migrate_nvim_plugin_paths(
                 f.write(new_text)
             updated_files += 1
             total_rewrites += len(matches)
-            print(f"[UPDATED] {path}  (+{len(matches)} rewrite{'s' if len(matches)!=1 else ''})")
+            print(f"[UPDATED] {file}  (+{len(matches)} rewrite{'s' if len(matches)!=1 else ''})")
 
     # Execute copy jobs
     for src, dst in sorted(copy_jobs):
-        if not os.path.exists(src):
-            print(f"[WARN] Source not found, skipping: {src}")
-            continue
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        print(f"[COPY] {src}  ->  {dst}")
-        kx.cpdir(src, dst)
+        kx.cpfile(src, dst, verbose=True)
 
     print(f"[DONE] Files updated: {updated_files}, total data_path rewrites: {total_rewrites}, copy ops: {len(copy_jobs)}")
 
 
 # If you want to run immediately:
 # migrate_nvim_plugin_paths()
+
+
+# if __name__ == "__main__":
+#     cpdir('~/.cache/maelstrom/', '~/data/nvim/plugins/')
 

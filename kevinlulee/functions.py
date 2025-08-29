@@ -8,64 +8,111 @@ from kevinlulee.ao import reduce2
 from kevinlulee.validation import existant, exists
 
 
-def colon_dict(s, keys=None, allow_repeated_keys=False, transformers=None):
+HEADER_RE = re.compile(r'^(?P<key>@?[\w-]+):(?:\s*(?P<val>.*\S))?\s*$')
+import re
+from typing import List, Tuple, Optional
+
+
+# colon_dict.py
+from typing import List, Tuple, Optional
+import re
+import kevinlulee as kx
+
+
+HEADER_RE = re.compile(r'^(?P<key>@?[\w-]+):(?:\s*(?P<val>.*\S))?\s*$')
+
+
+def colon_dict(
+    text: str,
+    *,
+    strict: bool = False,
+    skip_empty_strings: bool = True,
+    allow_repeated_keys: bool = False,
+    transformers: Optional[dict] = None,
+) -> dict:
     """
-    when allow_repeated_keys is true,
-    items with the same keys are grouped as arrays
+    Parse a headered block format.
 
-    be careful!
-    any line which starts with \w+: will be captured.
+    Each header is of the form "key:" or "key: inline value".
+    Subsequent non-header lines belong to the current key until the next header.
 
-    transformers is a source of keys, if keys is not provided.
+    - Returns: dict; if allow_repeated_keys=False the last value wins,
+      else values are returned under a pluralized key as a list.
+    - strict=True: if a key has an inline value (e.g., "a: v") and any
+      subsequent non-empty content line appears before the next header,
+      raise ValueError.
+    - If `transformers` is provided, only keys in transformers are treated
+      as headers; other "X:" lines are treated as plain content.
     """
+    allowed_keys = set(transformers) if transformers else None
 
-    if transformers and not keys:
-        keys = transformers.keys()
-    regex = kx.re_wrap(keys, "^($1): *") if keys else "^([.\w-]+): *"
-    parts = kx.split(s, regex, flags=kx.re.M)
-    items = kx.partition(parts)
+    items: List[Tuple[str, str]] = []
+    current_key: Optional[str] = None
+    buf: List[str] = []
+    had_inline = False  # whether the *current* key had an inline value
 
-    storage = kx.defaultdict(list)
-    try:
-        for a, b in items:
-            base = kx.coerce_argument(b)
-            value = (
-                transformers[a](base)
-                if transformers and a in transformers
-                else base
+    def flush_block() -> None:
+        nonlocal current_key, buf, had_inline
+        if current_key is not None:
+            value = "\n".join(buf).strip()
+            if not (skip_empty_strings and value == ""):
+                items.append((current_key, value))
+        current_key = None
+        buf = []
+        had_inline = False
+
+    for raw in text.splitlines():
+        m = HEADER_RE.match(raw)
+
+        # Valid header only if either no allowlist, or key is allowlisted
+        if m and (allowed_keys is None or m.group("key") in allowed_keys):
+            flush_block()
+            current_key = m.group("key")
+            inline = m.group("val")
+            had_inline = inline is not None
+            if inline is not None:
+                buf.append(inline)
+            continue  # move to next line after opening a new block
+
+        # Not a recognized header → treat as content (if we have a current block)
+        if current_key is None:
+            # No active block: ignore leading/preamble content or disallowed headers.
+            # (Matches original behavior which doesn't emit items without a key.)
+            continue
+
+        # Enforce strict inline rule: any non-empty content after an inline value
+        if strict and had_inline and raw.strip() != "":
+            raise ValueError(
+                f"Inline value given for '{current_key}', but additional content found on a following line."
             )
-            storage[a].append(value)
-    except Exception as e:
-        kx.stop(items)
-        raise e
 
-    store = {}
-    for k, v in storage.items():
-        if len(v) == 1:
-            store[k] = v[0]
-        elif allow_repeated_keys:
-            store[kx.pluralize(k)] = v
+        if not (skip_empty_strings and raw == ""):
+            buf.append(raw)
+
+    # Flush the final block
+    flush_block()
+
+    # Transform values and collapse/group
+    def transform_value(k: str, v: str):
+        base = kx.coerce_argument(v)
+        return transformers[k](base) if transformers and k in transformers else base
+
+    transformed = [(k, transform_value(k, v)) for (k, v) in items]
+    grouped = kx.group(transformed)  # {key: [values...]}
+
+    store: dict = {}
+    for k, vals in grouped.items():
+        if allow_repeated_keys:
+            store[kx.pluralize(k)] = vals
         else:
-            store[k] = v[-1]
-
+            store[k] = vals[-1]
     return store
+
 
 
 def rpw(file, fn):
     kx.writefile(file, fn(kx.readfile(file)))
 
-def to_text(x):
-    if isinstance(x, str):
-        return str
-
-    if callable(x):
-        return kx.inspect.getsource(x)
-
-    for key in ("text", "body", "value", "content"):
-        if hasattr(x, key):
-            return getattr(x, key)
-
-    return x
 def to_string(x):
     if isinstance(x, str):
         return x
@@ -188,6 +235,9 @@ def brace_templater(s, ref, cls=None):
             s = eval(expr, ref)
             return s
 
+        if kx.test(expr, r"\w+\("):
+            s = eval(expr)
+            return s
         return ref.get(expr)
 
     def replacer(match):
@@ -202,6 +252,8 @@ def brace_templater(s, ref, cls=None):
     s = re.sub(TEMPLATER_PATTERN2, replacer, s)
     # print([s])
     s = re.sub("(?:.+\n)?(?:---\n)? *<EMPTY> *(?:\n---\n+)?", '', s).strip()
+    s = re.sub(".+<EMPTY> *$", '', s).strip()
+
     return s
 
 
@@ -450,7 +502,10 @@ def get_capitalizer_function(key) -> callable:
 
 import json
 def minimized_json(s):
-            return json.dumps(s)
+            try:
+                return json.dumps(s)
+            except Exception as e:
+                return s
 
 
 def quick_template_clip(s, *args):
@@ -461,3 +516,396 @@ def quick_template_clip(s, *args):
     template = kx.re.sub("\$(\d+)", replacer, s, flags = 0)
     ref = kx.array_to_dict(args)
     kx.clip(kx.brace_templater(template, ref))
+
+
+# 2025-08-24 aicmp: 
+def get_horizontal_length(s):
+    return len(s)
+
+def bar_wrap(s):
+    s = kx.serialize_data(s)
+    m = get_horizontal_length(s)
+    bar = '-' * m
+    return f'{bar}\n{s}\n{bar}'
+
+
+def stringify(x):
+    if callable(x):
+        return kx.get_qualified_func_name(x)
+    return kx.to_string(x)
+
+
+def to_negative(idx):
+    if idx > 0:
+        return -1 * idx
+    return idx
+    
+def get_note(*indexes):
+    a = kx.readfile("/home/kdog3682/documents/notes/notes2.txt")
+    parts = kx.split(a, '^\d\d\d\d-\d\d-\d\d.+', flags = re.M)
+    return kx.smallify(kx.map(parts, lambda idx: parts[to_negative(idx)]))
+
+
+def raw_code(value, lang):
+        return kx.parens(lang + "\n" + value + "\n", "```")
+
+
+
+def dirmap(dir, func):
+    files = kx.getfiles(dir, pattern='\.(?:yml|json)$', recursive=True)
+    return kx.map(files, lambda x: func(kx.readfile(x)))
+
+from copy import deepcopy
+from typing import Any
+
+def deep_merge(a: Any, b: Any) -> Any:
+    """
+    Deep-merge b into a (without mutating either) and return the result.
+
+    Rules:
+      - dict + dict: keys are unioned; values merged recursively.
+      - list + list: merged index-wise; trailing elements from the longer list are appended.
+      - tuple + tuple: same as list, result kept as tuple.
+      - set + set: union.
+      - If types differ (or either side is a scalar/other type), b replaces a.
+      - If a is None -> return deepcopy(b); if b is None -> return deepcopy(a).
+
+    Examples:
+      deep_merge({"x":1,"y":{"z":[1,2]}}, {"y":{"z":[None,3,4]}}) -> {"x":1,"y":{"z":[1,3,4]}}
+      deep_merge(None, {"a":1}) -> {"a":1}
+      deep_merge({"a":1}, None) -> {"a":1}
+    """
+    if b is None:
+        return deepcopy(a)
+    if a is None:
+        return deepcopy(b)
+
+    # dicts: recursive merge per key
+    if isinstance(a, dict) and isinstance(b, dict):
+        out = {}
+        keys = set(a.keys()) | set(b.keys())
+        for k in keys:
+            if k in a and k in b:
+                out[k] = deep_merge(a[k], b[k])
+            elif k in a:
+                out[k] = deepcopy(a[k])
+            else:
+                out[k] = deepcopy(b[k])
+        return out
+
+    # lists: index-wise merge, append extras
+    if isinstance(a, list) and isinstance(b, list):
+        n = max(len(a), len(b))
+        merged = []
+        for i in range(n):
+            if i < len(a) and i < len(b):
+                merged.append(deep_merge(a[i], b[i]))
+            elif i < len(a):
+                merged.append(deepcopy(a[i]))
+            else:
+                merged.append(deepcopy(b[i]))
+        return merged
+
+    # tuples: same as lists, keep type
+    if isinstance(a, tuple) and isinstance(b, tuple):
+        n = max(len(a), len(b))
+        merged = []
+        for i in range(n):
+            if i < len(a) and i < len(b):
+                merged.append(deep_merge(a[i], b[i]))
+            elif i < len(a):
+                merged.append(deepcopy(a[i]))
+            else:
+                merged.append(deepcopy(b[i]))
+        return tuple(merged)
+
+    # sets: union
+    if isinstance(a, set) and isinstance(b, set):
+        return deepcopy(a | b)
+
+    # fallback: b overrides a
+    return deepcopy(b)
+
+
+import kevinlulee as kx
+
+
+def is_relative_path(file: str):
+    return file[0].isalpha() and file[-1].isalpha() and not '/home/' in os.path.expanduser(file)
+def assert_relative_path(file):
+    assert is_relative_path(file), f''' the provided path: "{path}" is not a relative input. (it has /home/ in it)'''
+
+def cache_write(path, payload):
+    assert_relative_path(path)
+    path = kx.add_extension_if_not_present(path, 'json')
+    kx.writefile(f"~/data/maelstrom/cache/{path}", payload)
+
+def cache_read(path):
+    assert_relative_path(path)
+    path = kx.add_extension_if_not_present(path, 'json')
+    return kx.readfile(f"~/data/maelstrom/cache/{path}")
+
+class LiveCache:
+    """
+    Persistent key–value cache.
+    - Preloads from `path` on init.
+    - Saves to `path` on every `set`.
+    - uses the base cache directory
+    """
+
+    def __init__(self, path):
+        self.path = path
+        self.data = cache_read(path) or {}
+
+    def get(self, key, default=None):
+        return self.data.get(key, default)
+
+    def set(self, key, value):
+        self.data[key] = value
+        cache_write(self.path, self.data)
+        return value
+
+
+def conditional_apply(func, input, *args, **kwargs):
+    if input is None:
+        return 
+
+    return func(input, *args, **kwargs)
+
+
+import re
+import inspect
+import functools
+
+# Matches the callable at the start of a lambda body, e.g. lambda x: pkg.fn(...)
+_LAMBDA_CALL_RE = re.compile(
+    r'lambda +\w+:\s*([A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*)',
+)
+
+def get_anonymous_func_name(obj):
+    """
+    - If `obj` is a str: return it as-is.
+    - If `obj` is a functools.partial: return wrapped function's name.
+      If that wrapped function is a lambda, return the inner callable name
+      parsed via `re.match` against the lambda source.
+    - If `obj` is a lambda: return the inner callable name parsed via `re.match`.
+      If no callable found at the start of the body, return '<lambda>'.
+    - Otherwise (regular function): return its __name__.
+    """
+    if isinstance(obj, str):
+        return obj
+
+    if isinstance(obj, functools.partial):
+        f = obj.func
+        name = f.__name__
+        if name == "<lambda>":
+            src = inspect.getsource(f)
+            m = _LAMBDA_CALL_RE.search(src)
+            return m.group(1) if m else "<lambda>"
+        return name
+
+    # callable function (incl. lambda)
+    name = obj.__name__
+    if name == "<lambda>":
+        src = inspect.getsource(obj)
+        m = _LAMBDA_CALL_RE.search(src)
+        return m.group(1) if m else "<lambda>"
+    return name
+
+
+
+import re
+from typing import List, Dict, Any, Callable, Optional, Union
+from datetime import datetime, timedelta
+
+def smart_coerce(value: str) -> Union[int, float, bool, datetime, str]:
+    
+    if not value or not isinstance(value, str):
+        return value
+    
+    value = value.strip()
+    
+    if not value:
+        return value
+    
+    # Boolean detection
+    if value.lower() in ['true', 'false', 'yes', 'no', 'on', 'off']:
+        return value.lower() in ['true', 'yes', 'on']
+    
+    if re.match(r'^-?\d+$', value):
+        return int(value)
+    
+    if re.match(r'^-?\d*\.\d+$', value):
+        return float(value)
+    
+    try:
+        return kx.to_datetime(value)
+    except Exception as e:
+        pass
+    
+    return value
+
+
+# if __name__ == '__main__':
+    # print(colon_dict('abc:\ng:\nfoo:', transformers = dict(abc = kx.identity, g = kx.identity)))
+
+import subprocess
+
+def bash_shell(cmd, cwd = None):
+    
+    cmd = " ".join(cmd) if kx.is_array(cmd) else cmd
+
+    res = subprocess.run(
+        cmd,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        cwd=cwd,
+    )
+    return res.stdout
+
+def pytest(
+    *paths,
+    config_file="~/dotfiles/templates/pytest.ini",
+    cwd=None,
+    verbose: bool = True, 
+    maxfail: int = 0,
+    collect_only: bool = False,
+    rootdir = True,
+):
+    parts = ["pytest"]
+    paths = kx.flat(paths)
+
+    if config_file:
+        parts += ["--config-file", str(os.path.expanduser(config_file))]
+
+    if collect_only:
+        parts.append('--collect-only')
+
+    for p in paths:
+        parts.append(str(p))
+
+    if verbose:
+        parts.append("-v")
+
+    if maxfail:
+        parts += ["--maxfail", str(maxfail)]
+
+    if rootdir:
+        if rootdir == True:
+            rootdir = kx.find_project_root(paths[0])
+        parts += ["--rootdir", rootdir]
+
+    return bash_shell(parts)
+
+def create_delimited_section(top, before, after, delimiter1="=", delimiter2 = '-', n=50):
+    # n = 95
+    bar = delimiter * n
+    bar2 = "\n" + delimiter2 * n + "\n"
+    s = kx.parens(top, bar) + "\n" + bar2.join([before, after])
+    return s
+
+def parse_delimited_section(s, delimiter1="=", delimiter2="-"):
+    bar = f"{delimiter1}{{3,}}"
+    bar2 = f"{delimiter2}{{3,}}"
+    any = "([\w\W]+?)"
+    r = rf"^{bar}\n{any}\n{bar}\n+{any}\n{bar2}\n{any}(?=\n{bar}|\Z)"
+    matches = re.findall(r, s, flags=re.M)
+
+    def fix(s):
+        return kx.map(s, kx.trimdent)
+
+    return kx.map(matches, fix)
+
+def replace_at_index(s: str, idx: int, token: str = "<cursor>") -> str:
+    """
+    Replace the character at position `idx` with `token`.
+    Supports negative indices (like Python slicing).
+    """
+    if idx < 0:
+        idx += len(s)
+    if not (0 <= idx < len(s)):
+        raise IndexError("idx out of range")
+
+    return s[:idx] + token + s[idx + 1 :]
+
+# print(replace_at_index('abc', 1))
+
+
+
+from pathlib import Path
+import kevinlulee as kx
+
+
+
+class PNPM:
+    """
+    Simple npm helper.
+
+    Args:
+        dir (str | Path): Directory containing package.json
+
+    Methods:
+        test()   -> runs `npm run test` if a test script exists
+        dev()    -> runs `npm run dev`  if a dev script exists
+        publish() -> runs `npm run publish` if a publish script exists,
+                     otherwise runs `npm publish`
+    """
+
+    def __init__(self, cwd, verbose = False):
+        self.cwd = str(Path(cwd).expanduser())
+        self.verbose = verbose
+
+    def _has_script(self, name):
+        pkg = kx.readfile(Path(self.cwd) / "package.json")
+        scripts = pkg.get("scripts", {})
+        return (
+            isinstance(scripts, dict)
+            and name in scripts
+            and scripts[name] not in (None, "")
+        )
+
+    def _run(self, cmd):
+        if not self._has_script(cmd):
+            raise ValueError(f"No '{cmd}' script found in package.json.")
+        parts = ["pnpm", "run", cmd]
+        return self.cmd(parts)
+
+
+    def cmd(self, parts):
+        r = bash_shell(parts, cwd=self.cwd)
+        if self.verbose:
+            print(r)
+        return r
+
+    def test(self):
+        return self._run("test")
+
+    def test_once(self):
+        return self._run("test:once")
+
+    def dev(self):
+        return self._run("dev")
+
+    def publish(self):
+        return self._run("publish")
+
+    def production(self):
+        return self._run("production")
+
+    def install(self):
+        result = self.cmd(['pnpm', 'install'])
+        pat = '^npm ERR! notarget No matching version found for ([\w-]+)'
+        matches = kx.unique(kx.re.findall(pat, result, flags = re.M))
+        downloaded = kx.map(matches, self.install_package)
+
+        return kx.join_text(result, downloaded)
+
+    def install_package(self, pkg_name):
+        return self.cmd(['pnpm', 'add', pkg_name + "@latest"])
+
+# pnpm = PNPM('~/projects/webdev/fs-view/', verbose = True)
+# pnpm.test_once()
+# print(pnpm.install())
+# pnpm.install_package('react-fzf')

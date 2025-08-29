@@ -37,6 +37,7 @@ def yamload(x, strict = False):
         return m
         
     except Exception as e:
+        print(e)
         if strict:
             raise e
         return {}
@@ -201,6 +202,8 @@ def announcef(func):
 
     return wrapper
 
+def sort_files_by_date(files, reverse=True):
+    return sorted(files, key=os.path.getmtime, reverse=reverse)
 
 def sort_by_date(files, reverse=True):
     return sorted(files, key=os.path.getmtime, reverse=reverse)
@@ -265,3 +268,4 @@ def extract_frontmatter2(text):
         return s, colon_split(fm, content_key='description')
 
     return extract_frontmatter(text)
+

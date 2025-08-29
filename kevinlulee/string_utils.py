@@ -129,6 +129,8 @@ def trimdent(s):
 
 
 def dash_case(s):
+    if s.isupper():
+        return s
     if len(s) == 1:
         return s
     s = re.sub(r"([a-z])([A-Z])", r"\1-\2", s)  # Convert camelCase to kebab-case
@@ -191,13 +193,24 @@ def add_quotes(s):
 
 
 
+def tabs_to_spaces(s):
+    return s.replace("\t", "    ")
 
 def to_spaces(ind):
     return " " * int(ind) if isinstance(ind, (float, int)) else ind
-def indent(s: str, ind: int) -> str:
-    if not ind:
+def indent(s: str, indentation: int | str) -> str:
+    if not indentation:
         return s
-    return textwrap.indent(str(s), to_spaces(ind))
+
+    t = tabs_to_spaces(str(s))
+    prefix = to_spaces(indentation)
+    lines = t.split('\n')
+
+    store = []
+    for line in lines:
+        store.append(prefix + line)
+
+    return "\n".join(store)
 
 def newline_indent(s, ind = 4):
     indented = indent(s, ind)
@@ -216,6 +229,9 @@ def split_in_half(s):
     Raises:
         ValueError: If string length is odd
     """
+    if isinstance(s, (list, tuple)):
+        return s
+    
     if len(s) % 2 != 0:
         raise ValueError("String must have even number of characters")
     
@@ -245,7 +261,11 @@ def parens(s, key = '()', newline = False, ind = 4, leading_newline = False):
         "({})": ("({", "})"),
         "([])": ("([", "])"),
     }
-    a, b = brackets.get(key) or split_in_half(key)
+    if isinstance(key, str) and test(key, '^[=-]{3,}'):
+        return f'{key}\n{str(s)}\n{key}'
+        
+    
+    a, b = key if isinstance(key, (list, tuple)) else (brackets.get(key) or split_in_half(key))
     if newline:
         top_newline = "\n" if leading_newline and "\n" in s else ''
         return a + top_newline + newline_indent(s, ind) + "\n" + b
@@ -527,5 +547,55 @@ def strip_quotes(s: str) -> str:
     return s
 
 
-def depluralize(s):
-    return re.sub('s$', '', s)
+def depluralize_arg(word):
+    """
+    Attempt to convert a plural word to its singular form.
+    
+    Args:
+        word (str): The word to be depluralized
+    
+    Returns:
+        str: The depluralized word or the word 'arg'
+    """
+    # Handle irregular plurals first
+    irregular_plurals = {
+        'children': 'child',
+        'people': 'person',
+        'men': 'man',
+        'women': 'woman',
+        'teeth': 'tooth',
+        'feet': 'foot',
+        'mice': 'mouse',
+        'geese': 'goose'
+    }
+    
+    # Check if the word is in irregular plurals
+    if word.lower() in irregular_plurals:
+        return irregular_plurals[word.lower()]
+    
+    # Convert to lowercase for case-insensitive processing
+    original = word
+    word = word.lower()
+    
+    # Handle words ending in 'ies'
+    if word.endswith('ies'):
+        # Special case for words like 'parties' -> 'party'
+        return original[:-3] + 'y'
+    
+    # Handle words ending in 'es'
+    if word.endswith(('ses', 'xes', 'ches', 'shes')):
+        # Remove 'es' for words like 'classes', 'boxes', 'churches', 'dishes'
+        return original[:-2]
+    
+    # Handle words ending in 's'
+    if word.endswith('s'):
+        # Remove trailing 's' for most words
+        return original[:-1]
+    
+    return original
+
+def escape_newlines(s):
+    return re.sub("\n", '\\\\n', s)
+
+
+# print(quotify(indent('\t', 2)))

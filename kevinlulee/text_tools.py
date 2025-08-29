@@ -2,7 +2,7 @@ import re
 import yaml
 import textwrap
 
-from kevinlulee.string_utils import trimdent
+from kevinlulee.string_utils import trimdent, tabs_to_spaces
 from kevinlulee.validation import is_array, is_string
 from kevinlulee.ao import flat, smallify, to_array
 
@@ -94,8 +94,6 @@ def extract_frontmatter(text: str):
     return content, frontmatter
 
 
-def tabs_to_spaces(s):
-    return s.replace("\t", "    ")
 
 
 def _toggle_comment(text: str, filetype: str) -> str:

@@ -616,15 +616,21 @@ def unique(x):
 def dict_setter(base, *args):
     def merge(a, b):
         if is_array(b):
-            return a + b
-        if is_object(b):
-            return deep_assign(a, b)
+            if a:
+                return a + b
+            else:
+                return b
+        if is_dict(b):
+            if a:
+                return deep_assign(a, b)
+            else:
+                return b
         return b
 
     first = args[0] if len(args) else None
     if not first:
         return base
-    if is_object(first):
+    if isinstance(first, dict):
         return deep_assign(base, first)
 
     ref = base
@@ -757,3 +763,10 @@ def low_high(a, b):
 
 def objectf(key):
     return lambda x: x.get(key)
+
+
+def get_first_result(result):
+        return results[0] if results else None
+
+
+# print(dict_setter(dict(alpha = dict(b = 1)), 'a', 'c', 1))

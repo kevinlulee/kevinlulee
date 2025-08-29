@@ -13,7 +13,7 @@ import os
 import json
 import yaml
 import toml
-from typing import Any, Unpack
+from typing import Any, Unpack, TypedDict
 from pathlib import Path
 import shutil
 
@@ -41,6 +41,40 @@ def yb_parse(kwargs):
             return s
 
 
+import os
+from typing import Any
+
+def looks_like_path(value: Any) -> bool:
+    """
+    Heuristic: True if the input looks like a filesystem path by checking for:
+      - forward/back slashes,
+      - a leading '~',
+      - a dot in the last segment (e.g., 'file.txt', '.env'),
+      - or exactly '.' / '..'.
+    """
+    if isinstance(value, bytes):
+        s = value.decode("utf-8")
+    elif isinstance(value, (str, os.PathLike)):
+        s = os.fspath(value)
+    else:
+        return False
+
+    s = s.strip()
+    if not s:
+        return False
+
+    if s in (".", ".."):
+        return True
+
+    if s.startswith("~"):
+        return True
+
+    if ("/" in s) or ("\\" in s):
+        return True
+
+    # Check for a dot in the last path segment (handles both separators)
+    last_seg = s.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+    return "." in last_seg
 
 
 from kevinlulee.consts.file_types import FILETYPE_TO_EXT, EXTENSIONS
@@ -50,7 +84,7 @@ def get_extension_from_filetype(lang):
 def has_extension(el):
         if not el or not isinstance(el, str):
             return False
-        return get_extension(el) in extensions
+        return bool(get_extension(el))
 def is_extf(extensions):
     def check(el):
         return has_extension(el)
@@ -111,10 +145,7 @@ def readfile(path: str, raw = False) -> Any:
         if extension == "md":
             return f.read()
         if extension == "json":
-            try:
-                return json.load(f)
-            except Exception as e:
-                return None
+            return json.load(f)
         if extension == "yb":
             import yb
             return yb.load(f)
@@ -211,16 +242,36 @@ class FileContext:
     @property
     def project_root(self):
         return find_project_root(self.path)
-def get_most_recent_file(directory, pattern="*"):
-    # Get a list of files in the directory that match the pattern
-    import glob
-    files = glob.glob(os.path.join(os.path.expanduser(directory), pattern))
-    
-    if not files:
+
+import os
+import glob
+from typing import Iterable, Union
+
+def get_most_recent_file(path_or_files: Union[str, os.PathLike, Iterable[Union[str, os.PathLike]]],
+                         pattern: str = "*"):
+    """
+    If given a directory (str or PathLike), returns the most recently modified file
+    in that directory matching `pattern`.
+
+    If given an iterable of file paths, returns the most recently modified file
+    among those paths. (In this mode, `pattern` is ignored.)
+
+    Returns None if no candidate files are found.
+    """
+    if isinstance(path_or_files, (str, os.PathLike)):
+        directory = os.path.expanduser(os.fspath(path_or_files))
+        candidates = [p for p in glob.glob(os.path.join(directory, pattern)) if os.path.isfile(p)]
+    else:
+        candidates = []
+        for p in path_or_files:
+            full = os.path.expanduser(os.fspath(p))
+            if os.path.isfile(full):
+                candidates.append(full)
+
+    if not candidates:
         return None
-    
-    most_recent = max(files, key=os.path.getmtime)
-    return most_recent
+
+    return max(candidates, key=os.path.getmtime)
 
 
 def get_most_recently_downloaded_file():
@@ -340,23 +391,6 @@ def resolve_dotted_path(path, reference):
     return os.path.abspath(os.path.join(reference, path))
 
 
-def fnamemodify(file, dir = None, name = None, ext = None):
-
-    _dir = os.path.dirname(file)
-    _ext = get_extension(file)
-    _name = os.path.basename(file)
-    _name = _name[0:-len(_ext) - 1]
-    if has_extension(name):
-        _ext = get_extension(name)
-
-
-    if dir: _dir = dir(_dir) if callable(dir) else dir
-    if ext: _ext = ext(_ext) if callable(ext) else ext
-    if name: _name = name(_name) if callable(name) else remove_starting_slash(name)
-    ext_value = '.' + _ext if _ext else ''
-    if name and get_extension(name) and ext is None:
-        ext_value = ''
-    return os.path.join(_dir, f"{_name}{ext_value}")
 
 
 def cpfile(source, dest, debug=False, soft = False, mkdir = False, verbose = False):
@@ -1064,8 +1098,15 @@ def mvfile(a, b):
     a = os.path.expanduser(str(a))
     b = os.path.expanduser(str(b))
     assert_file(a)
+    ensure_directory_exists(b)
     shutil.move(a, b)
 
+def cpdir(a, b):
+    a = os.path.expanduser(str(a))
+    b = os.path.expanduser(str(b))
+    assert_directory(a)
+    os.makedirs(os.path.dirname(b), exist_ok=True)
+    shutil.copy(a, b)
 def mvdir(a, b):
     a = os.path.expanduser(str(a))
     b = os.path.expanduser(str(b))
@@ -1075,4 +1116,185 @@ def mvdir(a, b):
 def rmfile(a):
     a = os.path.expanduser(str(a))
     os.unlink(a)
+
+def cpdir(a, b, verbose = False):
+    a = os.path.expanduser(str(a))
+    b = os.path.expanduser(str(b))
+    os.makedirs(os.path.dirname(b), exist_ok=True)
+    shutil.copytree(a, b)   
+    if verbose:
+        print(f'copied directory "{a}" to "{b}"')
+def rmdir(a):
+    a = os.path.expanduser(str(a))
+    shutil.rmtree(a, ignore_errors=True)  # like `rm -rf`
+
+import os
+from typing import Callable, Optional, Union
+
+StrOrFn = Optional[Union[str, Callable[[str], str]]]
+
+def fnamemodify(path: str, dir: StrOrFn = None, name: StrOrFn = None, ext: StrOrFn = None) -> str:
+    """
+    Rebuild a file path by optionally changing directory, base name, and/or extension.
+
+    Args:
+        path: Original file path.
+        dir:  New directory (string) or a function that receives the current directory and returns one.
+        name: New base name (string) or a function that receives the current base name (no extension) and returns one.
+              If a *string* name includes an extension (e.g., 'report.md') and `ext` is None, that extension is used.
+        ext:  New extension (with or without leading dot) *or* a function that receives the current extension
+              (without leading dot) and returns one. If provided, it overrides any extension found in `name`.
+
+    Returns:
+        The modified file path as a string.
+
+    Notes:
+        - Hidden files like '.env' are treated as having no extension.
+        - If `ext` is an empty string or returns an empty string, the result has no extension.
+        - When `ext` is provided, any extension present in `name` (string or callable result) is stripped and replaced.
+    """
+
+    def _is_hidden_no_ext(s: str) -> bool:
+        # '.env' -> True (no ext), '.gitignore' -> True, 'file.txt' -> False
+        return s.startswith('.') and s.count('.') == 1
+
+    def _split_name(s: str) -> tuple[str, str]:
+        # Returns (base_without_ext, ext_without_dot); treats '.env' as ('.env','')
+        if _is_hidden_no_ext(s):
+            return s, ''
+        base, suffix = os.path.splitext(s)
+        if suffix:
+            return base, suffix.lstrip('.')
+        return s, ''
+
+    def _strip_ext(s: str) -> str:
+        return _split_name(s)[0]
+
+    def _has_ext(s: str) -> bool:
+        return _split_name(s)[1] != ''
+
+    def _normalize_ext(e: str) -> str:
+        # Accept 'md' or '.md' and return a dot-prefixed extension or '' if empty
+        e = e or ''
+        e = e.lstrip('.')
+        return f'.{e}' if e else ''
+
+    # Current components
+    cur_dir  = os.path.dirname(path)
+    cur_file = os.path.basename(path)
+    cur_base, cur_ext = _split_name(cur_file)        # e.g., ('archive.tar', 'gz') or ('notes', '')
     
+    # New directory
+    if callable(dir):
+        new_dir = dir(cur_dir)
+    elif isinstance(dir, str):
+        new_dir = dir
+    else:
+        new_dir = cur_dir
+
+    # Determine new base name
+    if callable(name):
+        # Callable gets the base *without* extension
+        new_name = name(cur_base)
+    elif isinstance(name, str):
+        # Keep only the last path segment and remove leading separators
+        s = os.path.basename(name).lstrip('/\\')
+        new_name = s
+    else:
+        new_name = cur_base
+
+    # Decide final extension
+    ext_is_provided = ext is not None
+
+    if ext_is_provided:
+        # If ext provided, it overrides everything; also strip any ext that slipped into new_name
+        new_name = _strip_ext(new_name)
+        if callable(ext):
+            new_ext = ext(cur_ext)  # callable receives current extension *without* the dot
+        else:
+            new_ext = get_extension(ext) if looks_like_path(ext) else ext
+        suffix = _normalize_ext(new_ext)
+    else:
+        # ext not provided: respect extension if new_name (string or callable result) already has one
+        if _has_ext(new_name):
+            # Use name exactly as given (including its extension)
+            suffix = ''  # don't append another extension
+        else:
+            # Keep the original extension
+            suffix = _normalize_ext(cur_ext)
+
+    # If name was a string and included directories, we've already stripped them.
+    # Also ensure we don't carry an empty filename.
+    if new_name == '':
+        # Fall back to current base if the provided name sanitized to empty
+        new_name = cur_base
+
+    return os.path.join(new_dir, f"{new_name}{suffix}")
+
+# fnamemodify("/a/b/c.txt")                           # "/a/b/c.txt" (unchanged)
+# fnamemodify("/a/b/c.txt", name="report")            # "/a/b/report.txt"
+# fnamemodify("/a/b/c.txt", name="report.md")         # "/a/b/report.md" (name's ext respected)
+# fnamemodify("/a/b/c.txt", ext="md")                 # "/a/b/c.md"
+# fnamemodify("/a/b/c.tar.gz", name=lambda n: n.upper())
+# # -> "/a/b/C.TAR.gz" (callable name, original ext kept)
+#
+# fnamemodify("/a/b/c.txt", name="draft.md", ext="rst")
+# # -> "/a/b/draft.rst" (explicit ext overrides name's ext)
+#
+# print(fnamemodify("/a/b/.env", ext="bak"))
+# fnamemodify("/a/b/.env", name=".env.local")         # "/a/b/.env.local"
+#
+
+import os
+import mimetypes
+from pathlib import Path
+from datetime import datetime
+from typing import TypedDict, Optional
+
+
+class FileInfo(TypedDict):
+    modified_at: datetime
+    size: int
+    ext: str
+    name: str
+    path: str
+    filetype: Optional[str]
+
+
+def get_file_info(file_path: str) -> FileInfo:
+    """
+    Get comprehensive file information.
+    
+    Args:
+        file_path (str): Path to the file
+        
+    Returns:
+        FileInfo: TypedDict containing file information
+        
+    Raises:
+        FileNotFoundError: If the file doesn't exist
+        OSError: If there's an error accessing the file
+    """
+    path_obj = Path(file_path)
+    
+    # Get file stats
+    stat = path_obj.stat()
+    
+    # Get file extension (without the dot)
+    ext = path_obj.suffix.lstrip('.')
+    
+    # Get MIME type
+    filetype, _ = mimetypes.guess_type(str(path_obj))
+    
+    path = str(path_obj.absolute())
+    return FileInfo(
+        modified_at=stat.st_mtime,
+        size=stat.st_size,
+        ext=ext,
+        name=path_obj.name,
+        path=path,
+        filetype=resolve_filetype(path)
+    )
+
+
+# info = get_file_info("/home/kdog3682/projects/python/kevinlulee/kevinlulee/file_utils.py")

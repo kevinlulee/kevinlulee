@@ -21,6 +21,8 @@ from typing import Optional, Iterable
 
 
 def datetime_from_str(s: str) -> datetime:
+    if s.endswith('ago'):
+        return timeago_to_datetime(s)
     dt = None
     if dt is None:
         from dateutil import parser as _du
@@ -76,7 +78,9 @@ def to_datetime(x=None):
         return datetime_from_str(d)
     if isinstance(x, str):
         path = os.path.expanduser(x)
-        if os.path.isfile(path):
+        if os.path.isdir(path):
+            return datetime.fromtimestamp(os.path.getmtime(path))
+        elif os.path.isfile(path):
             return datetime.fromtimestamp(os.path.getmtime(path))
         else:
             return datetime_from_str(x)
@@ -527,3 +531,51 @@ def now():
 
 
 # resolve_timedelta2().min
+def timeago_to_datetime(timeago_str: str) -> datetime:
+    """Convert timeago string to datetime object."""
+    if not timeago_str or not isinstance(timeago_str, str):
+        raise ValueError("Invalid timeago string")
+    
+    now = datetime.now()
+    clean_str = timeago_str.lower().replace("ago", "").strip()
+    
+    total_seconds = 0
+    
+    patterns = {
+        'seconds': r'(\d+)\s*seconds?',
+        'minutes': r'(\d+)\s*minutes?',
+        'hours': r'(\d+)\s*hours?',
+        'days': r'(\d+)\s*days?',
+        'weeks': r'(\d+)\s*weeks?',
+        'months': r'(\d+)\s*months?',
+        'years': r'(\d+)\s*years?'
+    }
+    
+    for unit, pattern in patterns.items():
+        match = re.search(pattern, clean_str)
+        if match:
+            value = int(match.group(1))
+            if unit == 'seconds':
+                total_seconds += value
+            elif unit == 'minutes':
+                total_seconds += value * 60
+            elif unit == 'hours':
+                total_seconds += value * 3600
+            elif unit == 'days':
+                total_seconds += value * 86400
+            elif unit == 'weeks':
+                total_seconds += value * 604800
+            elif unit == 'months':
+                total_seconds += value * 2592000
+            elif unit == 'years':
+                total_seconds += value * 31536000
+    
+    if total_seconds == 0:
+        if 'just now' in clean_str or 'now' in clean_str:
+            total_seconds = 0
+        elif 'yesterday' in clean_str:
+            total_seconds = 86400
+        else:
+            raise ValueError(f"Could not parse timeago string: {timeago_str}")
+    
+    return now - timedelta(seconds=total_seconds)

@@ -231,6 +231,10 @@ def fd(
         debug=debug
     )
 def rg(dir, pattern, **kwargs):
-    return ripgrep(pattern, [dir], **kwargs)
+    return ripgrep(pattern.strip(), [dir], **kwargs)
+
 if __name__ == '__main__':
-    print(ripgrep(pattern='def group', dirs = ['/home/kdog3682/projects/python/kevinlulee/kevinlulee/']))
+    # print(ripgrep(pattern='def group', dirs = ['/home/kdog3682/projects/python/kevinlulee/kevinlulee/']))
+    ROOT_DIR = "/home/kdog3682/projects/python/maelstrom/lib/nvim/plugins/v1/"
+    FD_PAT = ''' data_path\s*=\s*["']~/.cache/maelstrom/[^"']*["'] '''
+    print(rg(ROOT_DIR, FD_PAT))

@@ -39,6 +39,7 @@ from .extended import *
 from .ddo import LiveDict, LiveArray
 from .text import StringBuilder
 from .extensions import *
+from .misc import *
 
 get_caller = introspect.get_caller
 
