@@ -120,8 +120,6 @@ user_installed_pip_packages = [
     "yapf",  # Yet another Python formatter (alternative to black/autopep8)
 ]
 
+EMDASH = '–'
 
 DLDIR = '/mnt/chromeos/MyFiles/Downloads/'
-
-
-EMDASH = '–'

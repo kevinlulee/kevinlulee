@@ -117,13 +117,12 @@ def to_string(x):
     if isinstance(x, str):
         return x
 
-    if callable(x):
-        return kx.inspect.getsource(x)
-
     for key in ("text", "body", "value", "content"):
         if hasattr(x, key):
             return getattr(x, key)
 
+    if callable(x):
+        return kx.inspect.getsource(x)
     if isinstance(x, (list, tuple, set, dict, dict_keys, dict_values, dict_items)):
         return kx.json.dumps(x, indent=2)
 
@@ -551,9 +550,9 @@ def raw_code(value, lang):
 
 
 
-def dirmap(dir, func):
-    files = kx.getfiles(dir, pattern='\.(?:yml|json)$', recursive=True)
-    return kx.map(files, lambda x: func(kx.readfile(x)))
+def dirmap(dir, func, exts = []):
+    files = kx.get_files(dir, exts = kx.xsplit(exts), recursive=True)
+    return kx.map(files, func)
 
 from copy import deepcopy
 from typing import Any
@@ -909,3 +908,36 @@ class PNPM:
 # pnpm.test_once()
 # print(pnpm.install())
 # pnpm.install_package('react-fzf')
+
+
+class FunctionalCache:
+    def __init__(self, func):
+        """
+        Initialize the cache with a function to be memoized.
+        
+        Args:
+            func: The function to cache results for
+        """
+        self.func = func
+        self.cache = {}
+    
+    def get(self, *args, **kwargs):
+        """
+        Get the result for the given arguments. If not in cache, 
+        compute using the stored function and cache the result.
+        
+        Args:
+            *args: Positional arguments for the function
+            **kwargs: Keyword arguments for the function
+            
+        Returns:
+            The function result (cached or newly computed)
+        """
+        # Create a cache key from args and kwargs
+        key = (args, tuple(sorted(kwargs.items())))
+        
+        if key not in self.cache:
+            # Not in cache, compute and store
+            self.cache[key] = self.func(*args, **kwargs)
+        
+        return self.cache[key]

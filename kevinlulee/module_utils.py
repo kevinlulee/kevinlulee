@@ -58,7 +58,9 @@ def get_modname_from_directory(path):
     
     return _get_modname(path)
 def get_modname_from_file(file):
+    file = str(file)
     if not file.endswith(".py"):
+        return 
         if '.' in file:
             return file
         else:
@@ -131,12 +133,16 @@ def get_module_func_from_string(s):
     func = getattr(module, fname,None)
     return func
 
-def get_implicit_module_func(s):
+def get_implicit_module_func(s, strict = False):
     parts = s.split('.')
     fname = parts[-1]
     modname = '.'.join(parts)
     module = get_module(modname, reload = True)
     func = getattr(module, fname,None)
+    if strict and not func:
+        print(modname)
+        print(get_file_from_modname(modname))
+        raise Exception("could not get the func", fname)
     return func
 
 def run_module_func(s, *args, reload = True, **kwargs):

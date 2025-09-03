@@ -4,7 +4,9 @@ import calendar
 from typing import Optional, TypedDict, Union, Literal
 import os
 
-from kevinlulee.string_utils import camel_case
+from kevinlulee.base import identity, yes
+from kevinlulee.class_introspection_ops import collect_class_property_names
+from kevinlulee.string_utils import camel_case, oxford_comma
 
 
 class TimeOpts(TypedDict):
@@ -21,7 +23,7 @@ from typing import Optional, Iterable
 
 
 def datetime_from_str(s: str) -> datetime:
-    if s.endswith('ago'):
+    if s.endswith("ago"):
         return timeago_to_datetime(s)
     dt = None
     if dt is None:
@@ -59,20 +61,25 @@ def datetime_from_str(s: str) -> datetime:
     return dt
 
 
-
-def rough_unit_from_digits(ts: int | str) -> Literal["s","ms","us","ns"]:
+def rough_unit_from_digits(ts: int | str) -> Literal["s", "ms", "us", "ns"]:
     """Quick heuristic by digit length: 10≈s, 13≈ms, 16≈µs, 19≈ns."""
     n = len(str(abs(int(ts))))
-    if n >= 19: return "ns"
-    if n >= 16: return "us"
-    if n >= 13: return "ms"
+    if n >= 19:
+        return "ns"
+    if n >= 16:
+        return "us"
+    if n >= 13:
+        return "ms"
     return "s"
+
 
 def to_datetime(x=None):
     if x is None:
         return datetime.now()
     if isinstance(x, dict):
         d = extract_datetime_str_from_dictionary(x)
+        if isinstance(d, int):
+            return to_datetime(d)
         if not d:
             return resolve_timedelta2(**x)
         return datetime_from_str(d)
@@ -85,10 +92,27 @@ def to_datetime(x=None):
         else:
             return datetime_from_str(x)
     if isinstance(x, (int, float)):
-        if rough_unit_from_digits(x) == 'ms':
+        if rough_unit_from_digits(x) == "ms":
             x /= 1000
         return datetime.fromtimestamp(x)
-    return x
+
+    if isinstance(x, datetime):
+        return x
+
+    return extract_datetime_from_object(x)
+
+
+import re
+from typing import Optional
+
+
+def extract_datetime_from_object(x):
+    # props = collect_class_property_names(x)
+    for field in DATE_FIELD_KEYS:
+        if hasattr(x, field):
+            val = getattr(x, field, None)
+            if val is not None and not callable(val):
+                return to_datetime(val)
 
 
 def get_season(d):
@@ -121,6 +145,7 @@ def strftime(source=None, mode="iso8601"):
 def timestamp():
     return datetime.now().timestamp()
 
+
 def resolve_timedelta2(
     hours=0, seconds=0, minutes=0, days=0, weeks=0, months=0, years=0, **kwargs
 ):
@@ -131,6 +156,26 @@ def resolve_timedelta2(
         minutes=minutes,
         days=days + weeks * 7 + months * 30 + years * 365,
     )
+
+
+def to_seconds(
+    hours=0, seconds=0, minutes=0, days=0, weeks=0, months=0, years=0
+):
+    minute = 60
+    hour = 60 * minute
+    day = 24 * hour
+    week = 7 * day
+    month = int(30.44 * day)  # average month length
+    return (
+        hours * hour
+        + seconds
+        + minutes * minute
+        + days * day
+        + weeks * week
+        + months * month
+    )
+
+
 def resolve_timedelta(
     hours=0, seconds=0, minutes=0, days=0, weeks=0, months=0, years=0, **kwargs
 ):
@@ -146,62 +191,59 @@ def resolve_timedelta(
     return cutoff.timestamp()
 
 
+from datetime import datetime
 
 
-def timeago(time, now=None):
-    def seconds_to_ago_string(seconds):
-        # Define time units in seconds
-        minute = 60
-        hour = 60 * minute
-        day = 24 * hour
-        week = 7 * day
-        month = 30.44 * day  # Average month length
-
-        # Calculate the time units
-        months, remainder = divmod(seconds, month)
-        weeks, remainder = divmod(remainder, week)
-        days, remainder = divmod(remainder, day)
-        hours, remainder = divmod(remainder, hour)
-        minutes, seconds = divmod(remainder, minute)
-
-        # Convert to integers
-        units = [
-            ("month", int(months)),
-            ("week", int(weeks)),
-            ("day", int(days)),
-            ("hour", int(hours)),
-            ("minute", int(minutes)),
-            ("second", int(seconds)),
-        ]
-
-        # Filter out zero values and create the string
-        parts = []
-        for unit, value in units:
-            if value > 0:
-                parts.append(f"{value} {unit}{'s' if value > 1 else ''}")
-
-        if len(parts) == 0:
-            return "just now"
-        elif len(parts) == 1:
-            return f"{parts[0]} ago"
-        else:
-            return f"{', '.join(parts[:-1])} and {parts[-1]} ago"
-
+def timeago(time, now=None, max_parts=2):
+    """
+    Human-readable 'time ago' string with optional max_parts (default 2).
+    Examples:
+      - '3 days and 4 hours ago'
+      - '5 minutes ago'
+      - 'just now'
+    """
     past = to_datetime(time)
-    now = to_datetime(now) if now else datetime.now()
-    td = now - past
-    s = seconds_to_ago_string(td.seconds)
+    now = to_datetime(now) if now is not None else datetime.now()
 
-    if td.days:
-        return f"{td.days} days, {s}"
-    else:
-        return s
+    total_seconds = int((now - past).total_seconds())
+    if total_seconds <= 100:
+        return "just now"
+
+    # Unit sizes (in seconds)
+    minute = 60
+    hour = 60 * minute
+    day = 24 * hour
+    week = 7 * day
+    month = int(30.44 * day)  # average month length
+
+    # Break down into units, largest -> smallest
+    parts = []
+    for unit_name, unit_seconds in (
+        ("month", month),
+        ("week", week),
+        ("day", day),
+        ("hour", hour),
+        ("minute", minute),
+        ("second", 1),
+    ):
+        if total_seconds >= unit_seconds:
+            value, total_seconds = divmod(total_seconds, unit_seconds)
+            parts.append(f"{value} {unit_name}{'' if value == 1 else 's'}")
+
+    if not parts:
+        return "just now"
+
+    # Limit to the requested number of parts
+    parts = parts[:max_parts]
+
+    # Join with commas and 'and'
+    return oxford_comma(parts) + " ago"
 
 
 class DateAccess:
     """A class that provides access to various date and time properties."""
 
-    def __init__(self, date = None):
+    def __init__(self, date=None):
         self.init_date(date)
 
     def init_date(self, date):
@@ -212,7 +254,7 @@ class DateAccess:
 
     @property
     def date(self) -> datetime:
-        return getattr(self, '_date', None) or datetime.datetime.now()
+        return getattr(self, "_date", None) or datetime.datetime.now()
 
     @property
     def year(self) -> int:
@@ -369,15 +411,17 @@ def is_recent(x, **opts):
     cutoff = resolve_timedelta(**opts)
     return to_timestamp(x) >= cutoff
 
+
 def is_recentf(mode="after", key=None, **opts):
     cutoff = resolve_timedelta(**opts)
-    recency_modes = ['after', 'recent', 'near']
+    recency_modes = ["after", "recent", "near"]
     if mode in recency_modes:
         return lambda x: to_timestamp(x) >= cutoff
     else:
         return lambda x: to_timestamp(x) < cutoff
 
     # return lambda x: fn(x[key]) if key else fn
+
 
 def is_time_between(start: str | dict, end: str | dict):
     start_day, start_time = parse_day_and_time(start)
@@ -485,36 +529,38 @@ def asdf(x, **opts):
 # 2025-08-11 Whereami
 
 
-def extract_datetime_str_from_dictionary(x: dict) -> Optional[str]:
-    date_field_names = [
-        "date",
-        'Date',
-        "datetime",
-        "timestamp",
-        "created_at",
-        "updated_at",
-        "creation_date",
-        "modification_date",
-        "time",
-        "time_usec",
-        "time_ms",
-        "start_date",
-        "end_date",
-        "published_at",
-        "created_on",
-        "modified_on",
-        "date_created",
-        "date_modified",
-        "birth_date",
-        "expiry_date",
-    ]
+DATE_FIELD_KEYS = [
+    "lastused",
+    "date",
+    "Date",
+    "datetime",
+    "timestamp",
+    "created_at",
+    "updated_at",
+    "creation_date",
+    "modification_date",
+    "time",
+    "time_usec",
+    "time_ms",
+    "start_date",
+    "end_date",
+    "published_at",
+    "created_on",
+    "modified_on",
+    "date_created",
+    "date_modified",
+    "birth_date",
+    "expiry_date",
+]
 
+
+def extract_datetime_str_from_dictionary(x: dict) -> Optional[str]:
     # Check for exact matches
-    for field in date_field_names:
+    for field in DATE_FIELD_KEYS:
         if field in x:
             return x[field]
 
-    camels = [camel_case(field) for field in date_field_names]
+    camels = [camel_case(field) for field in DATE_FIELD_KEYS]
     for field in camels:
         if field in x:
             return x[field]
@@ -535,47 +581,75 @@ def timeago_to_datetime(timeago_str: str) -> datetime:
     """Convert timeago string to datetime object."""
     if not timeago_str or not isinstance(timeago_str, str):
         raise ValueError("Invalid timeago string")
-    
+
     now = datetime.now()
     clean_str = timeago_str.lower().replace("ago", "").strip()
-    
+
     total_seconds = 0
-    
+
     patterns = {
-        'seconds': r'(\d+)\s*seconds?',
-        'minutes': r'(\d+)\s*minutes?',
-        'hours': r'(\d+)\s*hours?',
-        'days': r'(\d+)\s*days?',
-        'weeks': r'(\d+)\s*weeks?',
-        'months': r'(\d+)\s*months?',
-        'years': r'(\d+)\s*years?'
+        "seconds": r"(\d+)\s*seconds?",
+        "minutes": r"(\d+)\s*minutes?",
+        "hours": r"(\d+)\s*hours?",
+        "days": r"(\d+)\s*days?",
+        "weeks": r"(\d+)\s*weeks?",
+        "months": r"(\d+)\s*months?",
+        "years": r"(\d+)\s*years?",
     }
-    
+
     for unit, pattern in patterns.items():
         match = re.search(pattern, clean_str)
         if match:
             value = int(match.group(1))
-            if unit == 'seconds':
+            if unit == "seconds":
                 total_seconds += value
-            elif unit == 'minutes':
+            elif unit == "minutes":
                 total_seconds += value * 60
-            elif unit == 'hours':
+            elif unit == "hours":
                 total_seconds += value * 3600
-            elif unit == 'days':
+            elif unit == "days":
                 total_seconds += value * 86400
-            elif unit == 'weeks':
+            elif unit == "weeks":
                 total_seconds += value * 604800
-            elif unit == 'months':
+            elif unit == "months":
                 total_seconds += value * 2592000
-            elif unit == 'years':
+            elif unit == "years":
                 total_seconds += value * 31536000
-    
+
     if total_seconds == 0:
-        if 'just now' in clean_str or 'now' in clean_str:
+        if "just now" in clean_str or "now" in clean_str:
             total_seconds = 0
-        elif 'yesterday' in clean_str:
+        elif "yesterday" in clean_str:
             total_seconds = 86400
         else:
             raise ValueError(f"Could not parse timeago string: {timeago_str}")
-    
+
     return now - timedelta(seconds=total_seconds)
+
+
+def make_time_window_predicate(start=None, end=None):
+    """
+    Factory: returns predicate(ts) -> bool that checks if `ts` is within the
+    inclusive time window [start, end]. At least one of start/end must be given.
+    """
+    if not start and not end:
+        return yes
+
+    s = to_datetime(start) if start is not None else None
+    e = to_datetime(end) if end is not None else None
+    if (s is not None) and (e is not None):
+        assert s <= e, "start must be <= end"
+
+    def predicate(ts):
+        t = to_datetime(ts)
+        if (s is not None) and (t < s):
+            return False
+        if (e is not None) and (t > e):
+            return False
+        return True
+
+    return predicate
+
+
+# print(to_datetime(dict(hours = -5)))
+# print(make_time_window_predicate(end = dict(hours = 5))(dict(hours = 7)))

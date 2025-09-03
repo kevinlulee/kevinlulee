@@ -362,6 +362,27 @@ def count_sentences(text: str) -> int:
     sentences = [s.strip() for s in re.split(r'[.!?]+', text) if s.strip()]
     return len(sentences)
 
+def oxford_comma(items, conj="and", serial_comma=True):
+    """
+    Join a sequence with an Oxford comma.
+      []                -> ""
+      ["A"]             -> "A"
+      ["A","B"]         -> "A and B"
+      ["A","B","C"]     -> "A, B, and C"   (serial_comma=True)
+                          "A, B and C"     (serial_comma=False)
+    """
+    items = [str(x) for x in items if str(x) != ""]
+    n = len(items)
+    if n == 0:
+        return ""
+    if n == 1:
+        return items[0]
+    if n == 2:
+        return f"{items[0]} {conj} {items[1]}"
+    if serial_comma:
+        return f"{', '.join(items[:-1])}, {conj} {items[-1]}"
+    else:
+        return f"{', '.join(items[:-1])} {conj} {items[-1]}"
 
 def oxford_or(names):
     """

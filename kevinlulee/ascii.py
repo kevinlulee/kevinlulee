@@ -1,8 +1,23 @@
 import kevinlulee as kx
 
 # 2025-05-16 aicmp: add an option to allow separator lines to be shown or not
+import kevinlulee as kx
+
+import kevinlulee as kx
+
 class TableFormatter:
-    def __init__(self, data, keys=None, padding=3, center_header=True, show_pipes=False, left_aligned=True, left_padding_first_col=0, right_padding_last_col=0):
+    def __init__(
+        self,
+        data,
+        keys=None,
+        padding=3,
+        center_header=True,
+        show_pipes=False,
+        left_aligned=True,
+        left_padding_first_col=0,
+        right_padding_last_col=0,
+        screen_width=80,
+    ):
         kx.assert_array(data)
         self.data = data
         self.keys = keys
@@ -13,7 +28,19 @@ class TableFormatter:
         self.left_padding_first_col = left_padding_first_col
         self.right_padding_last_col = right_padding_last_col
         self.outer_pipe = ''
+        self.screen_width = screen_width
 
+    # ---------- helpers ----------
+    def _cap(self, s: str) -> str:
+        if self.screen_width is None:
+            return s
+        return s if len(s) <= self.screen_width else s[: self.screen_width]
+
+    def _filter_rows_skip_none(self, rows, columns):
+        """Keep only rows where ALL selected columns are non-None."""
+        return [r for r in rows if all(self.get_field_value(r, c) is not None for c in columns)]
+
+    # ---------- key/value extraction ----------
     def get_keys(self, data):
         if isinstance(data, dict):
             return list(data.keys())
@@ -23,66 +50,69 @@ class TableFormatter:
                 if isinstance(value, (str, int, float)):
                     result.append(key)
             return result
-    
+
     def get_field_value(self, row, col):
         if isinstance(row, dict):
-            return row.get(col, '')
+            return row.get(col, None)
         else:
-            return getattr(row, col, '')
+            return getattr(row, col, None)
 
-    def get_column_widths(self, columns):
+    # ---------- width calc & formatting ----------
+    def get_column_widths(self, columns, rows):
         col_widths = {col: len(col) for col in columns}
-        
-        for el in self.data:
+        for el in rows:
             for col in columns:
-                width = len(str(self.get_field_value(el, col)))
+                val = self.get_field_value(el, col)
+                width = len(str(val))
                 col_widths[col] = max(col_widths[col], width)
-                
         return col_widths
-    
+
     def format_header(self, columns, col_widths):
         pipe = "|" if self.show_pipes else ""
-        # pipe = ' '
-        
         header_parts = []
         for i, col in enumerate(columns):
             left_pad = self.left_padding_first_col if i == 0 else self.padding
             right_pad = self.right_padding_last_col if i == len(columns) - 1 else self.padding
-            
+
             if self.center_header:
                 header_parts.append(f"{' ' * left_pad}{col:^{col_widths[col]}}{' ' * right_pad}")
             else:
                 header_parts.append(f"{' ' * left_pad}{col:<{col_widths[col]}}{' ' * right_pad}")
-        
+
         header = self.outer_pipe + (pipe if self.show_pipes else "").join(header_parts) + self.outer_pipe
-        return header
-    
-    def format_rows(self, columns, col_widths):
+        return self._cap(header)
+
+    def format_rows(self, rows, columns, col_widths):
         pipe = "|" if self.show_pipes else ""
-        
-        rows = []
-        for row in self.data:
+        out = []
+        for row in rows:
             row_parts = []
             for i, col in enumerate(columns):
                 left_pad = self.left_padding_first_col if i == 0 else self.padding
                 right_pad = self.right_padding_last_col if i == len(columns) - 1 else self.padding
-                
+
                 value = str(self.get_field_value(row, col))
                 if self.left_aligned:
                     row_parts.append(f"{' ' * left_pad}{value:<{col_widths[col]}}{' ' * right_pad}")
                 else:
                     row_parts.append(f"{' ' * left_pad}{value:^{col_widths[col]}}{' ' * right_pad}")
-            
-            formatted_row = self.outer_pipe + (pipe if self.show_pipes else "").join(row_parts) +self.outer_pipe 
-            rows.append(formatted_row)
-        return rows
+
+            formatted_row = self.outer_pipe + (pipe if self.show_pipes else "").join(row_parts) + self.outer_pipe
+            out.append(self._cap(formatted_row))
+        return out
 
     def format(self):
         if not self.data:
             return ''
-            
+
         columns = self.keys or self.get_keys(self.data[0])
-        col_widths = self.get_column_widths(columns)
+
+        # Keep only rows where no selected column has a None
+        filtered_rows = self._filter_rows_skip_none(self.data, columns)
+        if not filtered_rows:
+            return ''
+
+        col_widths = self.get_column_widths(columns, filtered_rows)
 
         # Calculate total widths including padding
         total_widths = {}
@@ -91,14 +121,16 @@ class TableFormatter:
             right_pad = self.right_padding_last_col if i == len(columns) - 1 else self.padding
             total_widths[col] = col_widths[col] + left_pad + right_pad
 
+        # Build separator and cap to screen width (dashes never exceed screen width)
         pipe = "-" if self.show_pipes else ""
         separator_char = '-'
         separator = self.outer_pipe + pipe.join(separator_char * width for width in total_widths.values()) + self.outer_pipe
+        separator = self._cap(separator)
 
         header = self.format_header(columns, col_widths)
-        rows = self.format_rows(columns, col_widths)
-        table = [separator, header, separator, *rows, separator]
+        rows = self.format_rows(filtered_rows, columns, col_widths)
 
+        table = [separator, header, separator, *rows, separator]
         return "\n".join(table)
 
 # 2025-05-16 aicmp: add in the params from table formatter
@@ -178,7 +210,7 @@ def side_by_side(
     max_len2 = max((len(line) for line in lines2), default=0)
 
     # Calculate total width including padding and separator
-    pad_left, pad_right = (padding, padding) if is_number(padding) else padding
+    pad_left, pad_right = (padding, padding) if kx.is_number(padding) else padding
     prefix = prefix + " " if prefix else ""
     total_width = max_len1 + max_len2 + 3 + pad_left + pad_right + len(prefix)
 

@@ -13,6 +13,7 @@ from kevinlulee.string_utils import split
 from kevinlulee.ao import join_spaces
 
 from .file_utils import (
+    assert_file,
     ensure_directory_exists,
     find_git_directory,
     find_project_root,
@@ -185,3 +186,7 @@ def bash3(*args, cwd=None, on_error=None):
 def pip(key, cwd=None):
     return bash("pip", "install", key, "--break-system-packages", cwd=cwd)
 
+
+def chmod(x):
+    assert_file(x)
+    return bash('sudo', 'chmod', '755', x)
