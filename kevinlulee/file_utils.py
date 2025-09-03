@@ -24,8 +24,8 @@ from kevinlulee.base import yes, no
 from kevinlulee.resolve_ops import resolve_filetype
 from kevinlulee.serialize_ops import serialize_data
 import kevinlulee.yb as yb
-from kevinlulee.date_utils import strftime, resolve_timedelta
-from kevinlulee.string_utils import mget, prefix_join, remove_ending_slash, split, split_once, remove_starting_slash
+from kevinlulee.date_utils import make_time_window_predicate, strftime, resolve_timedelta, to_seconds
+from kevinlulee.string_utils import matchstr, mget, prefix_join, remove_ending_slash, split, split_once, remove_starting_slash
 
 def yb_parse(kwargs):
             assert isinstance(kwargs, dict), "yb data must be in the form of a dict"
@@ -108,6 +108,7 @@ def get_extension(file_path: str) -> str:
         '.vim',
         '.env',
     ]
+    file_path = str(file_path)
     bn = os.path.basename(file_path)
     if bn in dot_files:
         return bn[1:]
@@ -278,8 +279,8 @@ def get_most_recently_downloaded_file():
     return get_most_recent_file(DLDIR)
 
 def get_most_recent_file_groups(dir, pattern = '.', minutes=3):
-    files = getfiles(dir, pattern)
-    files = reverse(sorted(files, key=os.path.getmtime))
+    files = get_paths(dir, include = pattern)
+    files = list(reversed(sorted(files, key=os.path.getmtime)))
     store = []
 
     last_date = None
@@ -291,14 +292,14 @@ def get_most_recent_file_groups(dir, pattern = '.', minutes=3):
             store.append(file)
         else:
             delta = abs(file_date - last_date)
-            limit = resolve_timedelta(minutes=minutes)
+            limit = to_seconds(minutes=minutes)
             if delta < limit:
                 store.append(file)
             else:
                 break
         last_date = file_date
 
-    return reverse(store)
+    return list(reversed(store))
 
 def get_most_recently_downloaded_files():
     return get_most_recent_file_groups(DLDIR)
@@ -710,7 +711,7 @@ def ensure_directory_exists(path):
     
     path = os.path.expanduser(path)  # Expands ~ to the user's home directory
     
-    if get_extension(path):
+    if is_file(path) or get_extension(path):
         path = os.path.dirname(path)
     if path and not os.path.exists(path):
         os.makedirs(path, exist_ok=True)
@@ -758,6 +759,11 @@ def add_extension_if_not_present(file_name: str, extension: str) -> str:
         return file_name
 
     return file_name + '.' + extension
+skippable_dirs = [
+        "__pycache__",
+        "node_modules",
+        ".git",
+    ]
 class FilepathValidator:
     ignore_dirs = [
         "__pycache__",
@@ -795,94 +801,6 @@ def getfiles(dir, pattern=".", recursive=False, tree=False, sort=False) -> list[
 
     return store
 
-
-def mvdir(source_path, target_path, root_dir = None):
-
-    # Normalize paths and make them absolute
-    source_path = os.path.join(root_dir, os.path.expanduser(source_path))
-    target_path = os.path.join(root_dir, os.path.expanduser(target_path))
-    source_path = os.path.expanduser(os.path.normpath(source_path))
-    target_path = os.path.expanduser(os.path.normpath(target_path))
-
-    # Check if source exists
-    if not os.path.exists(source_path):
-        print(f"Source path does not exist: {source_path}")
-        return False
-
-    try:
-        # Create target directory if it doesn't exist
-        target_dir = os.path.dirname(target_path)
-        if not os.path.exists(target_dir):
-            os.makedirs(target_dir)
-
-        # Move the directory or file
-        shutil.move(source_path, target_path)
-        print(f"Successfully moved {source_path} to {target_path}")
-        return True
-    except Exception as e:
-        print(f"Error moving directory: {e}")
-        return False
-
-def cp(src, dst, recursive=True, preserve_metadata=False, debug=False, verbose=False):
-    """
-    Copy files or directories, similar to bash 'cp' command.
-    
-    Args:
-        src (str): Source file or directory path
-        dst (str): Destination file or directory path
-        recursive (bool): If True, copy directories recursively (like cp -r)
-        preserve_metadata (bool): If True, preserve file metadata (like cp -p)
-        dry_run (bool): If True, only show what would be done without actually copying
-        verbose (bool): If True, print operations being performed
-    
-    Returns:
-        None
-    
-    Raises:
-        FileNotFoundError: If source doesn't exist
-        IsADirectoryError: If source is directory without recursive=True
-        shutil.Error: For other copy-related errors
-    """
-    # Expand paths (handle ~ and make absolute)
-    src = os.path.abspath(os.path.expanduser(src))
-    dst = os.path.abspath(os.path.expanduser(dst))
-    
-    if not os.path.exists(src):
-        raise FileNotFoundError(f"Source path '{src}' does not exist")
-    
-    if os.path.isdir(src):
-        if recursive:
-            action = "copytree" if not debug else "would copytree"
-            copy_func = "copy2" if preserve_metadata else "copy"
-            
-            if verbose or debug:
-                print(f"{action}: '{src}' -> '{dst}' (recursive, {copy_func})")
-                
-            if not debug:
-                try:
-                    if preserve_metadata:
-                        shutil.copytree(src, dst, copy_function=shutil.copy2)
-                    else:
-                        shutil.copytree(src, dst)
-                except shutil.Error as e:
-                    raise shutil.Error(f"Error copying directory {src} to {dst}: {e}")
-        else:
-            raise IsADirectoryError(f"'{src}' is a directory (not copied). Use recursive=True to copy directories.")
-    else:
-        action = "copy" if not debug else "would copy"
-        copy_func = "copy2" if preserve_metadata else "copy"
-        
-        if verbose or debug:
-            print(f"{action}: '{src}' -> '{dst}' ({copy_func})")
-            
-        if not debug:
-            try:
-                if preserve_metadata:
-                    shutil.copy2(src, dst)
-                else:
-                    shutil.copy(src, dst)
-            except shutil.Error as e:
-                raise shutil.Error(f"Error copying file {src} to {dst}: {e}")
 
 
 class PathValidator:
@@ -1094,19 +1012,36 @@ def assert_directory(a, exists = True):
 
 
 
-def mvfile(a, b):
+def mvfile(a, b, normalize_to_directory = False, verbose = False):
     a = os.path.expanduser(str(a))
     b = os.path.expanduser(str(b))
+    if normalize_to_directory: b = fnamemodify(b, name = os.path.basename(a))
     assert_file(a)
     ensure_directory_exists(b)
     shutil.move(a, b)
+    if verbose: print(f'moved {os.path.basename(a)} to {unexpand(os.path.dirname(b))}')
+    # print([a, b])
 
+
+
+def cpfile(a, b, normalize_to_directory = False, verbose = False):
+    a = os.path.expanduser(str(a))
+    b = os.path.expanduser(str(b))
+    if normalize_to_directory: b = fnamemodify(b, name = os.path.basename(a))
+    assert_file(a)
+    ensure_directory_exists(b)
+    shutil.copyfile(a, b)
+    if verbose: print(f'copied {os.path.basename(a)} to {unexpand(os.path.dirname(b))}')
+
+def trashfile(a, verbose = False):
+    mvfile(a, '~/trash', normalize_to_directory = True, verbose = verbose)
 def cpdir(a, b):
     a = os.path.expanduser(str(a))
     b = os.path.expanduser(str(b))
     assert_directory(a)
-    os.makedirs(os.path.dirname(b), exist_ok=True)
+    ensure_directory_exists(b)
     shutil.copy(a, b)
+    return b
 def mvdir(a, b):
     a = os.path.expanduser(str(a))
     b = os.path.expanduser(str(b))
@@ -1297,4 +1232,96 @@ def get_file_info(file_path: str) -> FileInfo:
     )
 
 
+
+def is_public_directory(dir):
+    return os.path.basename(dir) not in skippable_dirs
+
 # info = get_file_info("/home/kdog3682/projects/python/kevinlulee/kevinlulee/file_utils.py")
+import os
+
+import os
+
+import os
+
+import os
+import re
+
+def get_paths(
+    dir,
+    exts=None,
+    start=None,
+    end=None,
+    depth=1,
+    collect="files",      # 'files' | 'dirs' | 'both'
+    include=None,         # str or compiled re, matched against basename via kx.matchstr
+    exclude=None,         # str or compiled re, matched against basename via kx.matchstr
+    validators = [],
+) -> list[str]:
+    base = os.path.expanduser(dir)
+    exts = [] if exts is None else exts
+    collect = collect.lower()
+    want_files = collect in ("files", "both")
+    want_dirs  = collect in ("dirs", "both")
+
+    predicate = make_time_window_predicate(start, end)
+
+    def name_allowed(path: str) -> bool:
+        if include is not None and not matchstr(path, include):
+            return False
+        if exclude is not None and matchstr(path, exclude):
+            return False
+        return True
+
+    store: list[str] = []
+
+    def walk(current_dir: str, level: int) -> None:
+        entries = list(os.scandir(current_dir))
+        public_children = [e for e in entries if e.is_dir() and is_public_directory(e.name)]
+
+        # Files at this level
+        if want_files:
+            for e in entries:
+                if e.is_file():
+                    if exts and get_extension(e.name) not in exts:
+                        continue
+                    if not name_allowed(e.name):
+                        continue
+
+                    if validators and not all(v(e) for v in validators):
+                        continue
+
+                    p = e.path
+                    s = e.stat().st_mtime
+
+                    if predicate(s):
+                        store.append(p)
+
+        # Determine whether current_dir is a LEAF dir (with respect to public dirs and depth limit)
+        can_descend = (depth == 0) or (level < depth)
+        descend_children = public_children if can_descend else []
+
+        if want_dirs and not descend_children:
+            if name_allowed(current_dir) and predicate(current_dir):
+                store.append(current_dir)
+
+        # Recurse into eligible children
+        for child in descend_children:
+            walk(child.path, level + 1)
+
+    walk(base, 0)
+    return store
+
+get_files = get_paths
+
+
+# mvfile('/home/kdog3682/projects/python/kevinlulee/kevinlulee/file_utils.py', '/home/kdog3682/scratch/', normalize_to_directory=True)
+
+def is_executable(p: Path) -> bool:
+    if not p.is_file() and not p.is_symlink():
+        return False
+    mode = p.stat().st_mode
+    return bool(mode & stat.S_IXUSR or mode & stat.S_IXGRP or mode & stat.S_IXOTH)
+
+
+if __name__ == '__main__':
+    print(get_most_recent_file_groups(DLDIR))
