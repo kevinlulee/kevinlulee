@@ -1,3 +1,7 @@
+from kevinlulee.string_utils import trimdent
+from kevinlulee.validation import is_relative_path, existant
+
+
 def assert_array(x):
     """
     Assert that x is array-like (list, tuple, or any sequence that's not a string or dict).
@@ -80,3 +84,27 @@ def assert_not_none(x):
 
 
 
+
+
+
+
+def assertion_factory(t):
+    def runner(x):
+        assert isinstance(x, t), trimdent(f'''
+            the input is of type "{type(x)}". the required type is {t}.
+        ''')
+
+    return runner
+
+assert_str= assertion_factory(str)
+assert_dict = assertion_factory(dict)
+assert_list = assertion_factory((list, tuple, set))
+def assert_existance(x, message = ''):
+    assert existant(x), trimdent(message or f'''
+        the provided input {type(x)} MUST exist. 
+    ''')
+
+
+
+def assert_relative_path(file):
+    assert is_relative_path(file), f''' the provided path: "{path}" is not a relative input. (it has /home/ in it)'''

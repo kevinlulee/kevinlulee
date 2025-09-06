@@ -29,6 +29,7 @@ from .git import GitRepo
 from .pythonfmt import pythonfmt
 from .typstfmt import typstfmt
 from .functions import *
+from .class_introspection_ops import *
 import kevinlulee.yb as yb
 import kevinlulee.ascii as ascii
 import kevinlulee.introspect as introspect
@@ -40,10 +41,18 @@ from .ddo import LiveDict, LiveArray
 from .text import StringBuilder
 from .extensions import *
 from .misc import *
+from pprint import pprint
 
 get_caller = introspect.get_caller
 
-pretty_print = prettyprint
+def pretty_print(*args):
+    for arg in args:
+        if arg is None:
+            continue
+        if isinstance(arg, (float, int, complex, str, bool)):
+            print(arg)
+        else:
+            pprint(arg)
 
 
 def fparse(input, *args, **kwargs):

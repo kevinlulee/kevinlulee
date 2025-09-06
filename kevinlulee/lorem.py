@@ -76,3 +76,13 @@ nested_object = {
         }
     }
 }
+
+class Person:
+    def __init__(self, name, age, city=None):
+        self.name = name
+        self.age = age
+        self.city = city
+
+    def to_dict(self):
+        return {"name": self.name, "age": self.age, "city": self.city}
+

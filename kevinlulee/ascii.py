@@ -270,69 +270,6 @@ if __name__ == '__main__':
 import math
 from typing import List
 
-def close_pack(items: List[str], max_width: int = 70, gap: int = 2) -> List[str]:
-    """
-    Pack strings into columns, filling DOWN the columns, choosing the most columns
-    that fit within max_width. Returns a list of rendered text lines.
-    """
-    if not items:
-        return []
-    n = len(items)
-    L = [len(s) for s in items]
-
-    best = None  # (cols, rows, col_widths, leftover)
-    for cols in range(1, n + 1):
-        # rows is ceil(n / cols)
-        rows = (n + cols - 1) // cols
-
-        # How many items per column when filling down?
-        # First `full_cols` columns will have `rows` items, the rest `rows-1`.
-        full_cols = n % rows if rows else 0
-        # Build columns as slices of the items list
-        cols_data = []
-        idx = 0
-        for c in range(cols):
-            take = rows if (full_cols == 0 or c < full_cols) else rows - 1
-            cols_data.append(items[idx:idx + take])
-            idx += take
-
-        # Column widths
-        col_widths = [max((len(x) for x in col), default=0) for col in cols_data]
-        total = sum(col_widths) + (cols - 1) * gap
-
-        if total <= max_width:
-            leftover = max_width - total
-            # Prefer more columns; if tied, prefer less leftover
-            if best is None or cols > best[0] or (cols == best[0] and leftover < best[3]):
-                best = (cols, rows, col_widths, leftover, cols_data)
-
-    # If nothing fits (e.g., one very long string), fall back to single column
-    if best is None:
-        cols, rows = 1, n
-        col_widths = [max(L)]
-        cols_data = [items[:]]
-    else:
-        cols, rows, col_widths, _, cols_data = best
-
-    # Render by rows (row-major), pulling the i-th element from each column
-    lines = []
-    for r in range(rows):
-        parts = []
-        for c in range(cols):
-            col = cols_data[c]
-            if r < len(col):
-                s = col[r]
-                if c < cols - 1:
-                    parts.append(s.ljust(col_widths[c] + gap))
-                else:
-                    parts.append(s)  # last column no trailing spaces
-            else:
-                # No entry in this column at this row; pad (except last column)
-                if c < cols - 1:
-                    parts.append(" " * (col_widths[c] + gap))
-        lines.append("".join(parts).rstrip())
-    return "\n".join(lines)
-
 def fence(text, max_width=80, continuation="..."):
     import textwrap
 
@@ -456,4 +393,69 @@ def fence(text, max_width=80, continuation_marker="...", continuation_newline = 
     return "\n".join([top] + bordered + [bottom])
 
 # print(kx.newline_indent(fence("A very long line " * 10 + "\nhi\nbyeajsdfkahdfjkashfkasjdfhaskdjfhaksdfhjasdfkj", max_width=30)))
+
+from typing import List
+
+def close_pack(items: List[str], max_width: int = 70, gap: int = 2) -> str:
+    """
+    Pack strings into columns, filling DOWN the columns, choosing the most columns
+    that fit within max_width. Returns a list of rendered text lines.
+    """
+    if not items:
+        return []
+
+    n = len(items)
+    L = [len(s) for s in items]
+
+    best = None  # (cols, rows, col_widths, leftover, cols_data)
+    for cols in range(1, n + 1):
+        rows = (n + cols - 1) // cols  # ceil(n / cols)
+
+        # Correct: number of columns that have 'rows' items (rest have rows-1)
+        full_cols = n - (rows - 1) * cols  # 1..cols
+
+        # Build columns as slices of the items list
+        cols_data = []
+        idx = 0
+        for c in range(cols):
+            take = rows if c < full_cols else rows - 1
+            if take > 0:
+                cols_data.append(items[idx:idx + take])
+                idx += take
+            else:
+                cols_data.append([])
+
+        # Column widths and total width
+        col_widths = [max((len(x) for x in col), default=0) for col in cols_data]
+        total = sum(col_widths) + (cols - 1) * gap
+
+        if total <= max_width:
+            leftover = max_width - total
+            # Prefer more columns; if tied, prefer less leftover
+            if best is None or cols > best[0] or (cols == best[0] and leftover < best[3]):
+                best = (cols, rows, col_widths, leftover, cols_data)
+
+    # Fallback to single column if nothing fits
+    if best is None:
+        cols, rows = 1, n
+        col_widths = [max(L)]
+        cols_data = [items[:]]
+    else:
+        cols, rows, col_widths, _, cols_data = best
+
+    # Render by rows
+    lines: List[str] = []
+    for r in range(rows):
+        parts = []
+        for c in range(cols):
+            col = cols_data[c]
+            if r < len(col):
+                s = col[r]
+                parts.append(s.ljust(col_widths[c] + (gap if c < cols - 1 else 0)))
+            else:
+                if c < cols - 1:
+                    parts.append(" " * (col_widths[c] + gap))
+        lines.append("".join(parts).rstrip())
+
+    return "\n".join(lines)
 

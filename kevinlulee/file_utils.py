@@ -308,6 +308,8 @@ def clip(s, ext = 'txt'):
     if not s:
         return 
 
+    if s.startswith('<'):
+        ext = 'html'
     file = os.path.expanduser('~/.kdog3682/scratch/clip.' + ext)
     writefile(file, s, ensure_ascii=False)
     webbrowser.open(file)
@@ -707,11 +709,20 @@ def absdir(dir):
 
 import os
 
+def looks_like_file(path):
+    return is_file(path) or get_extension(path)
+
+def relpath(path, reference):
+    ref_path = os.path.expanduser(reference)
+    ref_dir = os.path.dirname(ref_path) if looks_like_file(ref_path) else ref_path
+    return os.path.relpath(path, ref_dir)
+def is_same_path(a, b):
+    return os.path.expanduser(a) == os.path.expanduser(b)
 def ensure_directory_exists(path):
     
     path = os.path.expanduser(path)  # Expands ~ to the user's home directory
     
-    if is_file(path) or get_extension(path):
+    if looks_like_file(path):
         path = os.path.dirname(path)
     if path and not os.path.exists(path):
         os.makedirs(path, exist_ok=True)
@@ -1045,6 +1056,8 @@ def cpdir(a, b):
 def mvdir(a, b):
     a = os.path.expanduser(str(a))
     b = os.path.expanduser(str(b))
+    if os.path.basename(b) == os.path.basename(a):
+        a = os.path.dirname(a)
     assert_directory(a)
     shutil.move(a, b)
 
@@ -1325,3 +1338,27 @@ def is_executable(p: Path) -> bool:
 
 if __name__ == '__main__':
     print(get_most_recent_file_groups(DLDIR))
+
+def dirs_up_to_root(current_path: str, root_dir: str ) -> list[str]:
+    """
+    Return all directories from the current file's directory up to (and including) root_dir.
+    The list is ordered from nearest directory to the root.
+    """
+    root = Path(root_dir).expanduser().resolve()
+    current = Path(current_path).expanduser().resolve()
+
+    assert root.is_dir(), f"Root does not exist or is not a directory: {root}"
+    current_dir = current if current.is_dir() else current.parent
+    assert current_dir.is_dir(), f"Current path's directory does not exist: {current_dir}"
+
+    # Ensure current_dir is inside root
+    assert current_dir.is_relative_to(root), f"{current_dir} is not under root {root}"
+
+    out: list[str] = []
+    here = current_dir
+    while True:
+        out.append(str(here))
+        if here == root:
+            break
+        here = here.parent
+    return out

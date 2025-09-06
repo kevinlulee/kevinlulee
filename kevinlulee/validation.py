@@ -1,4 +1,5 @@
 import re
+import json
 from _collections_abc import dict_values, dict_keys, dict_items
 from kevinlulee.typing import Selector, Optional
 from typing import Union, Sequence, Any, Callable, Optional, Iterable
@@ -293,3 +294,18 @@ def match_value(value: Any, selector: Optional[Selector], prefer_exact: bool = T
 
 def is_primitive_dict(x):
     return is_dict(x) and all(is_primitive(el) for el in x.values())
+
+
+def is_relative_path(file: str):
+    return file[0].isalpha() and file[-1].isalpha() and not '/home/' in os.path.expanduser(file)
+
+def is_equivalent(a, b):
+    def dumper(value):
+        return json.dumps(
+            value,
+            indent=2,
+            sort_keys=True,
+            default=str,
+        )
+
+    return dumper(a) == dumper(b)

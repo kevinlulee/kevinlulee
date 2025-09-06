@@ -6,65 +6,62 @@ from datetime import datetime
 from pathlib import Path
 import inspect
 
-
-class SnapshotCache:
-    def __init__(
-        self,
-        dry_run=False,
-        overwrite=False,
-        snapshot_root="/home/kdog3682/.kdog3682/snapshots",
-        description="",
-        tag="",
-    ):
-        self.dry_run = dry_run
-        self.overwrite = overwrite
-        self.snapshot_root = Path(snapshot_root)
-        self.description = description
-        self.tag = tag
-
-    def run(self, func, *args, **kwargs):
-        result = func(*args, **kwargs)
-
-        if not result:
-            print("no result")
-            return
-
-        func_name = func.__name__
-        source_file = inspect.getsourcefile(func)
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-        args_repr = json.dumps(
-            {"args": args, "kwargs": kwargs}, sort_keys=True, default=str
-        )
-        args_hash = hashlib.md5(args_repr.encode()).hexdigest()
-
-        snapshot_dir = self.snapshot_root / func_name
-        snapshot_dir.mkdir(parents=True, exist_ok=True)
-        snapshot_file = snapshot_dir / f"{args_hash}.json"
-
-        snapshot_data = {
-            "timestamp": timestamp,
-            "file": source_file,
-            "args": args_repr,
-            "result": result,
-            "tag": self.tag,
-            "func": func_name,
-            "description": self.description,
-        }
-
-        if snapshot_file.exists() and not self.overwrite:
-            with open(snapshot_file, "r") as f:
-                previous_snapshot = json.load(f)
-
-            prev_result_str = json.dumps(
-                previous_snapshot["result"],
+def dumper(value):
+            return json.dumps(
+                value,
                 indent=2,
                 sort_keys=True,
                 default=str,
             )
-            curr_result_str = json.dumps(
-                result, indent=2, sort_keys=True, default=str
-            )
+
+class SnapshotCache:
+    def __init__(
+        self,
+        snapshot_root="~/.kdog3682/snapshots",
+    ):
+        self.snapshot_root = Path(snapshot_root).expanduser()
+
+    def run(self, func, *args, **kwargs):
+        result = func(*args, **kwargs)
+
+        if result is None:
+            return
+
+        key = 'asdf'
+        description = 'asdf'
+
+        fname = func.__name__
+        src_file = inspect.getsourcefile(func)
+        timestamp = int(datetime.now().timestamp())
+
+        args_repr = json.dumps(
+            {
+                "args": args,
+                "kwargs": kwargs,
+                "fname": fname,
+            },
+            sort_keys=True,
+            default=str,
+        )
+        hash_id = hashlib.md5(args_repr.encode()).hexdigest()
+
+        snapshot_dir = self.snapshot_root / key
+        snapshot_dir.mkdir(parents=True, exist_ok=True)
+        snapshot_file = snapshot_dir / f"{hash_id}.json"
+
+        snapshot_data = {
+            "timestamp": timestamp,
+            "file": src_file,
+            "args": args_repr,
+            "result": result,
+            "func": fname,
+            "description": description,
+        }
+
+        if snapshot_file.exists():
+            prev_result = kx.readfile(snapshot_file)
+
+            kx.ascii.side_by_side()
 
             if prev_result_str != curr_result_str:
                 print("--- Snapshot Diff ---")
@@ -80,26 +77,13 @@ class SnapshotCache:
                 print(result)
                 print("snapshots match!")
         else:
-            if not self.dry_run:
-                with open(snapshot_file, "w") as f:
-                    json.dump(snapshot_data, f, indent=2, default=str)
-                print(f"[snapshot saved] {snapshot_file}")
-            else:
-                import ascii
-
-                if len(args) == 1 and not kwargs:
-                    ascii.side_by_side(
-                        args[0], result, headers=("input", "output")
-                    )
-                else:
-                    print(json.dumps(snapshot_data, indent=2))
-                    print(f"[dry run] Would save snapshot: {snapshot_file}")
+            kx.appendfile(snapshot_file, [snapshot_data], verbose = True)
 
         return result
 
     def check(self, tag, func, *args, **kwargs):
-        func_name = func.__name__
-        snapshot_dir = self.snapshot_root / func_name
+        fname = func.__name__
+        snapshot_dir = self.snapshot_root / fname
 
         for file in snapshot_dir.glob("*.json"):
             with open(file, "r") as f:
@@ -134,15 +118,15 @@ class SnapshotCache:
         print(f"no reference snapshot found with description: {tag}")
 
     def clear(self, func):
-        func_name = func.__name__
-        snapshot_dir = self.snapshot_root / func_name
+        fname = func.__name__
+        snapshot_dir = self.snapshot_root / fname
 
         if snapshot_dir.exists():
             for file in snapshot_dir.glob("*.json"):
                 file.unlink()
-            print(f"[cleared] all snapshots for '{func_name}'")
+            print(f"[cleared] all snapshots for '{fname}'")
         else:
-            print(f"[not found] no snapshots for '{func_name}'")
+            print(f"[not found] no snapshots for '{fname}'")
 
 
 # ======================================

@@ -7,9 +7,9 @@ from typing import List, Optional
 import os
 from pathlib import Path
 
-from kevinlulee.ao import filtered, to_array
+from kevinlulee.ao import filtered, flat, to_array
 from kevinlulee.module_utils import get_modname_from_file
-from kevinlulee.string_utils import split
+from kevinlulee.string_utils import split, trimdent
 from kevinlulee.ao import join_spaces
 
 from .file_utils import (
@@ -19,7 +19,7 @@ from .file_utils import (
     find_project_root,
     writefile,
 )
-from .base import display
+from .base import display, identity
 from .validation import empty
 import subprocess
 
@@ -101,29 +101,6 @@ def bash2(
             print("[STDERR]", stderr)
 
 
-def typst(
-    inpath,
-    outpath="~/scratch/temp.pdf",
-    open=False,
-    mode="compile",
-    on_error=None,
-):
-    """
-    params:
-        inpath: the inpath typ file
-        outpath: the outbound pdf file
-        open: whether to open the created pdf (false)
-        mode: `compile` or `watch` (compile)
-    """
-
-    inpath = os.path.expanduser(inpath)
-    outpath = os.path.expanduser(outpath)
-    ensure_directory_exists(outpath)
-
-    open = "--open" if open else ""
-    return bash2(
-        "typst", mode, inpath, outpath, open, "--root", "/", on_error=on_error
-    )
 
 
 def python3(file, *args, as_module=False, on_error=None):
@@ -147,18 +124,6 @@ def python3(file, *args, as_module=False, on_error=None):
         return bash("python3", file, *args, on_error=on_error, silent=False)
 
 
-def typstfile(s, src_path=None, pdf_outpath=None, open=False, debug=False):
-    if debug:
-        print(s)
-        return
-    if not pdf_outpath:
-        pdf_outpath = "~/projects/hammymathclass/dist/untitled.pdf"
-    if not src_path:
-        src_path = "~/scratch/temp.typ"
-        # src_path = '~/projects/hammymathclass/'
-    writefile(src_path, s)
-    typst(src_path, pdf_outpath, open=open)
-    return os.path.expanduser(pdf_outpath)
 
 
 def bash3(*args, cwd=None, on_error=None):
@@ -189,4 +154,71 @@ def pip(key, cwd=None):
 
 def chmod(x):
     assert_file(x)
-    return bash('sudo', 'chmod', '755', x)
+    return bash("sudo", "chmod", "755", x)
+
+
+def bash_nvim(*args, cwd=None, on_error=identity):
+    cwd = os.path.expanduser(cwd) if cwd else None
+    cmd = join_spaces(flat(args))
+    p = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=cwd
+    )
+    out, err = p.communicate()
+    stdout, stderr = out.decode("utf-8").strip(), err.decode("utf-8").strip()
+    if stderr:
+        return on_error(stderr)
+    return stdout
+
+def bash_shell(cmd, cwd = None):
+    
+    cmd = " ".join(cmd) if is_array(cmd) else cmd
+
+    res = subprocess.run(
+        cmd,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        cwd=cwd,
+    )
+    return res.stdout
+
+def git_bash(*args, cwd=".", debug=False):
+    args =flat(args)
+
+    if debug:
+        return print(*args)
+
+    r = subprocess.run(
+        args, text=True, cwd=cwd, capture_output=True, check=True
+    )
+    return r.stdout.strip()
+
+def typst(
+    inpath,
+    outpath="~/scratch/temp.pdf",
+    open=False,
+    mode="compile",
+    on_error=identity,
+):
+    """
+    params:
+        inpath: the inpath typ file
+        outpath: the outbound pdf file
+        open: whether to open the created pdf (false)
+        mode: `compile` or `watch` (compile)
+    """
+
+    inpath = os.path.expanduser(inpath)
+    outpath = os.path.expanduser(outpath)
+    ensure_directory_exists(outpath)
+
+    open = "--open" if open else ""
+    return bash_nvim(
+        "typst", mode, inpath, outpath, open, "--root", "/", on_error=on_error
+    )
+
+def typst_file(s: str):
+    path = writefile("~/scratch/temp.typ", trimdent(s))
+    typst(path)
+    return path

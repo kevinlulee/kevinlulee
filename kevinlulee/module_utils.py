@@ -140,9 +140,7 @@ def get_implicit_module_func(s, strict = False):
     module = get_module(modname, reload = True)
     func = getattr(module, fname,None)
     if strict and not func:
-        print(modname)
-        print(get_file_from_modname(modname))
-        raise Exception("could not get the func", fname)
+        raise Exception("was unable to retrieve the func", fname)
     return func
 
 def run_module_func(s, *args, reload = True, **kwargs):
@@ -164,7 +162,10 @@ def get_module(file_name: str, reload = False, from_anywhere = False):
     module_name = get_modname_from_file(file_name)
 
     if not module_name:
-        return 
+        if re.search('^\w+(?:\.\w+)*$', file_name):
+            module_name = file_name
+        else:
+            return 
 
     if reload and module_name in sys.modules:
         del sys.modules[module_name]
@@ -302,4 +303,5 @@ if __name__ == '__main__':
     pass
     # print(content)
     # print(get_modname_from_directory('/home/kdog3682/projects/python/kevinlulee/kevinlulee/'))
-    print(get_directory_from_modname('kevinlulee'))
+    # print(get_directory_from_modname('kevinlulee'))
+    # print(get_implicit_module_func('nvim.scripts.make_html_textarea'))
