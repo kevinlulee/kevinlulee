@@ -6,6 +6,7 @@ import kevinlulee as kx
 import functools
 
 from kevinlulee.ao import reduce2
+from kevinlulee.base import identity
 from kevinlulee.validation import existant, exists
 from typing import List, Tuple, Optional
 
@@ -580,6 +581,14 @@ def replicate(x, n=5):
     return kx.map(n, lambda _: deepcopy(x))
 
 
+def ternf(a, b, c = identity):
+    def _tern(x):
+        if (callable(a) and a(x)) or isinstance(x, a):
+            return b(x)
+        else:
+            return c(x)
+        
+    return _tern
 
 def collect_directories(dir, query):
     return kx.fdfind(

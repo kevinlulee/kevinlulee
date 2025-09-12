@@ -4,6 +4,8 @@ FILETYPE_TO_EXT = {
     "javascript": "js",
     "typescript": "ts",
     "text": "txt",
+    "txflow": "txf",
+    "draft": "draft",
 
     # web frameworks & ecosystems
     "react": "jsx",

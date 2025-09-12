@@ -316,10 +316,10 @@ def breaker(max_iterations=1000):
 
 
 def curry(func, *top_args, **top_kwargs):
-    def inner(*args, **kwargs):
+    def curried(*args, **kwargs):
         return func(*args, *top_args, **kwargs, **top_kwargs)
 
-    return inner
+    return curried
 
 
 

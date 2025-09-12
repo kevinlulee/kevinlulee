@@ -14,6 +14,8 @@ def reshape_colorbrewer_data(data: dict):
         desc: 
             creates a more readable colorbrewer dataset from the above source
             (a flat array of objects)
+
+        dst: ~/data/colorbrewer.json
     """
     store = []
     for category, contents in data.items():

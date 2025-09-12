@@ -84,7 +84,7 @@ def mget(s: str, pattern: str, flags: int = 0) -> Tuple[str, Union[str, None]]:
     return re.sub(pattern, '', s, 1, flags=flags), match
 
 
-def get_indent(text: str) -> int:
+def get_indent(text: str, tab_width = 4) -> int:
     """
     Gets the indentation level of the first non-empty line in the text.
     Each level corresponds to 4 spaces (e.g., 0 for no indentation, 1 for 4 spaces, etc.).
@@ -100,9 +100,9 @@ def get_indent(text: str) -> int:
             # Calculate the number of leading spaces
             leading_spaces = len(line) - len(line.lstrip())
             # Calculate the indentation level (each level is 4 spaces)
-            indent_level = leading_spaces // 4
+            indent_level = leading_spaces // tab_width
             # Ensure the result is within 0–4
-            return min(indent_level, 4)
+            return min(indent_level, tab_width)
     return 0  # Default to 0 if all lines are empty
 
 
@@ -418,6 +418,9 @@ def remove_commented_lines(s, filetype=None):
 
 
 
+def remove_comments(s):
+    r = r'(^|\S) *(?:[#/]+) +\S.*$'
+    return re.sub(r, r'\1', s, flags=re.M)
 def match_case(original, replacement):
         if original.isupper():
             return replacement.upper()
@@ -501,10 +504,10 @@ def dreplace(s, ref, boundary = True, flags = 0):
         return ref.get(key)
         
     return re.sub(regex, replacer, s, flags = flags)
-def replacef(regex, replacement, flags = 0):
+def replacef(regex, replacement, flags = 0, count = 0):
         
     def wrapper(s):
-        return re.sub(regex, replacement, s, flags = flags)
+        return re.sub(regex, replacement, s, flags = flags, count = count)
 
     return wrapper
 

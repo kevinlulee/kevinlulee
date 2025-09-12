@@ -47,7 +47,6 @@ def colon_dict(
         had_inline = False
 
     for raw in text.splitlines():
-        print([raw])
         m = HEADER_RE.match(raw)
 
         # Valid header only if either no allowlist, or key is allowlisted

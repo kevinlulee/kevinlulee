@@ -8,9 +8,9 @@ from pprint import pprint
 import os
 import importlib
 
-from kevinlulee.ao import flat
+from kevinlulee.ao import filtered, flat, not_in, unique
 from kevinlulee.base import noop
-from kevinlulee.file_utils import EXTENSIONS, add_extension_if_not_present, get_extension, is_dir, remove_extension
+from kevinlulee.file_utils import EXTENSIONS, add_extension_if_not_present, get_extension, is_dir, readfile, remove_extension
 from kevinlulee.string_utils import matchstr, remove_ending_slash
 
 from pathlib import Path
@@ -305,3 +305,21 @@ if __name__ == '__main__':
     # print(get_modname_from_directory('/home/kdog3682/projects/python/kevinlulee/kevinlulee/'))
     # print(get_directory_from_modname('kevinlulee'))
     # print(get_implicit_module_func('nvim.scripts.make_html_textarea'))
+
+
+def collect_shallow_python_imports(file):
+    
+    src = readfile(file)
+    r1 = '^from (\w+(?:\.\w+)*) import'
+    r2 = '^import (\w+)'
+
+    a = re.findall(r1, src, flags = re.M)
+    # b = re.findall(r2, src, flags = re.M)
+    # print(a)
+    # print(b)
+    ignore = [
+        '__future__',
+        'kevinlulee',
+    ]
+    a = unique(filtered(a, not_in(ignore)))
+    return a

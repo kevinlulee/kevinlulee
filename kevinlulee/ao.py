@@ -585,7 +585,24 @@ def edit_dict(dct, key, editor: dict):
 
 
 def array_to_dict(data, key = None):
+    if not data:
+        return {}
+
     if key is None:
+        if is_dict(data[0]):
+            key = None
+            keys = data[0].keys()
+            if 'key' in keys: key = 'key'
+            elif 'name' in keys: key = 'name'
+
+            assert key, 'no key'
+
+            return {
+                d[key]: d for d in data
+            }
+            
+            
+        
         return {
             str(i + 1): arg for  i, arg in enumerate(data)
         }
@@ -770,3 +787,4 @@ def get_first_result(result):
 
 
 # print(dict_setter(dict(alpha = dict(b = 1)), 'a', 'c', 1))
+

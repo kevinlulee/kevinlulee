@@ -219,6 +219,6 @@ def typst(
     )
 
 def typst_file(s: str):
-    path = writefile("~/scratch/temp.typ", trimdent(s))
-    typst(path)
+    path = writefile("~/scratch/temp.typ", trimdent(str(s)))
+    typst(path, open = True)
     return path

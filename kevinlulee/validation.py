@@ -309,3 +309,17 @@ def is_equivalent(a, b):
         )
 
     return dumper(a) == dumper(b)
+
+
+
+def is_color_key(key):
+    COLOR_KEYS = [
+        "fill",
+        "paint",
+        "color",
+        "bg",
+        "fg",
+    ]
+    return key in COLOR_KEYS
+def is_xml(value):
+    return isinstance(value, str) and value.startswith('<') and value.endswith('>')

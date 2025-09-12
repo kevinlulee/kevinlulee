@@ -37,6 +37,7 @@ def resolve_filetype(x):
         '.yml': 'yaml',
         '.yaml': 'yaml',
         '.typ': 'typst',
+        '.txf': 'txflow',
         '.txt': 'text',
         '.log': 'log',
         '.vue': 'vue',

@@ -308,7 +308,7 @@ def clip(s, ext = 'txt'):
     if not s:
         return 
 
-    if s.startswith('<'):
+    if isinstance(s, str) and s.startswith('<'):
         ext = 'html'
     file = os.path.expanduser('~/.kdog3682/scratch/clip.' + ext)
     writefile(file, s, ensure_ascii=False)

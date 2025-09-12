@@ -270,9 +270,12 @@ class LiveArray(LiveObject):
     def __repr__(self):
         return f"LiveArray({self._data!r})"
 
-    def append(self, item):
+    def append(self, item, unique = False):
+        if unique and item in self._data:
+            return False
         self._data.append(item)
         self._save()
+        return True
 
     def extend(self, items):
         self._data.extend(items)
