@@ -22,6 +22,7 @@ from .module_utils import *
 from .bash import *
 from .ripgrep import *
 from .file_ops import *
+from .test_ops import run_test_cases
 
 # from .components.string_builders import *
 from typing import *
@@ -39,7 +40,7 @@ import kevinlulee.env as env
 from .extended import *
 from .ddo import LiveDict, LiveArray
 from .text import StringBuilder
-from .extensions import *
+# from .extensions import *
 from .misc import *
 from pprint import pprint
 

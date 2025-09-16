@@ -1,9 +1,26 @@
 import kevinlulee as kx
-from string import ascii_lowercase
-from typing import Dict, List, Union
-from codefmt.python import pythonfmt
-from typing import Literal
-PaletteValue = Literal[
+from typing import Dict, List, Literal
+
+# Optional formatting helpers (assumed available)
+
+# -------------------------
+# Types
+# -------------------------
+
+TailWindScaleNumber = Literal[
+    "50",
+    "100",
+    "200",
+    "300",
+    "400",
+    "500",
+    "600",
+    "700",
+    "800",
+    "900",
+]
+
+PaletteTheme = Literal[
     "deep-ocean",
     "seafoam",
     "twilight",
@@ -24,499 +41,293 @@ PaletteValue = Literal[
     "sunset",
 ]
 
-PALLETE_MAP = {
-  "spring-meadow": {
-    "complement": "shoreline",
-    "companions": [
-      "desert-canyon",
-      "ember",
-      "forest",
-      "glacier"
-    ]
-  },
-  "forest": {
-    "complement": "deep-ocean",
-    "companions": [
-      "spring-meadow",
-      "desert-canyon",
-      "glacier",
-      "seafoam"
-    ]
-  },
-  "glacier": {
-    "complement": "fog",
-    "companions": [
-      "forest",
-      "spring-meadow",
-      "seafoam",
-      "aurora"
-    ]
-  },
-  "seafoam": {
-    "complement": "rose-dusk",
-    "companions": [
-      "glacier",
-      "forest",
-      "aurora",
-      "dusk-bay"
-    ]
-  },
-  "aurora": {
-    "complement": "crimson",
-    "companions": [
-      "seafoam",
-      "glacier",
-      "dusk-bay",
-      "twilight"
-    ]
-  },
-  "dusk-bay": {
-    "complement": "sunset",
-    "companions": [
-      "aurora",
-      "seafoam",
-      "twilight",
-      "amethyst"
-    ]
-  },
-  "twilight": {
-    "complement": "citrus",
-    "companions": [
-      "dusk-bay",
-      "aurora",
-      "amethyst",
-      "orchid"
-    ]
-  },
-  "amethyst": {
-    "complement": "ember",
-    "companions": [
-      "twilight",
-      "dusk-bay",
-      "orchid",
-      "shoreline"
-    ]
-  },
-  "orchid": {
-    "complement": "desert-canyon",
-    "companions": [
-      "amethyst",
-      "twilight",
-      "shoreline",
-      "deep-ocean"
-    ]
-  },
-  "shoreline": {
-    "complement": "spring-meadow",
-    "companions": [
-      "orchid",
-      "amethyst",
-      "deep-ocean",
-      "fog"
-    ]
-  },
-  "deep-ocean": {
-    "complement": "forest",
-    "companions": [
-      "shoreline",
-      "orchid",
-      "fog",
-      "rose-dusk"
-    ]
-  },
-  "fog": {
-    "complement": "glacier",
-    "companions": [
-      "deep-ocean",
-      "shoreline",
-      "rose-dusk",
-      "crimson"
-    ]
-  },
-  "rose-dusk": {
-    "complement": "seafoam",
-    "companions": [
-      "fog",
-      "deep-ocean",
-      "crimson",
-      "sunset"
-    ]
-  },
-  "crimson": {
-    "complement": "aurora",
-    "companions": [
-      "rose-dusk",
-      "fog",
-      "sunset",
-      "citrus"
-    ]
-  },
-  "sunset": {
-    "complement": "dusk-bay",
-    "companions": [
-      "crimson",
-      "rose-dusk",
-      "citrus",
-      "ember"
-    ]
-  },
-  "citrus": {
-    "complement": "twilight",
-    "companions": [
-      "sunset",
-      "crimson",
-      "ember",
-      "desert-canyon"
-    ]
-  },
-  "ember": {
-    "complement": "amethyst",
-    "companions": [
-      "citrus",
-      "sunset",
-      "desert-canyon",
-      "spring-meadow"
-    ]
-  },
-  "desert-canyon": {
-    "complement": "orchid",
-    "companions": [
-      "ember",
-      "citrus",
-      "spring-meadow",
-      "forest"
-    ]
-  }
+# -------------------------
+# Paths
+# -------------------------
+
+COLORS_DIR = "~/data/colors"
+
+PATHS = {
+    # JSON sources (consolidated)
+    "palette_map": f"{COLORS_DIR}/colorbrewer-palette-map.json",
+    "colorbrewer_tailwind": f"{COLORS_DIR}/colorbrewer-tailwind.json",
+    "colorbrewer_sequential": f"{COLORS_DIR}/colorbrewer-sequential.json",
+    # Generated Typst outputs
+    "typ_nested": f"{COLORS_DIR}/colorbrewer-themes-nested.typ",
+    "typ_flat": f"{COLORS_DIR}/colorbrewer-themes-flat.typ",
 }
 
-class ColorBrewer:
-    def __init__(self):
-        self.data = kx.readfile("~/data/sequential-colorbrewer.json")
+# Legacy locations -> new locations (for migration)
+LEGACY_TO_NEW = {
+    "~/data/pallete-map.json": PATHS["palette_map"],  # legacy misspelling
+    "~/data/sequential-colorbrewer.tailwind.json": PATHS[
+        "colorbrewer_tailwind"
+    ],
+    "~/data/sequential-colorbrewer.json": PATHS["colorbrewer_sequential"],
+}
 
-    def get(self, x: str) -> "ColorBrewerSlice":
-        def foobar(entry):
-            key = entry["key"]
-            return all(el in key for el in x)
-
-        validator = kx.testf(x, key="name") if kx.is_string(x) else foobar
-        entry = kx.find(self.data, validator)
-        return ColorBrewerSlice(entry)
-
-    def get_theme(self, key: PaletteValue):
-        return ColorBrewerTheme(key)
-        
+# -------------------------
+# Migration
+# -------------------------
 
 
-from typing import Dict, List, Union, overload, Literal
-from string import ascii_lowercase
-from codefmt.python import pythonfmt
+def migrate_color_files() -> Dict[str, str]:
+    """
+    Move legacy color data files into the consolidated colors directory with improved names.
 
-class ColorBrewerSlice:
-    TONE_NAMES = ("lightest", "lighter", "light", "dark", "darker", "darkest", "normal")
-    _TONE_OFFSETS = {
-        "lightest": 0,  # leftmost (light end)
-        "lighter": 1,
-        "light": 2,
-        "normal": 3,
-        "dark": -3,
-        "darker": -2,
-        "darkest": -1,  # rightmost (dark end)
-    }
+    Returns
+    -------
+    Dict[str, str]
+        A mapping of source -> destination for all moves attempted.
 
-    def __init__(self, entry, size: int = 7):
-        self.colors: Dict[str, List[str]] = entry["colors"]
-        self.name = entry["name"]
-        self.set_size(size)
+    Notes
+    -----
+    - Uses `kx.mvfile`, which auto-creates missing directories and asserts as needed.
+    - Idempotent intent: if you've already moved files, calling again should be a no-op if `kx.mvfile`
+      respects identical src/dst semantics.
+    """
+    moved = {}
+    for src, dst in LEGACY_TO_NEW.items():
+        kx.mvfile(src, dst)
+        moved[src] = dst
+    return moved
 
-    def set_size(self, size: int) -> "ColorBrewerSlice":
-        self.size = int(size)
-        self.items = self.colors[str(self.size)]
-        return self
 
-    @property
-    def letters(self) -> str:
-        return ascii_lowercase[: self.size]
+# -------------------------
+# Data loading
+# -------------------------
 
-    def _indices_for(self, name: str) -> List[int]:
-        return [self.letters.index(ch) for ch in name]
 
-    def _tone_index(self, tone: str) -> int:
-        off = self._TONE_OFFSETS[tone]
-        idx = off if off >= 0 else self.size + off
-        # clamp to [0, size-1] so small palettes still work
-        if idx < 0:
-            idx = 0
-        if idx > self.size - 1:
-            idx = self.size - 1
-        return idx
+def records_to_mapping(
+    data: List[dict],
+    key_field: str | None = None,
+    value_field: str | None = None,
+) -> Dict[str, dict | list | str]:
+    """
+    Convert a list of records (dicts) into a mapping.
 
-    # --- LSP-visible properties (word-based accessors) ---
-    @property
-    def lightest(self) -> str:
-        "Lightest tone (leftmost)."
-        return self.items[self._tone_index("lightest")]
+    Parameters
+    ----------
+    data : List[dict]
+        Records that include fields for keys and values.
+    key_field : str | None
+        Field name to use as the dictionary key. If `None`, prefers "name", then "key".
+    value_field : str | None
+        Field name to use as the dictionary value. If `None`, tries "value", then "colors", then "text", then "scale".
 
-    @property
-    def lighter(self) -> str:
-        "Second-lightest tone (one step in from the light end)."
-        return self.items[self._tone_index("lighter")]
+    Returns
+    -------
+    Dict[str, dict | list | str]
+        Mapping from `key_field` value to `value_field` value.
 
-    @property
-    def normal(self) -> str:
-        "Third-lightest tone."
-        return self.items[self._tone_index("normal")]
-    @property
-    def light(self) -> str:
-        "Third-lightest tone."
-        return self.items[self._tone_index("light")]
+    Raises
+    ------
+    AssertionError
+        If a suitable key or value field cannot be determined.
+    """
+    keys = data[0].keys()
 
-    @property
-    def dark(self) -> str:
-        "Third-darkest tone (three steps in from the dark end)."
-        return self.items[self._tone_index("dark")]
+    if not key_field:
+        if "name" in keys:
+            key_field = "name"
+        elif "key" in keys:
+            key_field = "key"
 
-    @property
-    def darker(self) -> str:
-        "Second-darkest tone."
-        return self.items[self._tone_index("darker")]
+    if not value_field:
+        if "value" in keys:
+            value_field = "value"
+        elif "colors" in keys:
+            value_field = "colors"
+        elif "text" in keys:
+            value_field = "text"
+        elif "scale" in keys:
+            value_field = "scale"
 
-    @property
-    def darkest(self) -> str:
-        "Darkest tone (rightmost)."
-        return self.items[self._tone_index("darkest")]
+    assert key_field, "no key_field"
+    assert value_field, "no value_field"
 
-    # --- dynamic letter/word combos still work ---
-    @overload
-    def __getattr__(self, name: Literal["lightest","lighter","light","dark","darker","darkest"]) -> str: ...
-    @overload
-    def __getattr__(self, name: str) -> Union[str, List[str]]: ...
-    def __getattr__(self, name: str) -> Union[str, List[str]]:
-        if name and all(ch in self.letters for ch in name):
-            idxs = self._indices_for(name)
-            return self.items[idxs[0]] if len(name) == 1 else [self.items[i] for i in idxs]
-        raise AttributeError(
-            f"{name!r} is not a valid accessor for size {self.size}. "
-            f"Use any of: {self.letters} or one of {', '.join(self.TONE_NAMES)}"
+    return {d[key_field]: d[value_field] for d in data}
+
+
+# -------------------------
+# Color accessors
+# -------------------------
+
+
+def get_palette_scale(theme: PaletteTheme, size: int) -> List[str]:
+    """
+    Return a sequential ColorBrewer palette (list of hex colors) for a theme and size.
+
+    Parameters
+    ----------
+    theme : PaletteTheme
+        Name of the base palette (e.g., "deep-ocean").
+    size : int
+        Number of colors in the sequential scale (e.g., 3..9 for ColorBrewer sequential).
+
+    Returns
+    -------
+    List[str]
+        List of color hex strings for the requested scale.
+    """
+    return COLORBREWER_SEQUENTIAL[theme][str(size)]
+
+
+def get_theme_scale(theme: PaletteTheme) -> Dict[TailWindScaleNumber, str]:
+    """
+    Return the Tailwind-like scale mapping for a theme.
+
+    Parameters
+    ----------
+    theme : PaletteTheme
+        Name of the base palette (e.g., "deep-ocean").
+
+    Returns
+    -------
+    Dict[TailWindScaleNumber, str]
+        Mapping from Tailwind scale step to a hex color (e.g., {"50": "#...", "100": "#...", ...}).
+    """
+    return COLORBREWER_TAILWIND[theme]
+
+
+def get_theme_color(theme: PaletteTheme, token: str) -> str:
+    """
+    Resolve a color value for a theme using a token syntax.
+
+    Token formats
+    -------------
+    - "primary.100"     -> color from the theme's scale at step 100
+    - "secondary.200"   -> color from the complement theme's scale at step 200
+    - "<primary.500>"   -> same as above; XML-like brackets are stripped if present
+    - "twilight.300"    -> explicit theme override: use that theme's scale at step 300
+
+    Parameters
+    ----------
+    theme : PaletteTheme
+        The current theme context.
+    token : str
+        Dot-separated selector as above.
+
+    Returns
+    -------
+    str
+        Hex color string (e.g., "#AABBCC").
+    """
+    if kx.is_xml(token):
+        token = token[1:-1]
+
+    parts = token.split(".")
+    match len(parts):
+        case 1:
+            raise Exception("requires 2 parts: '<namespace>.<step>'")
+        case 2:
+            ns, step = parts
+            match ns:
+                case "primary":
+                    return COLORBREWER_TAILWIND[theme][step]
+                case "secondary":
+                    return COLORBREWER_TAILWIND[
+                        PALETTE_MAP[theme]["complement"]
+                    ][step]
+                case _:
+                    # Treat the namespace as an explicit theme name
+                    return COLORBREWER_TAILWIND[ns][step]
+        case _:
+            raise Exception("unsupported token format")
+
+
+# -------------------------
+# Typst exports
+# -------------------------
+
+
+def export_typst_themes_nested() -> str:
+    """
+    Export a Typst file with nested theme records:
+        theme -> { primary: {50:#..,100:#..,...}, secondary: {50:#..,100:#..,...} }
+
+    Returns
+    -------
+    str
+        The path to the generated Typst file.
+    """
+    from codefmt.typst import typstfmt
+
+    store = {}
+    for theme, scale in COLORBREWER_TAILWIND.items():
+        comp_theme = PALETTE_MAP[theme]["complement"]
+        store[theme] = dict(
+            primary=scale,
+            secondary=COLORBREWER_TAILWIND[comp_theme],
         )
 
-    def __dir__(self):
-        # Helps interactive completion in REPLs
-        base = set(super().__dir__())
-        base.update(self.TONE_NAMES)
-        base.update(list(self.letters))
-        return sorted(base)
+    decls = []
+    for name, value in store.items():
+        decls.append(typstfmt.decl(name, value, coerce=False, top_level=True))
 
-    def __repr__(self) -> str:
-        kwargs = dict(name=self.name, size=self.size, available=self.letters)
-        return pythonfmt.call("ColorBrewerSlice", [], kwargs, condensed=True)
-
-    def to_dict(self) -> Dict[str, str]:
-        # Only the word-based tones, as requested.
-        return {tone: getattr(self, tone) for tone in self.TONE_NAMES}
-
-# ~/projects/yoya/typst/components/reader/chinese-display.typ
-# file = "~/data/colorbrewer.json"
-alias_map = {
-    "blues": "blue",
-    "bugn": "blue-green",
-    "bupu": "blue-purple",
-    "gnbu": "green-blue",
-    "greens": "green",
-    "greys": "grey",
-    "orrd": "orange-red",
-    "oranges": "orange",
-    "pubu": "purple-blue",
-    "pubugn": "purple-blue-green",
-    "purd": "purple-red",
-    "purples": "purple",
-    "rdpu": "red-purple",
-    "reds": "red",
-    "ylgn": "yellow-green",
-    "ylgnbu": "yellow-green-blue",
-    "ylorbr": "yellow-orange-brown",
-    "ylorrd": "yellow-orange-red",
-}
-evocative_alias_map = {
-    "blues": "deep-ocean",
-    "bugn": "seafoam",
-    "bupu": "twilight",
-    "gnbu": "glacier",
-    "greens": "forest",
-    "greys": "fog",
-    "orrd": "ember",
-    "oranges": "citrus",
-    "pubu": "dusk-bay",
-    "pubugn": "aurora",
-    "purd": "orchid",
-    "purples": "amethyst",
-    "rdpu": "rose-dusk",
-    "reds": "crimson",
-    "ylgn": "spring-meadow",
-    "ylgnbu": "shoreline",
-    "ylorbr": "desert-canyon",
-    "ylorrd": "sunset",
-}
+    text = kx.join_text(decls)
+    kx.writefile(PATHS["typ_nested"], text)
+    return PATHS["typ_nested"]
 
 
-
-
-
-def main():
-    def callback(x):
-        a = x["theme"].lower()
-        key = alias_map[a]
-        name = evocative_alias_map[a]
-        return dict(key=key, name=name, colors=x["colors"])
-    kx.writefile(
-        "~/data/sequential-colorbrewer.json",
-        kx.map(
-            kx.filtered(
-                kx.readfile(file), lambda x: x["category"] == "sequential"
-            ),
-            callback,
-        ),
-    )
-    kx.cpfile(
-        file,
-        "/home/kdog3682/projects/hammymathclass/typst/data/colorbrewer.json",
-    )
-
-
-cb = ColorBrewer()
-deep_ocean = cb.get("deep-ocean")
-seafoam = cb.get("seafoam")
-twilight = cb.get("twilight")
-glacier = cb.get("glacier")
-forest = cb.get("forest")
-fog = cb.get("fog")
-ember = cb.get("ember")
-citrus = cb.get("citrus")
-dusk_bay = cb.get("dusk-bay")
-aurora = cb.get("aurora")
-orchid = cb.get("orchid")
-amethyst = cb.get("amethyst")
-rose_dusk = cb.get("rose-dusk")
-crimson = cb.get("crimson")
-spring_meadow = cb.get("spring-meadow")
-shoreline = cb.get("shoreline")
-desert_canyon = cb.get("desert-canyon")
-sunset = cb.get("sunset")
-
-color_brewer = cb
-# print(sunset.to_dict())
-# print(cb.get(("blue", "green")))
-# print(cb.get('seafoam'))
-
-
-
-
-class ColorBrewerThemeV1:
-    def __init__(self, key: PaletteValue):
-
-        def create(key):
-            return color_brewer.get(key).to_dict()
-
-        primary = key
-        secondary = PALLETE_MAP.get(key).get('complement')
-        self.data = {
-            'primary': create(primary),
-            'secondary': create(secondary),
+def export_typst_themes_flat() -> str:
+    """
+    Export a Typst file with flattened theme keys:
+        theme -> {
+          primary-50: rgb("#..."), ... primary-900: rgb("#..."),
+          secondary-50: rgb("#..."), ... secondary-900: rgb("#...")
         }
-    
-    def get(self, key):
-        return kx.dict_getter(self.data, key)
+
+    Returns
+    -------
+    str
+        The path to the generated Typst file.
+    """
+
+    def rgb_expr(hex_color: str):
+        return kx.real(f'rgb("{hex_color}")')
+
+    from codefmt.typst import typstfmt
+
+    store: Dict[str, Dict[str, str]] = {}
+
+    for theme, scale in COLORBREWER_TAILWIND.items():
+        comp_theme = PALETTE_MAP[theme]["complement"]
+        comp_scale = COLORBREWER_TAILWIND[comp_theme]
+
+        flat: Dict[str, str] = {}
+        for step, hex_color in scale.items():
+            flat[f"primary-{step}"] = rgb_expr(hex_color)
+        for step, hex_color in comp_scale.items():
+            flat[f"secondary-{step}"] = rgb_expr(hex_color)
+
+        store[theme] = flat
+
+    decls = []
+    for name, value in store.items():
+        decls.append(typstfmt.decl(name, value, coerce=False, top_level=True))
+
+    text = kx.join_text(decls)
+    kx.writefile(PATHS["typ_flat"], text)
+    return PATHS["typ_flat"]
 
 
+# -------------------------
+# Sample usage (no CLI)
+# -------------------------
 
+if __name__ == "__main__":
+    # Ensure files are in the new locations before loading.
+    # (Sample call; comment out if you prefer a manual migration trigger.)
+    migrate_color_files()
 
-
-
-
-import kevinlulee as kx
-
-def example():
-    INPUT = "~/data/sequential-colorbrewer.json"
-    OUTPUT = "~/data/sequential-colorbrewer.tailwind.json"
-    
-    TARGET_STEPS = [50,100,200,300,400,500,600,700,800,900]
-    
-    def best_array(colors_dict):
-        for n in ("9","8","7","6","5","4","3"):
-            if n in colors_dict:
-                return colors_dict[n]
-        return []
-    
-    def to_tailwind_scale(colors_dict):
-        arr = best_array(colors_dict)
-        scale = {}
-    
-        # map available colors to 100.. up to what we have
-        for i, hex_color in enumerate(arr):
-            step = (i + 1) * 100
-            if step > 900:
-                break
-            scale[str(step)] = hex_color
-    
-        # 50 should be the same as 100
-        scale["50"] = scale["100"]
-    
-        # fill any missing steps by carrying forward the last seen value
-        last = scale["50"]
-        for step in TARGET_STEPS:
-            key = str(step)
-            if key in scale:
-                last = scale[key]
-            else:
-                scale[key] = last
-    
-        # if we didn't have a 900, ensure it's equal to 800
-        scale["900"] = scale["800"]
-    
-        # keep keys in standard order when serialized
-        ordered = {str(s): scale[str(s)] for s in TARGET_STEPS}
-        return ordered
-    
-    def build_tailwind_palettes(data):
-        out = []
-        for entry in data:
-            out.append({
-                "key": entry["key"],
-                "name": entry.get("name", ""),
-                "scale": to_tailwind_scale(entry["colors"])
-            })
-        return out
-    
-    data = kx.readfile(INPUT)
-    result = build_tailwind_palettes(data)
-    kx.writefile(OUTPUT, result)
-    print(f"Wrote {OUTPUT}")
-
-
-def create_brewer_tailwind(file):
-    data = kx.readfile(file)
-    return {
-        el['name']: el['scale'] for el in data
-    }
-
-COLOR_BREWER_TAILWIND = create_brewer_tailwind("~/data/sequential-colorbrewer.tailwind.json")
-# COLOR_BREWER_JSON = create_brewer_tailwind("~/data/sequential-colorbrewer.json")
-
-class ColorBrewerTheme:
-    def __init__(self, key: PaletteValue):
-
-        def create(key):
-            return COLOR_BREWER_TAILWIND.get(key) # scales ...
-
-        primary = key
-        secondary = PALLETE_MAP.get(key).get('complement')
-        self.data = {
-            'primary': create(primary),
-            'secondary': create(secondary),
-        }
-    
-    def get(self, key):
-        return kx.dict_getter(self.data, key)
-
-
-# a = ColorBrewerTheme('deep-ocean')
-# print(a.get('primary.200'))
+    # Load consolidated data
+PALETTE_MAP = kx.readfile(
+    PATHS["palette_map"]
+)  # theme -> { complement: <theme>, ... }
+COLORBREWER_TAILWIND = records_to_mapping(
+    kx.readfile(PATHS["colorbrewer_tailwind"]), value_field="scale"
+)  # theme -> { "50": "#...", "100": "#...", ... }
+COLORBREWER_SEQUENTIAL = records_to_mapping(
+    kx.readfile(PATHS["colorbrewer_sequential"]), value_field="colors"
+)  # theme -> { "3": [#..,#..,#..], "4": [...], ... }

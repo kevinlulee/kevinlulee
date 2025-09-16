@@ -12,6 +12,7 @@ def colon_dict(
     skip_empty_strings: bool = True,
     allow_repeated_keys: bool = False,
     transformers: Optional[dict] = None,
+    keys = None,
 ) -> dict:
     """
     Parse a headered block format.
@@ -27,7 +28,7 @@ def colon_dict(
     - If `transformers` is provided, only keys in transformers are treated
       as headers; other "X:" lines are treated as plain content.
     """
-    allowed_keys = set(transformers) if transformers else None
+    allowed_keys = keys or set(transformers) if transformers else None
 
     items: List[Tuple[str, str]] = []
     current_key: Optional[str] = None

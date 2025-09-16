@@ -601,8 +601,11 @@ def array_to_dict(data, key = None):
                 d[key]: d for d in data
             }
             
-            
-        
+        return {
+            str(i + 1): arg for  i, arg in enumerate(data)
+        }
+
+    if key == '1' or key == 1:
         return {
             str(i + 1): arg for  i, arg in enumerate(data)
         }

@@ -96,13 +96,12 @@ def get_indent(text: str, tab_width = 4) -> int:
         The indentation level (0, 1, 2, 3, or 4).
     """
     for line in text.splitlines():
-        if line.strip():  # Check if the line is not empty
-            # Calculate the number of leading spaces
-            leading_spaces = len(line) - len(line.lstrip())
-            # Calculate the indentation level (each level is 4 spaces)
-            indent_level = leading_spaces // tab_width
-            # Ensure the result is within 0–4
-            return min(indent_level, tab_width)
+        # Calculate the number of leading spaces
+        leading_spaces = len(line) - len(line.lstrip())
+        # Calculate the indentation level (each level is 4 spaces)
+        indent_level = leading_spaces // tab_width
+        # Ensure the result is within 0–4
+        return min(indent_level, tab_width)
     return 0  # Default to 0 if all lines are empty
 
 
@@ -138,7 +137,7 @@ def dash_case(s):
     return s.lower()  # Convert to lowercase
 
 def split(s, r="\s+", flags=0, maxsplit = 0):
-    if flags == 0 and r.startswith('^'):
+    if flags == 0 and isinstance(r, str) and r.startswith('^'):
         flags = re.M
     base = re.split(r, str(s).strip(), flags=flags, maxsplit = maxsplit)
     items = [s.strip() for s in base if s.strip()]
@@ -593,6 +592,9 @@ def depluralize_arg(word):
         'geese': 'goose'
     }
     
+    if not word:
+        return 
+    word = word.split('.')[-1]
     # Check if the word is in irregular plurals
     if word.lower() in irregular_plurals:
         return irregular_plurals[word.lower()]
@@ -623,3 +625,44 @@ def escape_newlines(s):
 
 
 # print(quotify(indent('\t', 2)))
+
+
+def trim(x):
+    return x.strip() if isinstance(x, str) else x
+
+
+def repeatedly_eat(text: str, pattern: str) -> tuple[str, list]:
+    """
+    Repeatedly consume a regex pattern from the start of a string until no more matches are found.
+
+    Args:
+        text: The input string to process
+        trim: 
+
+    Returns:
+        List of all matched strings in order of appearance
+        along with the remaining string
+
+    Example:
+        >>> eat_regex("abc123def456hi", r'[a-z]+\d+')
+        (['abc123', 'def456'], "hi")
+    """
+
+    if isinstance(pattern, str):
+        pattern = re.compile(pattern)
+
+    matches = []
+    remaining = text.strip()
+
+    while remaining:
+        match = pattern.match(remaining)
+        if not match:
+            break
+
+        m = get_match(match)
+        matches.append(m)
+        remaining = remaining[len(match.group(0)):]
+        remaining = remaining.lstrip()
+        remaining = re.sub('^,+ *', '', remaining)
+
+    return remaining, matches 

@@ -20,7 +20,7 @@ from .file_utils import (
     writefile,
 )
 from .base import display, identity
-from .validation import empty
+from .validation import empty, is_array
 import subprocess
 
 from typing import TypedDict

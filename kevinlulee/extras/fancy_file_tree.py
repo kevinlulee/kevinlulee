@@ -4,6 +4,7 @@ from typing import Iterable, List, Tuple, Union
 from kevinlulee.file_utils import create_gitignore_matcher
 
 
+
 # ---------- Tree node ----------
 class FileTreeNode:
     def __init__(self, name: str, is_file: bool = False):
@@ -126,7 +127,7 @@ def get_tree_string(root: FileTreeNode) -> str:
 
 
 # ---------- Public API ----------
-def fancy_filetree_from_list(custom_files: Iterable[str]) -> str:
+def _fancy_filetree_from_list(custom_files: Iterable[str]) -> str:
     """
     Pretty tree for a provided list of file paths (abs or rel).
     If a common directory root exists, it is shown as a header.
@@ -149,7 +150,7 @@ def fancy_filetree_from_list(custom_files: Iterable[str]) -> str:
     return body
 
 
-def fancy_file_tree(root_dir_or_list: Union[str, Iterable[str]]) -> str:
+def fancy_file_tree(root_dir_or_list: Union[str, Iterable[str]], truncate: bool = False, max_leaves = 20) -> str:
     """
     If given a directory path (string), walk the filesystem and produce a tree,
     honoring .gitignore via create_gitignore_matcher. If given a list/tuple of
@@ -157,7 +158,7 @@ def fancy_file_tree(root_dir_or_list: Union[str, Iterable[str]]) -> str:
     """
     # Support list/tuple inputs transparently
     if isinstance(root_dir_or_list, (list, tuple)):
-        return fancy_filetree_from_list(root_dir_or_list)
+        return _fancy_filetree_from_list(root_dir_or_list)
 
     root_dir = os.path.expanduser(root_dir_or_list)
     if not os.path.isdir(root_dir):
@@ -166,9 +167,14 @@ def fancy_file_tree(root_dir_or_list: Union[str, Iterable[str]]) -> str:
     ignore = create_gitignore_matcher(root_dir)
     header = os.path.basename(os.path.normpath(root_dir)) + "/"
 
+    leaf_count = 0
     def build_fs_tree(directory: str, node: FileTreeNode):
+        nonlocal leaf_count
         entries = sorted(os.listdir(directory))
+        count = 0
         for name in entries:
+            if truncate and leaf_count > max_leaves:
+                continue
             full = os.path.join(directory, name)
             if ignore(full):
                 continue
@@ -176,7 +182,13 @@ def fancy_file_tree(root_dir_or_list: Union[str, Iterable[str]]) -> str:
                 child = node.add_child(name, is_file=False)
                 build_fs_tree(full, child)
             else:
-                node.add_child(name, is_file=True)
+                if truncate and count > 3:
+                    continue
+                else:
+                    node.add_child(name, is_file=True)
+                    count += 1
+
+            leaf_count += 1
 
     # Build an in-memory tree from disk
     root = FileTreeNode("root")
@@ -189,4 +201,5 @@ def fancy_file_tree(root_dir_or_list: Union[str, Iterable[str]]) -> str:
     return header + "\n" + body
 
 
-
+if __name__ == '__main__':
+    print(fancy_file_tree('~/projects/python/maelstrom'))

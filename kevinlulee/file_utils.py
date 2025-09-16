@@ -23,6 +23,7 @@ from kevinlulee.ao import smallify, partition, xtest
 from kevinlulee.base import yes, no
 from kevinlulee.resolve_ops import resolve_filetype
 from kevinlulee.serialize_ops import serialize_data
+from kevinlulee.text_tools import join_text
 import kevinlulee.yb as yb
 from kevinlulee.date_utils import make_time_window_predicate, strftime, resolve_timedelta, to_seconds
 from kevinlulee.string_utils import matchstr, mget, prefix_join, remove_ending_slash, split, split_once, remove_starting_slash
@@ -590,11 +591,16 @@ def mkfile(path, debug = False, soft = False):
     with open(path, "w") as f:
         pass
 
-def mkdir(path, debug = False):
+def mkdir(path, debug = False, force = True):
     
     if debug:
         return print('[DEBUG]', 'mkdir', path)
-    os.makedirs(os.path.expanduser(path), exist_ok=True)
+
+    root = Path(path).expanduser()
+    if force and root.exists():
+        shutil.rmtree(root)
+    root.mkdir(parents=True, exist_ok=True)
+    return str(root)
 
 
 import os
@@ -909,6 +915,8 @@ def resolve_directory(path):
     return path
 
 def remove_extension(file):
+    if 'yml.txt' in file:
+        return file.replace('.yml.txt', '')
     ext = get_extension(file)
     if not ext:
         return file
@@ -1035,11 +1043,17 @@ def mvfile(a, b, normalize_to_directory = False, verbose = False):
 
 
 
-def cpfile(a, b, normalize_to_directory = False, verbose = False):
+def cpfile(a, b, normalize_to_directory = False, verbose = False, soft = True, debug = False):
     a = os.path.expanduser(str(a))
     b = os.path.expanduser(str(b))
     if normalize_to_directory: b = fnamemodify(b, name = os.path.basename(a))
     assert_file(a)
+    if soft and is_file(b):
+        return 
+    if debug:
+        print(f'copied {os.path.basename(a)} to {unexpand(os.path.dirname(b))}')
+        return 
+
     ensure_directory_exists(b)
     shutil.copyfile(a, b)
     if verbose: print(f'copied {os.path.basename(a)} to {unexpand(os.path.dirname(b))}')
@@ -1053,13 +1067,15 @@ def cpdir(a, b):
     ensure_directory_exists(b)
     shutil.copy(a, b)
     return b
-def mvdir(a, b):
+def mvdir(a, b, verbose = False):
     a = os.path.expanduser(str(a))
     b = os.path.expanduser(str(b))
     if os.path.basename(b) == os.path.basename(a):
         a = os.path.dirname(a)
     assert_directory(a)
     shutil.move(a, b)
+    if verbose:
+        kx.pretty_print('moved {a} to {b}')
 
 def rmfile(a):
     a = os.path.expanduser(str(a))
@@ -1362,3 +1378,29 @@ def dirs_up_to_root(current_path: str, root_dir: str ) -> list[str]:
             break
         here = here.parent
     return out
+
+def drill_into_directory(root):
+    def validate(name):
+        if re.search("readme", name, flags=re.I):
+            return False
+
+        return True
+
+    cur = root
+    while True:
+        names = [name for name in os.listdir(cur) if validate(name)]
+        if len(names) != 1:
+            return cur
+        candidate = cur / names[0]
+        if candidate.is_dir():
+            cur = candidate
+        else:
+            return cur
+
+
+get_project_directory = find_project_root
+
+def readdir(dir, delimiter = ''):
+    files = absdir(dir)
+    text = [readfile(file) for file in files]
+    return f'\n{delimiter}\n'.join(text)

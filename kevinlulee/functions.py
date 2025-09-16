@@ -306,12 +306,12 @@ import kevinlulee as kx
 
 
 def cache_write(path, payload):
-    assert_relative_path(path)
+    kx.assert_relative_path(path)
     path = kx.add_extension_if_not_present(path, 'json')
     kx.writefile(f"~/data/maelstrom/cache/{path}", payload)
 
 def cache_read(path):
-    assert_relative_path(path)
+    kx.assert_relative_path(path)
     path = kx.add_extension_if_not_present(path, 'json')
     return kx.readfile(f"~/data/maelstrom/cache/{path}")
 
@@ -596,3 +596,26 @@ def collect_directories(dir, query):
         query=query,
         only_directories=True,
     )
+
+
+def hit(funcs, *args, **kwargs):
+    for func in funcs:
+        m = func(*args, **kwargs)
+        if m is not None:
+            return m
+
+    
+
+def check(value, validator):
+    assert validator(value), f"{value} does not meet validation requirements."
+    return value
+
+
+def call(key, *args, **kwargs):
+    return kx.run_module_func(f'kevinlulee.extras.{key}', *args, **kwargs)
+
+
+
+def infer_nargs(template: str) -> int:
+    nums = re.findall(r"\$(\d+)", template)
+    return len(set(nums))

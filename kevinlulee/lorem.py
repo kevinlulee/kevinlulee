@@ -86,3 +86,6 @@ class Person:
     def to_dict(self):
         return {"name": self.name, "age": self.age, "city": self.city}
 
+
+
+alias_dict = dict(a = 'apple', b = 'banana', c = 'cherry')

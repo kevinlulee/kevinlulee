@@ -314,6 +314,11 @@ def breaker(max_iterations=1000):
             f"Loop exceeded {max_iterations} iterations - possible infinite loop detected"
         )
 
+def curry_start(func, *top_args, **top_kwargs):
+    def curried(*args, **kwargs):
+        return func(*top_args, *args, **top_kwargs, **kwargs)
+
+    return curried
 
 def curry(func, *top_args, **top_kwargs):
     def curried(*args, **kwargs):

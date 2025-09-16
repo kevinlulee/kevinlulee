@@ -1,4 +1,5 @@
 import re
+import os
 import json
 from _collections_abc import dict_values, dict_keys, dict_items
 from kevinlulee.typing import Selector, Optional
@@ -98,6 +99,8 @@ def is_class_constructor(x):
         return False
     return isinstance(x, type)
 
+def is_class_like(x):
+    return is_class_constructor(x) or is_class_instance(x)
 def is_class_constructor(obj):
     """
     Check if an object is a user-defined class constructor (excluding built-in types).

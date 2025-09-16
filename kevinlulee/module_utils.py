@@ -16,7 +16,7 @@ from kevinlulee.string_utils import matchstr, remove_ending_slash
 from pathlib import Path
 import os
 
-from kevinlulee.validation import is_word
+from kevinlulee.validation import is_string, is_word
 
 
 
@@ -57,6 +57,7 @@ def get_modname_from_directory(path):
         return 
     
     return _get_modname(path)
+
 def get_modname_from_file(file):
     file = str(file)
     if not file.endswith(".py"):
@@ -323,3 +324,54 @@ def collect_shallow_python_imports(file):
     ]
     a = unique(filtered(a, not_in(ignore)))
     return a
+
+def get_module_functions(module):
+    if is_string(module):
+        module = get_module(module)
+
+    all = getattr(module, '__all__')
+    assert all, "'__all__' must be defined in order to use get_module_functions"
+
+    return [getattr(module, key) for key in all]
+
+
+import os
+import kevinlulee as kx
+
+project_directories = [
+    '~/projects/',
+    '~/projects/webdev',
+    '~/projects/python',
+]
+
+def get_modname_from_project_name(x):
+    path = os.path.expanduser(x)
+
+    # Case 1: x is a path under one of the project directories — extract the leaf name.
+    for base in project_directories:
+        r = os.path.join(os.path.expanduser(base), r'([\w-]+)$')
+        m = kx.matchstr(path, r)
+        if m:
+            return m
+
+    # Case 2: x is a project name that exists in one of the project directories.
+    for base in project_directories:
+        p = path_join(base, x)
+        if is_dir(p):
+            return os.path.basename(os.path.expanduser(p))
+
+def get_directory_from_project_name(x):
+    xp = os.path.expanduser(x)
+
+    # If x is an actual path inside any project directory, accept it.
+    for base in project_directories:
+        b = os.path.expanduser(base)
+        if xp.startswith(b) and is_dir(xp):
+            return xp
+
+    # Otherwise, look for x as a child of each project directory.
+    for base in project_directories:
+        p = path_join(base, x)
+        if is_dir(p):
+            return p
+

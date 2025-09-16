@@ -23,6 +23,13 @@ from typing import Optional, Iterable
 
 
 def datetime_from_str(s: str) -> datetime:
+
+    path = os.path.expanduser(s)
+    if os.path.isdir(path):
+        return datetime.fromtimestamp(os.path.getmtime(path))
+    elif os.path.isfile(path):
+        return datetime.fromtimestamp(os.path.getmtime(path))
+
     if s.endswith("ago"):
         return timeago_to_datetime(s)
     dt = None
@@ -74,6 +81,8 @@ def rough_unit_from_digits(ts: int | str) -> Literal["s", "ms", "us", "ns"]:
 
 
 def to_datetime(x=None):
+    if isinstance(x, datetime):
+        return x
     if x is None:
         return datetime.now()
     if isinstance(x, dict):
@@ -84,20 +93,12 @@ def to_datetime(x=None):
             return resolve_timedelta2(**x)
         return datetime_from_str(d)
     if isinstance(x, str):
-        path = os.path.expanduser(x)
-        if os.path.isdir(path):
-            return datetime.fromtimestamp(os.path.getmtime(path))
-        elif os.path.isfile(path):
-            return datetime.fromtimestamp(os.path.getmtime(path))
-        else:
             return datetime_from_str(x)
     if isinstance(x, (int, float)):
         if rough_unit_from_digits(x) == "ms":
             x /= 1000
         return datetime.fromtimestamp(x)
 
-    if isinstance(x, datetime):
-        return x
 
     return extract_datetime_from_object(x)
 
@@ -412,7 +413,14 @@ def is_recent(x, **opts):
     return to_timestamp(x) >= cutoff
 
 
-def is_recentf(mode="after", key=None, **opts):
+def is_recentf(distant = None, recent = None, mode="after", key=None, **opts):
+    if recent:
+        mode = 'recent'
+        opts = recent
+    if distant:
+        mode = 'distant'
+        opts = distant
+
     cutoff = resolve_timedelta(**opts)
     recency_modes = ["after", "recent", "near"]
     if mode in recency_modes:
@@ -653,3 +661,30 @@ def make_time_window_predicate(start=None, end=None):
 
 # print(to_datetime(dict(hours = -5)))
 # print(make_time_window_predicate(end = dict(hours = 5))(dict(hours = 7)))
+
+# kx.pretty_print(datetime_from_str('/home/kdog3682/projects/hammymathclass/python/hmc/shapefriend/examples.py'))
+
+
+from datetime import datetime, timedelta
+import kevinlulee as kx
+
+def is_recentf2(distant=None, recent=None):
+
+    if recent and distant:
+        recent_cutoff  = to_timestamp(recent)
+        distant_cutoff = to_timestamp(distant)
+        assert distant_cutoff < recent_cutoff
+
+        return lambda x: distant_cutoff <= to_timestamp(x) < recent_cutoff
+
+    if recent:
+        cutoff = to_timestamp(recent)
+        return lambda x: to_timestamp(x) >= cutoff
+
+    if distant:
+        cutoff = to_timestamp(distant)
+        return lambda x: to_timestamp(x) < cutoff
+
+    return yes
+
+
