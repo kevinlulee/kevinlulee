@@ -494,7 +494,7 @@ def re_wrap(iterable, template=""):
 
 def dreplace(s, ref, boundary = True, flags = 0):
     keys = list(ref)
-    b = '\\b' if boundary else ''
+    b = r'(?<![\w\u4e00-\u9fff])' if boundary else ''
     middle = f'[{"".join(keys)}]' if all(len(k) == 1 for k in keys) else f'(?:{"|".join(keys)})'
     regex = f'{b}{middle}{b}'
 

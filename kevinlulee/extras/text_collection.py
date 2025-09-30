@@ -15,10 +15,21 @@ class AbstractNoteCollection:
         )
         self.update()
 
-    def update(self):
-        delimiters = kx.re.findall('^-+', self.text, flags = kx.re.M)
+    def get_delimiter(self):
+        
+        delimiters = kx.re.findall('^-{3,}', self.text, flags=kx.re.M)
         most_common = kx.Counter(delimiters).most_common(1)[0][0]
+
+        if most_common == "---":
+            long_dels = [d for d in delimiters if len(d) >= 10]
+            if long_dels:
+                most_common = kx.Counter(long_dels).most_common(1)[0][0]
+
         a = f'^-{{{len(most_common)},}}'
+        return a
+
+    def update(self):
+        a = self.get_delimiter()
         pattern = kx.re.compile(a, flags=kx.re.M)
         parts = kx.split(
             self.text, pattern
@@ -100,7 +111,7 @@ class YamlSnippetCollection(AbstractNoteCollection):
         
 if __name__ == '__main__':
     spec_path = "~/projects/python/maelstrom/lib/aicmp/instructions"
-    # kx.pretty_print(PromptLibCollection(spec_path).to_dict())
+    kx.pretty_print(PromptLibCollection(spec_path).to_dict())
 
-    spec_path = "/home/kdog3682/data/plugins/snippeteer/omni_handle"
-    kx.pretty_print(YamlSnippetCollection(spec_path).to_dict())
+    # spec_path = "/home/kdog3682/data/plugins/snippeteer/omni_handle"
+    # kx.pretty_print(YamlSnippetCollection(spec_path).to_dict())

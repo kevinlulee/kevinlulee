@@ -134,6 +134,12 @@ class Bar:
         create()
 
 
+
+def get_parameters(func, ignore_self = True):
+    p = list(inspect.signature(func).parameters.keys())
+    if ignore_self and len(p) and p[0] == 'self':
+        p.pop(0)
+    return p
 if __name__ == '__main__':
     # print(gobo(foobar))
     # print(get_parameters_and_fallbacks(foobar))

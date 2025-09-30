@@ -11,7 +11,7 @@ TEMPLATER_PATTERN2 = re.compile(
 )
 
 
-def brace_templater(s, ref, cls=None):
+def brace_templater(s, ref, cls=None, wrap_func = None):
     """
     a simpler version of templater.
     uses {braces}.
@@ -42,6 +42,8 @@ def brace_templater(s, ref, cls=None):
         g = get(expr)
         if g is None:
             return "<EMPTY>"
+        if wrap_func:
+            g = wrap_func(g)
         payload = kx.serialize_data(g)
         return kx.newline_indent(payload, ind) if newline else payload
 

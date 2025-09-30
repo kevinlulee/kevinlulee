@@ -10,7 +10,9 @@ def pytest(
     rootdir = True,
 ):
     parts = ["pytest"]
-    paths = kx.flat(paths)
+    paths = kx.filtered(kx.flat(paths), lambda x: kx.os.path.exists(x))
+    if not paths:
+        return 
 
     if config_file:
         parts += ["--config-file", str(os.path.expanduser(config_file))]

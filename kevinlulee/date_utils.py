@@ -339,10 +339,22 @@ class DateAccess:
         return self.date.timestamp()
 
     @property
-    def american_date(self) -> str:
+    def american(self) -> str:
         """Get the date in American format (MM/DD/YYYY)."""
         return f"{self.date.month:02d}/{self.date.day:02d}/{self.date.year}"
 
+    @property
+    def iso(self) -> str:
+        """Get the date in American format (MM/DD/YYYY)."""
+        return f"{self.date.year}-{self.date.month:02d}-{self.date.day:02d}"
+
+    @property
+    def season(self):
+        return get_season(self._date)
+
+    @property
+    def season_year(self):
+        return f'{self.season} {self.year}'
 
 def get_recency_validator(mode: Literal["recent", "distant"], **opts):
     cutoff = resolve_timedelta(**opts)
@@ -688,3 +700,5 @@ def is_recentf2(distant=None, recent=None):
     return yes
 
 
+if __name__ == '__main__':
+    monday = get_upcoming_day('monday')

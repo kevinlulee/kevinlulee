@@ -791,3 +791,12 @@ def get_first_result(result):
 
 # print(dict_setter(dict(alpha = dict(b = 1)), 'a', 'c', 1))
 
+def merge_fields(*dcts, **kwargs):
+    store = {}
+    for dct in list(dcts) + [kwargs]:
+        if dct:
+            for k, v in dct.items():
+                if v is not None:
+                    store[k] = v
+
+    return store

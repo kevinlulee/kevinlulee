@@ -1404,3 +1404,20 @@ def readdir(dir, delimiter = ''):
     files = absdir(dir)
     text = [readfile(file) for file in files]
     return f'\n{delimiter}\n'.join(text)
+
+
+def resolve_dotted_path2(s, dir):
+    if s.startswith("../"):
+        path, m = mget(s, "^(?:../)+")
+        upwards = len(m) // 3
+        parts = dir.split("/")[: -upwards - 1]
+        return os.path.join(*parts, path)
+
+    if s.startswith("./"):
+        path = s[2:]
+        return os.path.join(dir, path)
+
+    return os.path.join(dir, s)
+
+
+

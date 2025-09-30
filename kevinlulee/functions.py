@@ -40,6 +40,9 @@ def infer_lang(value):
         return "python"
 
     if kx.is_string(value):
+        if kx.test(value, '#let|#import|\) *= *{'):
+            return 'typst'
+
         return "python"
 
     return "json"
@@ -619,3 +622,19 @@ def call(key, *args, **kwargs):
 def infer_nargs(template: str) -> int:
     nums = re.findall(r"\$(\d+)", template)
     return len(set(nums))
+
+
+def id_from_index(i: int) -> str:
+    s = ""
+    i0 = i
+    while True:
+        i0, rem = divmod(i0, 26)
+        s = chr(65 + rem) + s
+        if i0 == 0:
+            break
+        i0 -= 1
+    return s.upper()
+
+
+
+

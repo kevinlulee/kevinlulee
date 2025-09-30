@@ -151,6 +151,7 @@ def fdfind(
     respect_ignore: bool = False,
     show_hidden_files: bool = True,
     only_directories: bool = False,
+    only_files: bool = False,
     ignore_file: str = None,
     exts: List[str] = [],
     debug=False,
@@ -186,6 +187,8 @@ def fdfind(
         cmd.append("--hidden")
     if only_directories:
         cmd.extend(["--type", "directory"])
+    elif only_files:
+        cmd.extend(["--type", "file"])
 
     if debug:
         print(" ".join(cmd))
@@ -213,6 +216,7 @@ def fd(
     respect_ignore: bool = False,
     show_hidden_files: bool = True,
     only_directories: bool = False,
+    only_files: bool = True,
     ignore_file: str = None,
     exts: List[str] = [],
     debug=False,
@@ -226,6 +230,7 @@ def fd(
         respect_ignore=respect_ignore,
         show_hidden_files=show_hidden_files,
         only_directories=only_directories,
+        only_files = only_files,
         ignore_file=ignore_file,
         exts=exts,
         debug=debug
@@ -235,6 +240,8 @@ def rg(dir, pattern, **kwargs):
 
 if __name__ == '__main__':
     # print(ripgrep(pattern='def group', dirs = ['/home/kdog3682/projects/python/kevinlulee/kevinlulee/']))
-    ROOT_DIR = "/home/kdog3682/projects/python/maelstrom/lib/nvim/plugins/v1/"
-    FD_PAT = ''' data_path\s*=\s*["']~/.cache/maelstrom/[^"']*["'] '''
-    print(rg(ROOT_DIR, FD_PAT))
+    # ROOT_DIR = "/home/kdog3682/projects/python/maelstrom/lib/nvim/plugins/v1/"
+    # FD_PAT = ''' data_path\s*=\s*["']~/.cache/maelstrom/[^"']*["'] '''
+    # print(rg(ROOT_DIR, FD_PAT))
+    files = fd('~/projects/old_projects/mmgg', only_files=True)
+    print(files)

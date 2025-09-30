@@ -316,10 +316,10 @@ def export_typst_themes_flat() -> str:
 # Sample usage (no CLI)
 # -------------------------
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # Ensure files are in the new locations before loading.
     # (Sample call; comment out if you prefer a manual migration trigger.)
-    migrate_color_files()
+    # migrate_color_files()
 
     # Load consolidated data
 PALETTE_MAP = kx.readfile(
