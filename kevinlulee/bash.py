@@ -171,7 +171,7 @@ def bash_nvim(*args, cwd=None, on_error=identity):
 
 def bash_shell(cmd, cwd = None):
     
-    cmd = " ".join(cmd) if is_array(cmd) else cmd
+    cmd = trimdent(" ".join(cmd) if is_array(cmd) else cmd)
 
     res = subprocess.run(
         cmd,
@@ -181,7 +181,7 @@ def bash_shell(cmd, cwd = None):
         text=True,
         cwd=cwd,
     )
-    return res.stdout
+    return res.stdout.strip()
 
 def git_bash(*args, cwd=".", debug=False):
     args =flat(args)

@@ -52,6 +52,8 @@ def pretty_print(*args):
             continue
         if isinstance(arg, (float, int, complex, str, bool)):
             print(arg)
+        elif hasattr(arg, 'render'):
+            print(str(arg))
         else:
             pprint(arg)
 

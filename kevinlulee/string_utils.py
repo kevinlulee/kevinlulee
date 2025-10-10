@@ -624,7 +624,8 @@ def escape_newlines(s):
     return re.sub("\n", '\\\\n', s)
 
 
-# print(quotify(indent('\t', 2)))
+def escape_typst_newlines(s):
+    return re.sub("\n", '\\\n', s)
 
 
 def trim(x):

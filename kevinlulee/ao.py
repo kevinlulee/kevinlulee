@@ -800,3 +800,34 @@ def merge_fields(*dcts, **kwargs):
                     store[k] = v
 
     return store
+
+
+from typing import Any, Dict, Hashable, List, Tuple
+
+def pluck(d: Dict[Hashable, Any], *keys: Hashable, default: Any = None) -> Tuple:
+    """
+    Return ([values_for_keys_in_order], remaining_dict).
+
+    - Values are returned in the same order as *keys.
+    - Missing keys yield `default` (None by default).
+    - The remaining dict contains all items whose keys are not in *keys.
+    """
+    vals = [d.get(k, default) for k in keys]
+    keyset = set(keys)
+    rest = {k: v for k, v in d.items() if k not in keyset}
+    return (*vals, rest)
+
+
+from typing import Dict, Iterable, Hashable, Tuple
+
+def split_dict(d, inc):
+    """
+    Split a dict into two dicts based on an include key set.
+
+    Returns (included, excluded) without mutating the original dict.
+    Keys in `include` that aren't in `d` are ignored.
+    """
+    included = {k: v for k, v in d.items() if k in inc}
+    excluded = {k: v for k, v in d.items() if k not in inc}
+    return included, excluded
+

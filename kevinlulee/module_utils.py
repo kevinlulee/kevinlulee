@@ -10,7 +10,7 @@ import importlib
 
 from kevinlulee.ao import filtered, flat, not_in, unique
 from kevinlulee.base import noop
-from kevinlulee.file_utils import EXTENSIONS, add_extension_if_not_present, get_extension, is_dir, readfile, remove_extension
+from kevinlulee.file_utils import EXTENSIONS, add_extension_if_not_present, get_extension, is_dir, looks_like_file, readfile, remove_extension
 from kevinlulee.string_utils import matchstr, remove_ending_slash
 
 from pathlib import Path
@@ -286,6 +286,9 @@ def get_directory_from_modname(modname):
 def path_join(*args):
     assert len(args) > 1, "path_join requires at least 2 arguments"
     a, *rest, last = args
+    if looks_like_file(a):
+        a = os.path.dirname(a)
+
     a = os.path.expanduser(a)
     if last in EXTENSIONS:
         rest[-1] = add_extension_if_not_present(rest[-1], last)

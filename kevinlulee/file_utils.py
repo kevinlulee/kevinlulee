@@ -623,7 +623,7 @@ def create_gitignore_matcher(rootdir):
     gitignore_path = os.path.join(root_dir, '.gitignore')
     gitignore_content = readfile(gitignore_path)
     if not gitignore_content:
-        return no
+        return should_ignore_path
     # Create a spec from gitignore content
     more = ['.git/']
     spec = pathspec.PathSpec.from_lines('gitwildmatch', gitignore_content.splitlines() + more)
@@ -638,6 +638,9 @@ def create_gitignore_matcher(rootdir):
         Returns:
             bool: True if the file should be ignored, False otherwise
         """
+        if should_ignore_path(file_path):
+            return True
+
         # Make path relative to root directory
         if os.path.isabs(file_path):
             # If path is absolute, make it relative to root_dir
@@ -716,7 +719,13 @@ def absdir(dir):
 import os
 
 def looks_like_file(path):
-    return is_file(path) or get_extension(path)
+    return is_file(path) or get_extension(path) or is_dotfile(path)
+import os
+
+def is_dotfile(path: str) -> bool:
+    """Check if a given path is a dotfile (hidden file starting with '.')"""
+    name = os.path.basename(os.path.expanduser(path))
+    return name.startswith(".") and len(name) > 1
 
 def relpath(path, reference):
     ref_path = os.path.expanduser(reference)
@@ -921,6 +930,7 @@ def remove_extension(file):
     if not ext:
         return file
     return file.replace('.' + ext, '')
+
 def get_filename(file):
     return remove_extension(os.path.basename(file))
 
@@ -1060,34 +1070,28 @@ def cpfile(a, b, normalize_to_directory = False, verbose = False, soft = True, d
 
 def trashfile(a, verbose = False):
     mvfile(a, '~/trash', normalize_to_directory = True, verbose = verbose)
-def cpdir(a, b):
-    a = os.path.expanduser(str(a))
-    b = os.path.expanduser(str(b))
-    assert_directory(a)
-    ensure_directory_exists(b)
-    shutil.copy(a, b)
-    return b
 def mvdir(a, b, verbose = False):
-    a = os.path.expanduser(str(a))
-    b = os.path.expanduser(str(b))
+    a = remove_ending_slash(os.path.expanduser(str(a)))
+    b = remove_ending_slash(os.path.expanduser(str(b)))
     if os.path.basename(b) == os.path.basename(a):
         a = os.path.dirname(a)
     assert_directory(a)
     shutil.move(a, b)
     if verbose:
-        kx.pretty_print('moved {a} to {b}')
+        print(f'moved {a} to {b}')
 
 def rmfile(a):
     a = os.path.expanduser(str(a))
     os.unlink(a)
 
 def cpdir(a, b, verbose = False):
-    a = os.path.expanduser(str(a))
-    b = os.path.expanduser(str(b))
-    os.makedirs(os.path.dirname(b), exist_ok=True)
-    shutil.copytree(a, b)   
+    a = remove_ending_slash(os.path.expanduser(str(a)))
+    b = remove_ending_slash(os.path.expanduser(str(b)))
+    ensure_directory_exists(os.path.dirname(b))
+    shutil.copytree(a, b) 
     if verbose:
         print(f'copied directory "{a}" to "{b}"')
+
 def rmdir(a):
     a = os.path.expanduser(str(a))
     shutil.rmtree(a, ignore_errors=True)  # like `rm -rf`
@@ -1263,7 +1267,10 @@ def get_file_info(file_path: str) -> FileInfo:
 
 
 def is_public_directory(dir):
-    return os.path.basename(dir) not in skippable_dirs
+    name = os.path.basename(dir)
+    if name.startswith('.'):
+        return False
+    return name not in skippable_dirs
 
 # info = get_file_info("/home/kdog3682/projects/python/kevinlulee/kevinlulee/file_utils.py")
 import os
@@ -1330,7 +1337,7 @@ def get_paths(
         descend_children = public_children if can_descend else []
 
         if want_dirs and not descend_children:
-            if name_allowed(current_dir) and predicate(current_dir):
+            if name_allowed(os.path.basename(remove_ending_slash(current_dir))) and predicate(current_dir):
                 store.append(current_dir)
 
         # Recurse into eligible children
@@ -1418,6 +1425,66 @@ def resolve_dotted_path2(s, dir):
         return os.path.join(dir, path)
 
     return os.path.join(dir, s)
+
+from pathlib import Path
+from typing import Union
+
+# Common patterns to ignore
+IGNORE_DIRS = {
+    'node_modules',
+    '.git',
+    '.svn',
+    '.hg',
+    '__pycache__',
+    '.pytest_cache',
+    '.mypy_cache',
+    '.tox',
+    'venv',
+    '.venv',
+    'env',
+    '.env',
+    'dist',
+    'build',
+    '.egg-info',
+    'target',  # Rust/Java
+    '.next',  # Next.js
+    '.nuxt',  # Nuxt.js
+    'coverage',
+    '.coverage',
+    '.idea',  # JetBrains IDEs
+    '.vscode',  # VS Code
+    '.DS_Store',  # macOS
+}
+
+IGNORE_EXTENSIONS = {
+    '.pyc',
+    '.pyo',
+    '.pyd',
+    '.so',
+    '.dll',
+    '.dylib',
+    '.egg',
+    '.log',
+    '.swp',
+    '.tmp',
+    '.bak',
+    '.cache',
+}
+
+
+def should_ignore_path(path: Union[str, Path]) -> bool:
+    
+    path = Path(path)
+    
+    for part in path.parts:
+        if part in IGNORE_DIRS:
+            return True
+    
+    if path.suffix in IGNORE_EXTENSIONS:
+        return True
+    
+    return False
+
 
 
 

@@ -638,3 +638,35 @@ def id_from_index(i: int) -> str:
 
 
 
+def pathf(dir):
+    def path_func(*args):
+        return kx.path_join(dir, *kx.map(args, str))
+
+    return path_func
+
+def show_matplotlib(plt):
+    """Save matplotlib figure to ~/scratch/temp.png and open in browser.
+    
+    Parameters:
+    - plt: matplotlib.pyplot instance
+    
+    Returns:
+    - filepath: Path object to the saved file
+    """
+
+    import webbrowser
+    from pathlib import Path
+    # Expand home directory
+    scratch_dir = Path.home() / "scratch"
+    scratch_dir.mkdir(exist_ok=True)
+    
+    filepath = scratch_dir / "temp.png"
+    
+    # Save the figure
+    plt.savefig(filepath, dpi=150, bbox_inches='tight')
+    print(f"Saved to: {filepath}")
+    
+    # Open in web browser
+    webbrowser.open(f'file://{filepath.absolute()}')
+    
+    return filepath

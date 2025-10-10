@@ -516,6 +516,14 @@ def get_upcoming_day(target_day):
     upcoming_date = today + timedelta(days=days_ahead)
     return upcoming_date.replace(hour=0, minute=0, second=0, microsecond=0)
 
+def get_upcoming_days(day, n):
+    start = get_upcoming_day(day)
+    store = [start]
+    for i in range(n):
+        start += timedelta(days = 7)
+        store.append(start)
+
+    return store
 
 # Example usage and testing
 
@@ -701,4 +709,5 @@ def is_recentf2(distant=None, recent=None):
 
 
 if __name__ == '__main__':
-    monday = get_upcoming_day('monday')
+    monday = get_upcoming_days('sunday', 4)
+    print(monday)
