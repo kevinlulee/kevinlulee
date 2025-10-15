@@ -184,7 +184,7 @@ def bash_shell(cmd, cwd = None):
     return res.stdout.strip()
 
 def git_bash(*args, cwd=".", debug=False):
-    args =flat(args)
+    args =[str(el) for el in flat(args)]
 
     if debug:
         return print(*args)

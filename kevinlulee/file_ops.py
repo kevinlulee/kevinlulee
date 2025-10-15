@@ -2,6 +2,8 @@
 secondary file_operations
 """
 
+import subprocess, shutil, datetime
+import subprocess
 import os
 import re
 from collections import Counter
@@ -12,34 +14,6 @@ from kevinlulee.file_utils import (
     is_file,
     has_valid_existing_parent,
 )
-
-
-
-
-def get_most_common_file_extension(dir, recursive=False):
-    current_dir = os.path.expanduser(dir)
-    extensions = []
-
-    def add(file):
-        _, extension = os.path.splitext(file)
-        if extension:  # Only add if there's an extension
-            extensions.append(extension.lower())
-
-    if recursive:
-        for root, dirs, files in os.walk(current_dir):
-            for file in files:
-                add(file)
-    else:
-        for file in os.listdir(current_dir):
-            add(file)
-
-    if not extensions:
-        return None
-
-    extension_counts = Counter(extensions)
-    most_common = extension_counts.most_common(1)
-    return most_common[0][0][1:] if most_common else None
-
 
 def zipread(src_path, dst_path=None) -> list[str]:
     """
@@ -71,114 +45,14 @@ def zipread(src_path, dst_path=None) -> list[str]:
         return store
 
 
-import subprocess, shutil, datetime
-
-
-def get_directory_size(path: str, follow_symlinks: bool = False) -> int:
-    path = os.path.expanduser(path)
-    LFLAG = "-L" if follow_symlinks else "-H"
-    has_du_b = (
-        subprocess.run(
-            ["du", "-b", "/dev/null"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        ).returncode
-        == 0
+def get_directory_size(path):
+    result = subprocess.run(
+        ['du', '-sb', path],  # -s for summary, -b for bytes
+        capture_output=True,
+        text=True
     )
-    if has_du_b:
-        out = subprocess.run(
-            ["du", "-sb", LFLAG, path],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout
-        return int(out.split()[0])
-    else:
-        out = subprocess.run(
-            ["du", "-sk", LFLAG, path],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout
-        return int(out.split()[0]) * 1024
-
-
-def get_directory_last_touched(
-    path: str, follow_symlinks: bool = False
-) -> float:
-    path = os.path.expanduser(path)
-    LFLAG = "-L" if follow_symlinks else "-H"
-    gfind = shutil.which("gfind")
-    if gfind:
-        # Single-process, very fast
-        out = subprocess.run(
-            [
-                gfind,
-                LFLAG,
-                path,
-                "-type",
-                "f",
-                "-printf",
-                "%T@\\n",
-                "-o",
-                "-type",
-                "d",
-                "-printf",
-                "%T@\\n",
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.splitlines()
-        mx = int(float(max(out))) if out else 0
-        return datetime.datetime.fromtimestamp(mx)
-
-    # Portable path: find + stat (GNU or BSD)
-    is_gnu_stat = (
-        subprocess.run(
-            ["stat", "--version"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        ).returncode
-        == 0
-    )
-    find_cmd = [
-        "find",
-        LFLAG,
-        path,
-        "(",
-        "-type",
-        "f",
-        "-o",
-        "-type",
-        "d",
-        ")",
-        "-print0",
-    ]
-    if is_gnu_stat:
-        p1 = subprocess.Popen(find_cmd, stdout=subprocess.PIPE)
-        p2 = subprocess.Popen(
-            ["xargs", "-0", "-n", "1024", "stat", "-c", "%Y"],
-            stdin=p1.stdout,
-            stdout=subprocess.PIPE,
-        )
-    else:
-        p1 = subprocess.Popen(find_cmd, stdout=subprocess.PIPE)
-        p2 = subprocess.Popen(
-            ["xargs", "-0", "-n", "1024", "stat", "-f", "%m"],
-            stdin=p1.stdout,
-            stdout=subprocess.PIPE,
-        )
-
-    p1.stdout.close()  # allow p1 to receive SIGPIPE if p2 exits
-    out_bytes = p2.communicate()[0]
-    lines = out_bytes.decode().split()
-    mx = max(map(int, lines)) if lines else 0
-    return mx
-
-
-# print(get_directory_last_touched('~/2023'))
-
+    size = int(result.stdout.split()[0])
+    return size
 
 def zip_view(src_path) -> str:
     src_path = os.path.expanduser(src_path)
@@ -191,3 +65,35 @@ def zip_view(src_path) -> str:
             store.append(item.orig_filename)
 
         return fancy_file_tree(store)
+
+
+def get_most_common_file_extension(dir, recursive=False):
+    current_dir = os.path.expanduser(dir)
+    extensions = []
+    
+    def add(entry):
+        _, extension = os.path.splitext(entry.name)
+        if extension:  # Only add if there's an extension
+            extensions.append(extension.lower())
+    
+    if recursive:
+        for root, dirs, files in os.walk(current_dir):
+            with os.scandir(root) as entries:
+                for entry in entries:
+                    if entry.is_file():
+                        add(entry)
+    else:
+        with os.scandir(current_dir) as entries:
+            for entry in entries:
+                if entry.is_file():
+                    add(entry)
+    
+    if not extensions:
+        return None
+    
+    extension_counts = Counter(extensions)
+    most_common = extension_counts.most_common(1)
+    return most_common[0][0][1:] if most_common else None
+
+
+# kx.pretty_print(get_most_common_file_extension('~/projects/python/kevinlulee', recursive=True))

@@ -18,6 +18,8 @@ class AbstractNoteCollection:
     def get_delimiter(self):
         
         delimiters = kx.re.findall('^-{3,}', self.text, flags=kx.re.M)
+        if not delimiters:
+            return '---'
         most_common = kx.Counter(delimiters).most_common(1)[0][0]
 
         if most_common == "---":

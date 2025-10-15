@@ -184,7 +184,6 @@ def find_project_root(start_path):
             return current_dir
         
         if parent_dir == current_dir:
-            print('b')
             break
 
         current_dir = parent_dir
@@ -458,7 +457,7 @@ def comment(text, filepath, as_documentation = False):
     }
 
     filetype = resolve_filetype(filepath)
-    formatter = comment_styles.get(filetype, hash_comment)
+    formatter = comment_styles.get(filetype, slash_comment)
     return formatter(text)
 
 
@@ -1033,6 +1032,12 @@ def has_valid_existing_parent(dst_dir: Path) -> bool:
 def assert_file(a):
     assert is_file(a), f"the provided path: '{a}' is not a valid file path."
 def assert_directory(a, exists = True):
+    if isinstance(a, Path):
+        if not a.exists():
+            raise FileNotFoundError(f"Source directory '{a}' does not exist")
+        if not a.is_dir():
+            raise NotADirectoryError(f"'{a}' is not a directory")
+
     if exists:
         assert is_dir(a), f"the provided path: '{a}' is not a valid directory path."
     else:
@@ -1486,5 +1491,38 @@ def should_ignore_path(path: Union[str, Path]) -> bool:
     return False
 
 
+
+from pathlib import Path
+
+
+def find_git_directory(start_path):
+    """
+    Search upwards from start_path to find a .git directory.
+    
+    Args:
+        start_path: Starting path (file or directory) as string or Path object
+        
+    Returns:
+        Path object pointing to the .git directory if found, None otherwise
+    """
+    current = Path(start_path).resolve()
+    
+    # If start_path is a file, start from its parent directory
+    if current.is_file():
+        current = current.parent
+    
+    # Search upwards through parent directories
+    while True:
+        git_dir = current / ".git"
+        
+        if git_dir.exists() and git_dir.is_dir():
+            return current
+        
+        # Check if we've reached the root directory
+        parent = current.parent
+        if parent == current:
+            return None
+        
+        current = parent
 
 

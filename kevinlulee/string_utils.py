@@ -299,8 +299,6 @@ def suffix_join(key, suffix, delimiter = '_'):
 
 
 
-def pluralize(s):
-    return s if s.endswith("s") else s + "s"
 
 def count_words(text: str, include_emojis: bool = True) -> int:
     """
@@ -667,3 +665,124 @@ def repeatedly_eat(text: str, pattern: str) -> tuple[str, list]:
         remaining = re.sub('^,+ *', '', remaining)
 
     return remaining, matches 
+
+
+import re
+
+def pluralize(word: str) -> str:
+    """
+    A 'smart' function to calculate the plural form of a singular English noun,
+    with specialized logic for words ending in '-o' based on common rules and exceptions.
+
+    NOTE: English pluralization is highly irregular. This function covers common
+    rules but will not be accurate for every word.
+
+    Args:
+        word: The singular English noun (e.g., 'hero', 'radio', 'child').
+
+    Returns:
+        The computed plural form (e.g., 'heroes', 'radios', 'children').
+    """
+
+    # 1. Handle common irregular plurals (non-rule-based)
+    # This list is highly abbreviated for demonstration.
+    irregular_plurals = {
+        'man': 'men',
+        'woman': 'women',
+        'child': 'children',
+        'goose': 'geese',
+        'tooth': 'teeth',
+        'foot': 'feet',
+        'mouse': 'mice',
+        'person': 'people',
+        'die': 'dice',
+        'quiz': 'quizzes', # The 'z' rule exception
+    }
+    
+    # Words with the same plural and singular forms
+    uncountable = ['sheep', 'series', 'species', 'deer', 'moose', 'fish', 'aircraft']
+
+    lower_word = word.lower()
+
+    if lower_word in uncountable:
+        return word
+
+    if lower_word in irregular_plurals:
+        # Preserve capitalization of the input word (simple attempt)
+        if word.istitle():
+            return irregular_plurals[lower_word].capitalize()
+        return irregular_plurals[lower_word]
+
+    # 2. Handle the specific and complex '-o' rule
+    if lower_word.endswith('o'):
+        
+        # A. Common exceptions that ADD -s (often abbreviations or foreign words)
+        # These are usually preceded by a consonant, but still take -s
+        o_exceptions_s = [
+            'photo', 'piano', 'halo', 'solo', 'memo', 'logo', 'taco',
+            'motto', 'soprano', 'folio', 'kilo', 'dynamo', 'pro',
+        ]
+
+        # B. Words ending in '-o' preceded by a VOWEL (always add -s)
+        # e.g., radio, studio, kangaroo, zoo
+        # We check if the second-to-last letter is a vowel (a, e, i, o, u)
+        if len(lower_word) >= 2 and lower_word[-2] in 'aeiou':
+            return word + 's'
+
+        # C. Apply the 'exceptions' list
+        if lower_word in o_exceptions_s:
+            return word + 's'
+
+        # D. Dual plurals (Volcano can be 'volcanos' or 'volcanoes').
+        # We'll default to the historically older/more formal '-es' for these.
+        o_dual_plurals = ['volcano', 'cargo', 'memento', 'mosquito', 'zero']
+        if lower_word in o_dual_plurals:
+            return word + 'es'
+
+
+        # E. The remaining words ending in '-o' (preceded by consonant)
+        # generally take '-es' (e.g., potato, hero, echo, tomato)
+        return word + 'es'
+
+    # 3. Handle other general English pluralization rules
+
+    # Words ending in s, x, z, ch, sh add -es
+    if lower_word.endswith(('s', 'x', 'z', 'ch', 'sh')):
+        # Note: 'quiz' is already handled in irregular, as it needs 'zz'
+        return word + 'es'
+
+    # Words ending in consonant + 'y' change 'y' to 'ies'
+    # e.g., 'baby' -> 'babies', but 'key' -> 'keys'
+    if lower_word.endswith('y') and lower_word[-2] not in 'aeiou':
+        return word[:-1] + 'ies'
+
+    # Words ending in 'f' or 'fe' change to 'ves' (e.g., leaf -> leaves)
+    if lower_word.endswith(('f', 'fe')):
+        if lower_word.endswith('f'):
+            return word[:-1] + 'ves'
+        # ends with 'fe'
+        return word[:-2] + 'ves'
+
+    # 4. Default rule: Add -s
+    return word + 's'
+
+def possibly_pluralize_unit(unit: str, num: int) -> str:
+    """
+    Returns the appropriate singular or plural form of a unit based on a number.
+    This function "inflects" the unit based on the quantity.
+    
+    e.g., inflect_unit('cat', 1) -> 'cat'
+    e.g., inflect_unit('cat', 5) -> 'cats'
+
+    Args:
+        unit: The singular unit noun (e.g., 'mile', 'person').
+        num: The number associated with the unit.
+
+    Returns:
+        The corrected singular or plural unit string.
+    """
+    if num == 1:
+        return unit
+    else:
+        # Use the existing pluralize function for all other numbers (0, 2, 5, etc.)
+        return pluralize(unit)

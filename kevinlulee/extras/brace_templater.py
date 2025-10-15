@@ -2,7 +2,7 @@ import re
 from kevinlulee.extras.line_edit import LineEdit
 import kevinlulee as kx
 
-TEMPLATER_PATTERN2 = re.compile(
+TEMPLATER_PATTERN = re.compile(
     r"""
         (?:(\n)([ \t]+))?  # optional newline spaces
         {(\d+|[a-zA-Z]\w*(?:\.\w+(?:\(.*?\))?)*)}   # bracket containing an expr-like string
@@ -10,6 +10,25 @@ TEMPLATER_PATTERN2 = re.compile(
     flags=re.VERBOSE,
 )
 
+
+def remove_empty_placeholders(s):
+    if '<EMPTY>' not in s:
+        return s
+
+    le = LineEdit(s)
+    lines = le.findall("<EMPTY>")
+
+    for line in lines:
+        if line.prev().match("---") and line.next().match("---"):
+            if line.prev().prev().has_text():
+                line.prev().prev().delete()
+            line.prev().delete()
+            line.next().delete()
+            line.delete()
+        else:
+            line.delete()
+
+    return str(le)
 
 def brace_templater(s, ref, cls=None, wrap_func = None):
     """
@@ -51,7 +70,7 @@ def brace_templater(s, ref, cls=None, wrap_func = None):
         return kx.newline_indent(payload, ind) if newline else payload
 
     s = kx.trimdent(s)
-    s = re.sub(TEMPLATER_PATTERN2, replacer, s)
+    s = re.sub(TEMPLATER_PATTERN, replacer, s)
 
     if '<EMPTY>' not in s:
         return s
@@ -70,5 +89,28 @@ def brace_templater(s, ref, cls=None, wrap_func = None):
             line.delete()
 
     return str(le)
+
+
+
+
+def brace_templater2(s, ref):
+
+    def replacer(match):
+        newline, ind, key_or_expr = match.groups()
+        v = ref.get(key_or_expr) or eval(key_or_expr, ref)
+
+        if v is None:
+            return "<EMPTY>"
+
+        # kx.pretty_print((key_or_expr, v))
+        # recursive
+        if isinstance(v, str) and kx.test(v, TEMPLATER_PATTERN):
+            v = re.sub(TEMPLATER_PATTERN, replacer, v)
+
+        payload = kx.serialize_data(v)
+        return kx.newline_indent(payload, ind) if newline else payload
+
+    s = re.sub(TEMPLATER_PATTERN, replacer, kx.trimdent(s))
+    return remove_empty_placeholders(s)
 
 

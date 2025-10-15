@@ -89,3 +89,101 @@ class Person:
 
 
 alias_dict = dict(a = 'apple', b = 'banana', c = 'cherry')
+
+
+choices = [
+    "orchid",
+    "nebula",
+    "marzipan",
+    "quasar",
+    "biscuit",
+    "vortex",
+    "topaz",
+    "kiwi",
+    "cobalt",
+    "marmot",
+    "satchel",
+    "ember",
+    "gizmo",
+    "fjord",
+    "zenith",
+]
+
+coding_subreddits = {
+    "general": [
+        "programming",
+        "learnprogramming",
+        "coding",
+        "compsci",
+        "AskProgramming"
+    ],
+    "languages": [
+        "javascript",
+        "Python",
+        "java",
+        "rust",
+        "golang",
+        "cpp",
+        "csharp",
+        "ruby",
+        "typescript"
+    ],
+    "web": [
+        "webdev",
+        "frontend",
+        "css",
+        "vuejs",
+        "reactjs",
+        "angular",
+        "sveltejs",
+        "nextjs"
+    ],
+    "mobile": [
+        "androiddev",
+        "iOSProgramming",
+        "reactnative",
+        "flutterdev"
+    ],
+    "machine_learning": [
+        "learnmachinelearning",
+        "MLQuestions"
+    ],
+    "devops": [
+        "devops",
+        "aws",
+        "docker",
+        "kubernetes",
+        "terraform"
+    ],
+    "gamedev": [
+        "gamedev",
+        "unity",
+        "indiedev",
+        "godot"
+    ],
+    "frameworks_tools": [
+        "node",
+        "django",
+        "rails",
+        "laravel",
+        "expressjs",
+        "springboot",
+        "fastapi"
+    ],
+    "editors": [
+        "vscode",
+        "neovim",
+        "emacs",
+        "Jetbrains",
+        "IntelliJIDEA",
+        "vim",
+        "visualstudio",
+        "sublime_text"
+    ],
+    "misc": [
+        "SoftwareEngineering",
+        "codingbootcamp",
+        "CodeReview",
+        "ProgrammerHumor"
+    ]
+}

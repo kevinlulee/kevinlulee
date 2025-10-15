@@ -2,6 +2,7 @@ import os
 from typing import Iterable, List, Tuple, Union
 
 from kevinlulee.file_utils import create_gitignore_matcher
+from kevinlulee.string_utils import remove_ending_slash
 
 
 
@@ -165,7 +166,8 @@ def fancy_file_tree(root_dir_or_list: Union[str, Iterable[str]], truncate: bool 
         return ""
 
     ignore = create_gitignore_matcher(root_dir)
-    header = os.path.basename(os.path.normpath(root_dir)) + "/"
+    # header = os.path.basename(os.path.normpath(root_dir)) + "/"
+    header = remove_ending_slash(root_dir) + '/'
 
     leaf_count = 0
     def build_fs_tree(directory: str, node: FileTreeNode):
@@ -201,5 +203,5 @@ def fancy_file_tree(root_dir_or_list: Union[str, Iterable[str]], truncate: bool 
     return header + "\n" + body
 
 
-if __name__ == '__main__':
-    print(fancy_file_tree('~/projects/python/maelstrom'))
+# if __name__ == '__main__':
+#     nvim.fs.clip(fancy_file_tree('~/scratch/2025/'))

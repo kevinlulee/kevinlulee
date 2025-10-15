@@ -707,6 +707,40 @@ def is_recentf2(distant=None, recent=None):
 
     return yes
 
+from datetime import datetime
+
+def part_of_day(time_str: str) -> str:
+    """
+    Categorize a clock time like '5:00 AM' into a part of day.
+
+    Buckets (inclusive of start, exclusive of next):
+      - late night:     00:00–04:00
+      - early morning:  04:00–07:00
+      - morning:        07:00–12:00
+      - afternoon:      12:00–17:00
+      - evening:        17:00–21:00
+      - night:          21:00–24:00
+    """
+    t = datetime.strptime(time_str.strip(), "%I:%M %p")
+    mins = t.hour * 60 + t.minute
+
+    hours = [0, 4, 7, 12, 17, 21, 24]
+    labels = [
+        "late night",
+        "early morning",
+        "morning",
+        "afternoon",
+        "evening",
+        "night",
+    ]
+
+    for i, label in enumerate(labels):
+        start = hours[i] * 60
+        end = hours[i + 1] * 60
+        if start <= mins < end:
+            return label
+    return "late night"
+
 
 if __name__ == '__main__':
     monday = get_upcoming_days('sunday', 4)

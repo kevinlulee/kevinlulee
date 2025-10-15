@@ -638,9 +638,9 @@ def id_from_index(i: int) -> str:
 
 
 
-def pathf(dir):
+def pathf(*segments):
     def path_func(*args):
-        return kx.path_join(dir, *kx.map(args, str))
+        return kx.path_join(*segments, *kx.map(args, str))
 
     return path_func
 
@@ -670,3 +670,19 @@ def show_matplotlib(plt):
     webbrowser.open(f'file://{filepath.absolute()}')
     
     return filepath
+
+
+def run_script(key, *args, **kwargs):
+    """
+    a handy function for quickly running scripts located in nvim.scripts
+    the requirement is that the main function matches the module name.
+    """
+
+    a = f"nvim.scripts.{key}"
+    b = f"kevinlulee.scripts.{key}"
+
+    func = kx.get_implicit_module_func(a, strict=False)
+    if not func:
+        func = kx.get_implicit_module_func(b, strict=False)
+    assert func, f"cannot run {a} or {b}"
+    return func(*args, **kwargs)
