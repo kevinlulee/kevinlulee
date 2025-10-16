@@ -65,21 +65,14 @@ def build_file_tree(file_paths: Iterable[str]) -> Tuple[FileTreeNode, str]:
     file_paths = list(file_paths)
     root = FileTreeNode("root")
 
-    common_root = get_common_root_from_filepaths(file_paths)
+    common_root = '/' + get_common_root_from_filepaths(file_paths)
 
     for raw in file_paths:
         # Remove the common dir prefix (if any) so the printed tree starts at divergence.
         p = _to_posix(raw)
         if common_root:
-            # Ensure we only strip when it matches a directory boundary.
-            # Example: common_root='frontend/src', path='frontend/src/App.tsx'
-            # We remove the prefix + '/' if present.
-            if p.startswith(common_root + "/"):
-                p = p[len(common_root) + 1 :]
-            elif p == common_root:
-                # Edge case if a directory path slipped in; skip it
-                continue
-        # Make relative and split
+            p = os.path.relpath(p, common_root)
+
         parts = _split_parts(p)
         if not parts:
             continue
@@ -203,5 +196,6 @@ def fancy_file_tree(root_dir_or_list: Union[str, Iterable[str]], truncate: bool 
     return header + "\n" + body
 
 
-# if __name__ == '__main__':
-#     nvim.fs.clip(fancy_file_tree('~/scratch/2025/'))
+if __name__ == '__main__':
+    import kevinlulee as kx
+    nvim.fs.print(fancy_file_tree(kx.get_paths('~/scratch/2025/', depth = 0)))

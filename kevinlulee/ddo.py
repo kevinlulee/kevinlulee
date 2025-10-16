@@ -319,7 +319,15 @@ class LiveArray(LiveObject):
         return self._data.copy()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    file_bookmarks = LiveDict("~/data/nvim/plugins/temp-file-bookmarks.json")
+    file_bookmarks['1'] = 'abc'
+    file_bookmarks['2'] = 'abcd'
+    file_bookmarks['1'] = 'abcd'
+    kx.pretty_print(file_bookmarks.get('1'))
+
+
+if __name__ == "__main__....":
     with LiveDict("/home/kdog3682/.cache/maelstrom/pam.json", fallback=dict(a = 1)) as foo:
         foo['asdf'] = 11111111112818181
 

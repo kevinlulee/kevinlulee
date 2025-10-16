@@ -270,10 +270,10 @@ def minimized_json(s):
 def get_horizontal_length(s):
     return len(s)
 
-def bar_wrap(s):
+def bar_wrap(s, bar_width = None, delimiter = '-'):
     s = kx.serialize_data(s)
-    m = get_horizontal_length(s)
-    bar = '-' * m
+    m = bar_width or min(get_horizontal_length(s), 70)
+    bar = delimiter * m
     return f'{bar}\n{s}\n{bar}'
 
 
@@ -686,3 +686,9 @@ def run_script(key, *args, **kwargs):
         func = kx.get_implicit_module_func(b, strict=False)
     assert func, f"cannot run {a} or {b}"
     return func(*args, **kwargs)
+
+def extf(*filetypes):
+    def func(path):
+        return kx.resolve_filetype(path) in filetypes
+
+    return func

@@ -123,9 +123,43 @@ def snake_case(s):
     s = s.lower()
     return s
 
-def trimdent(s):
-    return textwrap.dedent(str(s)).strip() if s else ''
+# def trimdent(s):
+#     return textwrap.dedent(str(s)).strip() if s else ''
 
+def trimdent(text: str) -> str:
+    """Smart trim and dedent: removes common indentation and trailing whitespace."""
+    lines = text.splitlines()
+    
+    # Remove leading blank lines
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    
+    # Remove trailing blank lines
+    while lines and not lines[-1].strip():
+        lines.pop()
+    
+    if not lines:
+        return ""
+    
+    # Find minimum indentation (ignoring blank lines)
+    min_indent = float('inf')
+    for line in lines:
+        if line.strip():  # Only consider non-empty lines
+            indent = len(line) - len(line.lstrip())
+            min_indent = min(min_indent, indent)
+    
+    if min_indent == float('inf'):
+        min_indent = 0
+    
+    # Remove common indentation and trailing whitespace from each line
+    result = []
+    for line in lines:
+        if line.strip():  # Non-empty line
+            result.append(line[min_indent:].rstrip())
+        else:  # Blank line - preserve it as empty
+            result.append("")
+    
+    return "\n".join(result)
 
 def dash_case(s):
     if s.isupper():
@@ -782,7 +816,8 @@ def possibly_pluralize_unit(unit: str, num: int) -> str:
         The corrected singular or plural unit string.
     """
     if num == 1:
-        return unit
+        m = unit
     else:
-        # Use the existing pluralize function for all other numbers (0, 2, 5, etc.)
-        return pluralize(unit)
+        m = pluralize(unit)
+
+    return f'{num} {m}'

@@ -210,3 +210,5 @@ IPHONE_ALARM_ALIASES = {
     "xyl": "xylophone",
 }
 
+
+HAMMY_DIR = '~/projects/hammymathclass'

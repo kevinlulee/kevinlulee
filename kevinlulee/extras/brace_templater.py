@@ -93,18 +93,16 @@ def brace_templater(s, ref, cls=None, wrap_func = None):
 
 
 
-def brace_templater2(s, ref):
+def brace_templater2(s, ref, recursive=False):
 
     def replacer(match):
         newline, ind, key_or_expr = match.groups()
         v = ref.get(key_or_expr) or eval(key_or_expr, ref)
 
         if v is None:
-            return "<EMPTY>"
+            return '<EMPTY>'
 
-        # kx.pretty_print((key_or_expr, v))
-        # recursive
-        if isinstance(v, str) and kx.test(v, TEMPLATER_PATTERN):
+        if recursive and isinstance(v, str) and kx.test(v, TEMPLATER_PATTERN):
             v = re.sub(TEMPLATER_PATTERN, replacer, v)
 
         payload = kx.serialize_data(v)

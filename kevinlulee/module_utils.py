@@ -380,4 +380,4 @@ def get_directory_from_project_name(x):
         p = path_join(base, x)
         if is_dir(p):
             return p
-
+file_from_modname = get_file_from_modname
