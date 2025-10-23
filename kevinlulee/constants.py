@@ -122,7 +122,6 @@ user_installed_pip_packages = [
 
 EMDASH = '–'
 
-DLDIR = '/mnt/chromeos/MyFiles/Downloads/'
 
 
 IPHONE_ALARM_ALIASES = {
@@ -211,4 +210,7 @@ IPHONE_ALARM_ALIASES = {
 }
 
 
-HAMMY_DIR = '~/projects/hammymathclass'
+HAMMY_DIR = '~/projects/hammymathclass/'
+
+DLDIR = '/mnt/chromeos/MyFiles/Downloads/'
+MYFILES_DIR = '/mnt/chromeos/MyFiles/'

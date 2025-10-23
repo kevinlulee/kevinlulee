@@ -132,7 +132,7 @@ def printable(**kwargs):
     return kx.stop(s)
 
 
-def file_cache(cache_path: str, update_on_touch=True, **time_opts):
+def file_cache(cache_path: str = '', update_on_touch=True, verbose = False, **time_opts):
     if not time_opts:
         time_opts = dict(minutes=30)
 
@@ -678,14 +678,15 @@ def run_script(key, *args, **kwargs):
     the requirement is that the main function matches the module name.
     """
 
-    a = f"nvim.scripts.{key}"
-    b = f"kevinlulee.scripts.{key}"
-
-    func = kx.get_implicit_module_func(a, strict=False)
-    if not func:
-        func = kx.get_implicit_module_func(b, strict=False)
-    assert func, f"cannot run {a} or {b}"
-    return func(*args, **kwargs)
+    places = [
+        'nvim.scripts',
+        'kevinlulee.scripts'
+    ]
+    for place in places:
+        func_key = f'{place}.{key}'
+        func = kx.get_implicit_module_func(func_key, strict=False)
+        if func:
+            return func(*args, **kwargs)
 
 def extf(*filetypes):
     def func(path):

@@ -204,7 +204,7 @@ def announcef(func):
 
 def sort_files_by_date(files, reverse=True):
     """
-    the most recent file comes first
+    most recent files comes first
     """
     
     return sorted(files, key=os.path.getmtime, reverse=reverse)

@@ -1,7 +1,11 @@
 import sympy as sp
 from itertools import product
-from typing import Literal
+from typing import Literal, TypedDict
 import kevinlulee as kx
+
+class Solution(TypedDict):
+    """A single solution mapping variable names to their values."""
+    pass  # Dynamic keys, all float values
 
 # ---- helpers ----
 
@@ -35,7 +39,22 @@ def _iterative_range(radius, domain, positive):
         return range(1, radius + 1)
     return range(-radius, radius + 1)
 
-def _search_int(expr, tgt, vars_sorted, domain, positive, distinct, max_solutions, max_radius):
+def _deduplicate_solutions(sols, vars_sorted):
+    """Remove solutions that are permutations of each other."""
+    seen_multisets = set()
+    unique_sols = []
+    
+    for sol in sols:
+        # Create a sorted tuple of values (canonical form)
+        values = tuple(sorted(sol[v] for v in vars_sorted))
+        
+        if values not in seen_multisets:
+            seen_multisets.add(values)
+            unique_sols.append(sol)
+    
+    return unique_sols
+
+def _search_int(expr, tgt, vars_sorted, domain, positive, distinct, max_solutions, max_radius, deduplicate=True):
     sols = []
     seen = set()
     radius = 0
@@ -50,27 +69,21 @@ def _search_int(expr, tgt, vars_sorted, domain, positive, distinct, max_solution
                 continue
             if sp.simplify(expr.subs(assignment) - tgt) == 0:
                 sols.append(assignment)
-                if len(sols) >= max_solutions:
+                if deduplicate and len(sols) >= max_solutions * 10:
+                    # Early dedup if we've collected many solutions
+                    sols = _deduplicate_solutions(sols, vars_sorted)
+                    if len(sols) >= max_solutions:
+                        return sols[:max_solutions], radius
+                elif not deduplicate and len(sols) >= max_solutions:
                     return sols, radius
         if radius >= max_radius:
-            return sols, radius
+            if deduplicate:
+                sols = _deduplicate_solutions(sols, vars_sorted)
+            return sols[:max_solutions] if len(sols) > max_solutions else sols, radius
         nxt = 1 if radius == 0 else radius * 2
         if nxt > max_radius:
             nxt = max_radius
         radius = nxt
-
-def _smart_max_radius(expr, tgt, nvars):
-    zeros = {s: 0 for s in expr.free_symbols}
-    expr0 = sp.simplify(expr.subs(zeros))
-    bad = (expr0.has(sp.zoo) or expr0.has(sp.oo) or expr0.has(sp.nan) or not expr0.is_number)
-    base_scale = abs(sp.simplify(tgt - expr0)) if not bad else abs(sp.simplify(tgt))
-    if base_scale.is_integer():
-        try_scale = int(sp.Integer(base_scale))
-    else:
-        try_scale = int(abs(float(base_scale)))
-    est = max(try_scale * 2, 32)
-    est += 4 * max(0, nvars - 3)
-    return min(est, 2048)
 
 def _smart_max_radius(expr, tgt, nvars):
     if tgt.is_number:
@@ -88,29 +101,41 @@ def _smart_max_radius(expr, tgt, nvars):
     return min(64, base + 4 * max(0, nvars - 3))
 
 def _name_dict(d):
-    return {str(k): v for k, v in d.items()}
+    return {str(k): float(v) for k, v in d.items()}
 
 def _name_solutions(sol_list):
     return [_name_dict(d) for d in sol_list]
 
 # ---- main API ----
 
+from kevinlulee.extras.persistent_file_cache import PersistentFileCache
+
+@PersistentFileCache(verbose = False)
 def solve_template(
     template: str,
-    target,
-    *,
+    target = None,
     domain: Literal['Z','N','R','Q'] = 'Z',
     variables=None,
     method: Literal['auto','search','symbolic'] = 'auto',
-    positive: bool | None = None,
+    positive: bool = True,
     distinct: bool = False,
     max_solutions: int = 100,
-    params: dict | None = None
+    params: dict | None = None,
+    deduplicate: bool = True  # NEW PARAMETER
 ):
     """
     Solve a template like "a + b*c" against a target.
     Domains: 'Z' integers, 'N' nonnegative, 'R' reals, 'Q' rationals (filtered).
+    
+    deduplicate: If True, remove solutions that are permutations of each other
+                 (e.g., {a:1, b:2, c:3} and {a:3, b:1, c:2} are considered equivalent)
     """
+    if target is None:
+        if '=' in template:
+            template, target = kx.split(template, '=')
+        else:
+            raise Exception("no target provided")
+
     expr = sp.sympify(template)
     tgt  = sp.sympify(target)
 
@@ -134,12 +159,12 @@ def solve_template(
         else:  # 'Q'
             solset = sp.solveset(eq, v, domain=sp.S.Reals)
             solset = sp.FiniteSet(*[s for s in solset if getattr(s, "is_rational", False)])
+
         if isinstance(solset, sp.FiniteSet):
             sols = [{v: s} for s in solset]
             if positive is True:
                 sols = [d for d in sols if d[v] > 0]
             return {'pivot': str(v), 'solutions': _name_solutions(sols), 'free': ()}
-        # ConditionSet or Interval/etc.: return symbolic description
         return {'pivot': str(v), 'solutions': [{'solution_set': solset}], 'free': ()}
 
     # --- Multi-variable: choose method ---
@@ -150,20 +175,8 @@ def solve_template(
 
     if method_use == 'search':
         max_radius = _smart_max_radius(expr, tgt, len(vars_sorted))
-        sols, used_radius = _search_int(expr, tgt, vars_sorted, domain, positive, distinct, max_solutions, max_radius)
-        return sols
-        return {
-            'solutions': _name_solutions(sols),
-            'meta': {
-                'variables': [v.name for v in vars_sorted],
-                'domain': domain,
-                'positive': positive,
-                'distinct': distinct,
-                'solutions_found': len(sols),
-                'searched_radius': used_radius,
-                'max_radius': max_radius
-            }
-        }
+        sols, used_radius = _search_int(expr, tgt, vars_sorted, domain, positive, distinct, max_solutions, max_radius, deduplicate)
+        return _name_solutions(sols)
 
     # --- Multi-variable symbolic: pivot on first
     main = vars_sorted[0]
@@ -171,7 +184,6 @@ def solve_template(
     sol = sp.solve(eq, main, dict=True)
     if sol:
         return _name_solutions(sol)
-        return {'pivot': str(main), 'solutions': _name_solutions(sol), 'free': tuple(s.name for s in others)}
 
     # Try other pivots if the first fails
     candidates = []
@@ -180,26 +192,12 @@ def solve_template(
         if s:
             candidates.append({'pivot': str(pivot), 'solutions': _name_solutions(s), 'free': tuple(sym.name for sym in vars_sorted if sym != pivot)})
     return candidates
-    return {'multi_pivot': True, 'candidates': candidates}
 
-# ---- tiny demos (call one at a time with kx.pretty_print) ----
+# ---- demo ----
 
-def demo(which: str):  
-    if which == 'one_Z':
-        res = solve_template("a + 12", 36, domain='Z')
-        print(res); return
-    if which == 'one_R':
-        res = solve_template("a + 12", 10000, domain='R')
-        print(res); return
-    if which == 'one_N':
-        res = solve_template("a - 5", 88, domain='N', positive=True)
-        print(res); return
-    if which == 'multi_symbolic':
-        res = solve_template("a + b*c", 12, domain='R')
-        print(res); return
-    if which == 'multi_search':
-        res = solve_template("a*b*c", 12, domain='Z', positive=True, max_solutions=20)
-        print(res); return
+def demo_comparison():
+    res2 = solve_template("a*b*c", 12, domain='Z', positive=True, max_solutions=20, deduplicate=True)
+    print(res2)
 
-demo('multi_search') # [ 'one_Z', 'one_R', 'one_N', 'multi_symbolic', 'multi_search' ]
-
+if __name__ == "__main__":
+    demo_comparison()

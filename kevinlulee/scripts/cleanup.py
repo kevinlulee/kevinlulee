@@ -1,16 +1,9 @@
 import os
+import kevinlulee as kx
 import re
 from pathlib import Path
 
 
-target_dir = kx.constants.DLDIR
-
-def booga(target_dir):
-    pngs = kx.get_paths(target_dir, exts=['png', 'py', 'js', 'ts', 'tsx'])
-    for file in pngs:
-        kx.os.unlink(file)
-        kx.pretty_print(f'removed {file}')
-    # kx.pretty_print(pngs)
 
 def get_filtered_files(directory, size_limit=50, delete_duplicates=True):
     """
@@ -96,8 +89,7 @@ def get_filtered_files(directory, size_limit=50, delete_duplicates=True):
     }
 
 
-# Example usage
-if __name__ == "__main__":
+def cleanup(target_dir):
 
     results = get_filtered_files(target_dir, size_limit=50)
     
@@ -119,4 +111,12 @@ if __name__ == "__main__":
             print(f"  {f.name} ({f.stat().st_size} bytes)")
 
 
+    delete_files_by_extension(target_dir)
 
+
+def delete_files_by_extension(target_dir, exts = ['png', 'py', 'js', 'ts', 'tsx', 'deb']):
+    paths = kx.get_paths(target_dir, exts=exts)
+    for path in paths:
+        kx.os.unlink(path)
+
+    return paths

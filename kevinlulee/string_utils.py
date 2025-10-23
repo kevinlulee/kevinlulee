@@ -128,6 +128,8 @@ def snake_case(s):
 
 def trimdent(text: str) -> str:
     """Smart trim and dedent: removes common indentation and trailing whitespace."""
+    if not text:
+        return ''
     lines = text.splitlines()
     
     # Remove leading blank lines

@@ -157,9 +157,9 @@ def chmod(x):
     return bash("sudo", "chmod", "755", x)
 
 
-def bash_nvim(*args, cwd=None, on_error=identity):
+def bash_nvim(*args, cwd=None, on_error=identity, as_list = False):
     cwd = os.path.expanduser(cwd) if cwd else None
-    cmd = join_spaces(flat(args))
+    cmd = trimdent(join_spaces(flat(args)))
     p = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=cwd
     )
@@ -167,6 +167,8 @@ def bash_nvim(*args, cwd=None, on_error=identity):
     stdout, stderr = out.decode("utf-8").strip(), err.decode("utf-8").strip()
     if stderr:
         return on_error(stderr)
+    if as_list:
+        return [l.strip() for l in stdout.splitlines() if l.strip()]
     return stdout
 
 def bash_shell(cmd, cwd = None):
@@ -222,3 +224,5 @@ def typst_file(s: str):
     path = writefile("~/scratch/temp.typ", trimdent(str(s)))
     typst(path, open = True)
     return path
+
+

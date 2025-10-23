@@ -1,6 +1,7 @@
 from kevinlulee.ao import find_index
 import inspect
 from inspect import Parameter
+import inspect
 
 from typing import (
     TypedDict,
@@ -140,9 +141,23 @@ def get_parameters(func, ignore_self = True):
     if ignore_self and len(p) and p[0] == 'self':
         p.pop(0)
     return p
+
+
+
+def object_finder(func):
+    if not func:
+        return
+    file = inspect.getfile(func)
+    if not file:
+        return
+    line_numbers, lnum = inspect.getsourcelines(func)
+    return file, lnum
 if __name__ == '__main__':
     # print(gobo(foobar))
     # print(get_parameters_and_fallbacks(foobar))
 
     # testing get_caller
-    Bar()
+    # Bar()
+    # object_finder
+    print(object_finder(globals().get('CetzObject')))
+    # it doesnt work.

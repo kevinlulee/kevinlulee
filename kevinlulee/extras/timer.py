@@ -1,6 +1,7 @@
 import time
 import signal
 from functools import wraps
+from kevinlulee.extras.log_file import log_file
 
 def timeout(max_seconds: float = 20.0):
     """Decorator to time function execution and kill if it exceeds max_seconds."""

@@ -108,6 +108,7 @@ def brace_templater2(s, ref, recursive=False):
         payload = kx.serialize_data(v)
         return kx.newline_indent(payload, ind) if newline else payload
 
+    assert s, "empty text was provided"
     s = re.sub(TEMPLATER_PATTERN, replacer, kx.trimdent(s))
     return remove_empty_placeholders(s)
 
