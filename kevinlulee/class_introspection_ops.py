@@ -21,7 +21,7 @@ def check_type_string(obj, *names):
 
 def get_class_method_names(obj_or_cls,
                       pattern: str = r"^[a-z]",
-                      ignore_methods: Iterable[str] | None = DEFAULT_IGNORED_METHODS,
+                      ignore_methods: Iterable[str] | None = None,
                       ignore_parents: Iterable[str] | None = None,
                       ignore_inherited: bool = True,
                       ignore_static: bool = True,
@@ -36,6 +36,7 @@ def get_class_method_names(obj_or_cls,
     """
     klass = obj_or_cls if inspect.isclass(obj_or_cls) else obj_or_cls.__class__
     rx = re.compile(pattern) if pattern else None
+    ignore_methods = DEFAULT_IGNORED_METHODS + (ignore_methods or [])
     ignore_methods = set(ignore_methods or [])
     names, seen = [], set()
 

@@ -214,3 +214,5 @@ HAMMY_DIR = '~/projects/hammymathclass/'
 
 DLDIR = '/mnt/chromeos/MyFiles/Downloads/'
 MYFILES_DIR = '/mnt/chromeos/MyFiles/'
+
+RANDOM_IDX = '__RANDOM_IDX__'

@@ -326,3 +326,11 @@ def is_color_key(key):
     return key in COLOR_KEYS
 def is_xml(value):
     return isinstance(value, str) and value.startswith('<') and value.endswith('>')
+
+
+def is_math(x):
+    return x.startswith("$") and x.endswith("$")
+
+
+def is_hash_color(color):
+    return isinstance(color, str) and color.startswith('#')

@@ -2,7 +2,6 @@ from __future__ import annotations
 from .ao import flat
 from .string_utils import trimdent
 from .pythonfmt import pythonfmt
-from .base import stop
 from .date_utils import *
 from .file_utils import *
 from .string_utils import *

@@ -120,7 +120,7 @@ from kevinlulee.extras.colon_dict import colon_dict
 
 
 def run_tests(tests, func):
-    items = kx.to_lines(kx.trimdent(tests))
+    items = tests if isinstance(tests, (list, tuple)) else kx.to_lines(kx.trimdent(tests))
     kx.prettyprint(kx.map(items, func))
 
 
@@ -693,3 +693,72 @@ def extf(*filetypes):
         return kx.resolve_filetype(path) in filetypes
 
     return func
+
+
+
+def wrap_with_dollar_signs(base):
+    base = str(base)
+    if base.startswith("$"):
+        return base
+    s = kx.parens(base, "$")
+    return s
+
+
+def stop(*args):
+    if args:
+        for arg in args:
+            kx.pretty_print(arg)
+
+    raise Exception("__EXIT__")
+
+
+
+import re
+from typing import Callable, Pattern, Union
+
+
+def preserve_and_transform(
+    text: str,
+    operation: Callable[[str], str],
+    pattern: Union[str, Pattern] = r'\$\$\$[^$]+\$\$\$|\$[^$]+\$|```[^`]+```|`[^`]+`',
+    placeholder: str = "<<<PLACEHOLDER>>>"
+) -> str:
+    """
+    Remove content matching a pattern, perform an operation, then restore it.
+    
+    Args:
+        text: Input string to process
+        pattern: Regex pattern to temporarily remove (can be string or compiled Pattern)
+        operation: Function to apply to text with patterns removed
+        placeholder: Template for temporary placeholders (must contain {})
+    
+    Returns:
+        Processed string with original patterns restored
+    """
+    if isinstance(pattern, str):
+        pattern = re.compile(pattern)
+    
+    # Store removed content
+    removed_content = []
+    
+    def store_and_replace(match):
+        removed_content.append(match.group(0))
+        return placeholder
+    
+    # Remove matching patterns
+    text_without_patterns = pattern.sub(store_and_replace, text)
+    
+    # Perform operation
+    processed_text = operation(text_without_patterns)
+    
+    # Restore patterns
+    def replacer(x):
+        return removed_content.pop(0)
+    processed_text = re.sub(re.escape(placeholder), replacer, processed_text)
+    return processed_text
+
+
+
+def split_chunks(arr, n=2):
+    size = (len(arr) + n - 1) // n
+    return [arr[i:i+size] for i in range(0, len(arr), size)]

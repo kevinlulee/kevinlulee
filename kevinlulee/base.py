@@ -79,13 +79,6 @@ def yes(*args, **kwargs):
 def no(*args, **kwargs):
     return False
 
-def stop(*args, **kwargs):
-    if args:
-        for arg in args:
-            print(arg)
-    display(**kwargs)
-    raise Exception("__EXIT__")
-
 def each(items, fn, *args, **kwargs):
     params = get_parameters(fn)
     if len(params) > 1:

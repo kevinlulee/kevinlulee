@@ -831,3 +831,22 @@ def split_dict(d, inc):
     excluded = {k: v for k, v in d.items() if k not in inc}
     return included, excluded
 
+from typing import Iterable, List, TypeVar, Union
+from collections.abc import Iterable as _Iterable
+
+T = TypeVar("T")
+S = TypeVar("S")
+
+def intersperse(items: Iterable[T], sep: Union[S, Iterable[S]]) -> List[Union[T, S]]:
+    out: List[Union[T, S]] = []
+    started = False
+    for x in items:
+        if started:
+            if isinstance(sep, _Iterable) and not isinstance(sep, (str, bytes)):
+                out.extend(sep)
+            else:
+                out.append(sep)  # type: ignore[arg-type]
+        out.append(x)
+        started = True
+    return out
+

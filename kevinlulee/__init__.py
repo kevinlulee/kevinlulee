@@ -36,6 +36,7 @@ import kevinlulee.ascii as ascii
 import kevinlulee.introspect as introspect
 import kevinlulee.lorem as lorem
 import kevinlulee.rng as rng
+import kevinlulee.utf as utf
 import kevinlulee.env as env
 import kevinlulee.math_ops as math_ops
 import kevinlulee.debug_ops as debug_ops

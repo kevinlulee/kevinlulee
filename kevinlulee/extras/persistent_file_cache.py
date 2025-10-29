@@ -11,9 +11,10 @@ from pathlib import Path
 class PersistentFileCache:
     """Simple cache that persists to disk and reads from file when available."""
     
-    def __init__(self, cache_file=None, verbose = False):
+    def __init__(self, cache_file=None, verbose = False, serializer = lambda x: x):
         self.cache_file = cache_file
         self.cache = {}
+        self.serializer = serializer
         self.verbose = verbose
     
     def _load_from_file(self):
@@ -40,7 +41,7 @@ class PersistentFileCache:
     
     def put(self, key, value):
         """Put value in cache and save to file."""
-        self.cache[key] = value
+        self.cache[key] = self.serializer(value)
         self._save_to_file()
     
     def __call__(self, func):
@@ -64,6 +65,11 @@ class PersistentFileCache:
             # Compute result and cache it
             if self.verbose: print(f"Cache miss for \"{func.__name__}\", computing...")
             result = func(*args, **kwargs)
+            if not result:
+                if result == 0:
+                    pass
+                else:
+                    return 
             self.put(key, result)
             return result
         

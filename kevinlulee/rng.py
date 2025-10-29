@@ -200,6 +200,100 @@ def generate_centered_sequence(center_val, center_index=2, length=5, k=0.5, posi
     return sorted(lower) + [center_val] + sorted(higher)
 
     
+import random
+from typing import TypeVar, List, Sequence, Optional
 
-if __name__ == '__main__':
-    mod.commander_run(generate_mutated_variations, rect_state, k = 0.8)
+T = TypeVar('T')
+
+
+def set_seed(seed: int):
+    """Set the random seed for reproducibility."""
+    random.seed(seed)
+
+
+def coinflip() -> bool:
+    """Flip a coin, returns True for heads, False for tails."""
+    return random.random() < 0.5
+
+
+def choose(*items: Sequence[T]) -> T:
+    """Choose a random item from a sequence."""
+    return random.choice(_flat(items))
+
+
+def select(items: Sequence[T], k: int = 1, weights: Optional[Sequence[float]] = None, with_replacement: bool = False) -> List[T]:
+    """
+    Select k random items from a sequence.
+    
+    Args:
+        items: Sequence to select from
+        k: Number of items to select
+        weights: Optional weights for weighted selection
+        with_replacement: If True, sample with replacement
+    """
+    if weights is not None:
+        return random.choices(items, weights=weights, k=k)
+    if with_replacement:
+        return random.choices(items, k=k)
+    else:
+        return random.sample(items, k=k)
+
+
+def _flat(items):
+    r = list(items[0] if len(items) == 1 and isinstance(items[0], (list, tuple)) else items)
+    return r
+
+def shuffle(*items: List[T]) -> List[T]:
+    """
+    Shuffle a list and return it (mutative).
+    """
+    r = _flat(items)
+    random.shuffle(r)
+    return r
+
+
+
+def randint(a, b: Optional[int] = None) -> int:
+    """
+    Random integer in range [a, b] inclusive.
+    If a is a sequence, returns random index from that sequence.
+    If b is None, returns integer in [0, a] inclusive.
+    """
+    if isinstance(a, (list, tuple, Sequence)) and not isinstance(a, str):
+        return random.randint(0, len(a) - 1)
+    if b is None:
+        return random.randint(0, a)
+    return random.randint(a, b)
+
+
+def randfloat(a: float = 0.0, b: float = 1.0) -> float:
+    """Random float in range [a, b)."""
+    return a + random.random() * (b - a)
+
+
+def uniform(a, b):
+    return random.uniform(a, b)
+
+# Example usage
+if __name__ == "__main__":
+    # Set seed for reproducibility
+    
+    print("Coin flip:", coinflip())
+    print("Choose from list:", choose([1, 2, 3, 4, 5]))
+    print("Select 3 items:", select([1, 2, 3, 4, 5], k=3))
+    print("Select with replacement:", select([1, 2, 3], k=5, with_replacement=True))
+    print("Select weighted:", select(['a', 'b', 'c'], k=3, weights=[0.5, 0.3, 0.2], with_replacement=True))
+    print("Shuffled:", shuffle([1, 2, 3, 4, 5]))
+    print("Random int [0, 10]:", randint(10))
+    print("Random int [5, 15]:", randint(5, 15))
+    print("Random idx from array:", randint([10, 20, 30, 40, 50]))
+    print("Random float [0, 1):", randfloat())
+    print("Random float [10, 20):", randfloat(10, 20))
+    
+    print("\n--- Running again with same seed ---")
+    print("Coin flip:", coinflip())
+    print("Choose from list:", choose([1, 2, 3, 4, 5]))
+
+# if __name__ == '__main__':
+#     mod.commander_run(generate_mutated_variations, rect_state, k = 0.8)
+set_seed(42)

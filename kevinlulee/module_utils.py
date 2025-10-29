@@ -294,7 +294,10 @@ def path_join(*args):
 
     a = os.path.expanduser(a)
     if last in EXTENSIONS:
-        rest[-1] = add_extension_if_not_present(rest[-1], last)
+        if rest:
+            rest[-1] = add_extension_if_not_present(rest[-1], last)
+        else:
+            a = add_extension_if_not_present(a, last)
     else:
         rest.append(last)
     return os.path.join(path_expand(a), *rest)
@@ -381,3 +384,7 @@ def get_directory_from_project_name(x):
         if is_dir(p):
             return p
 file_from_modname = get_file_from_modname
+
+
+if __name__ == "__main__":
+    kx.pretty_print(path_join('~/asdf', 'pdf'))
