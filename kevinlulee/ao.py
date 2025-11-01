@@ -423,7 +423,7 @@ def map(items, fn):
     return [fn(el) for el in items]
 
 def filter_none(data):
-    if isinstance(data, (list, tuple, set)):
+    if is_array(data):
         return [x for x in data if x is not None]
     elif isinstance(data, dict):
         return {k: v for k, v in data.items() if v is not None}

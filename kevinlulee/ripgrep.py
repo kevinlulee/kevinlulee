@@ -179,6 +179,9 @@ def fdfind(
     for ext in exts:
         cmd.extend(["--extension", ext])
 
+    if ignore_file:
+        cmd.extend(["--ignore-file", os.path.expanduser(ignore_file)])
+
     if not respect_gitignore:
         cmd.append("--no-ignore-vcs")
     if not respect_ignore:
@@ -238,10 +241,92 @@ def fd(
 def rg(dir, pattern, **kwargs):
     return ripgrep(pattern.strip(), [dir], **kwargs)
 
-if __name__ == '__main__':
+if __name__ == '__main__.mmgg':
     # print(ripgrep(pattern='def group', dirs = ['/home/kdog3682/projects/python/kevinlulee/kevinlulee/']))
     # ROOT_DIR = "/home/kdog3682/projects/python/maelstrom/lib/nvim/plugins/v1/"
     # FD_PAT = ''' data_path\s*=\s*["']~/.cache/maelstrom/[^"']*["'] '''
     # print(rg(ROOT_DIR, FD_PAT))
     files = fd('~/projects/old_projects/mmgg', only_files=True)
     print(files)
+
+
+import re
+from collections import OrderedDict
+from typing import Dict, List, Tuple, Union
+
+# expects your `rg` / `ripgrep` helpers from above to be available in scope
+
+
+def grep_defs_fast(
+    root: str,
+    *,
+    exts: Tuple[str, ...] = ("py",),   # [("py",), ("py","pyi")]
+    exclude_dirs: List[str] = [],            # [[], ["tests", "build"]]
+    include_dirs: List[str] = [],            # [[], ["src"]]
+    include_dunder: bool = False,            # [False, True]
+    dedupe_per_file: bool = True,            # [True, False]
+    include_ln: bool = True,                # [False, True] -> if True, returns [(lnum, name), ...]
+    hidden: bool = True,                     # [True, False]
+    case_insensitive: bool = False           # [False, True]
+) -> Dict[str, List[Union[str, Tuple[int, str]]]]:
+    """
+    Blazing-fast function indexer using ripgrep.
+    Returns { filepath: [name, ...] } or { filepath: [(lnum, name), ...] } if include_ln=True.
+    """
+    pattern = r"(?m)^def\s+(\w+)\s*\("
+    _DEF_RE = re.compile(pattern)
+
+    hits = rg(
+        root,
+        pattern,
+        grouped=True,
+        exts=list(exts),
+        exclude_dirs=exclude_dirs,
+        include_dirs=include_dirs,
+        hidden=hidden,
+        case_insensitive=case_insensitive,
+        boundary=False,
+        respect_gitignore=False,
+        respect_ignore_file=True,
+        show_lnum=True,
+    )
+
+    out: Dict[str, List[Union[str, Tuple[int, str]]]] = {}
+
+    for group in hits:
+        path = group["path"]
+        seen = OrderedDict()  # preserves order
+        bucket: List[Union[str, Tuple[int, str]]] = []
+
+        for item in group["contents"]:
+            excerpt = item["excerpt"]
+            m = _DEF_RE.search(excerpt)
+            if not m:
+                continue
+            name = m.group(1)
+            if not include_dunder and name.startswith("__") and name.endswith("__"):
+                continue
+
+            val: Union[str, Tuple[int, str]] = (item["lnum"], name) if include_ln else name
+
+            if dedupe_per_file:
+                key = name if not include_ln else name  # dedupe by name even when include_ln=True
+                if key in seen:
+                    continue
+                seen[key] = True
+
+            bucket.append(val)
+
+        if bucket:
+            out[path] = bucket
+
+    return out
+
+
+
+if __name__ == '__main__':
+    root = "/home/kdog3682/projects/python/treebloom/corpus"
+    root = '~/projects/python/kevinlulee'
+    print(fd('/home/kdog3682/projects/python/treebloom/', ignore_file='~/.ignore'))
+    # a = grep_defs_fast(root)
+    # nvim.fs.clip(a)

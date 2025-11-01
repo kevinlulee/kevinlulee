@@ -400,6 +400,8 @@ DOTFILE_TO_FILETYPE = {
     '.env.local': 'env',
     '.env.development': 'env',
     '.env.production': 'env',
+    'fish_history': 'fish_history',
+    '.fish_history': 'fish_history',
     '.bashrc': 'bash',
     '.bash_profile': 'bash',
     '.zshrc': 'zsh',

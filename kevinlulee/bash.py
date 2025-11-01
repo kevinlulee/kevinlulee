@@ -157,15 +157,16 @@ def chmod(x):
     return bash("sudo", "chmod", "755", x)
 
 
-def bash_nvim(*args, cwd=None, on_error=identity, as_list = False):
+def bash_nvim(*args, cwd=None, on_error=identity, as_list = False, ignore_stderr = lambda x: False):
     cwd = os.path.expanduser(cwd) if cwd else None
-    cmd = trimdent(join_spaces(flat(args)))
+    cmd = flat(args)
     p = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=cwd
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, cwd=cwd
     )
     out, err = p.communicate()
     stdout, stderr = out.decode("utf-8").strip(), err.decode("utf-8").strip()
-    if stderr:
+    # print((stdout, stderr))
+    if stderr and not ignore_stderr(stderr):
         return on_error(stderr)
     if as_list:
         return [l.strip() for l in stdout.splitlines() if l.strip()]

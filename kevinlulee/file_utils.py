@@ -111,6 +111,9 @@ def get_extension(file_path: str) -> str:
     ]
     file_path = str(file_path)
     bn = os.path.basename(file_path)
+    if bn == 'fish_history':
+        return 'yml'
+        return bn
     if bn in dot_files:
         return bn[1:]
     if not '.' in file_path:
@@ -963,6 +966,9 @@ def looks_like_directory(path_str):
     path_str = os.path.expanduser(path_str)
     if os.path.isdir(path_str):
         return True
+
+    if get_extension(path_str):
+        return False
     
     # Check if it has multiple '/' and no extension
     if path_str.count('/') > 0:
@@ -1101,6 +1107,10 @@ def rmdir(a):
     a = os.path.expanduser(str(a))
     shutil.rmtree(a, ignore_errors=True)  # like `rm -rf`
 
+def rmpath(a):
+    func = rmfile if  is_file(a) else rmdir
+    func(a)
+        
 import os
 from typing import Callable, Optional, Union
 
@@ -1364,8 +1374,6 @@ def is_executable(p: Path) -> bool:
     return bool(mode & stat.S_IXUSR or mode & stat.S_IXGRP or mode & stat.S_IXOTH)
 
 
-if __name__ == '__main__':
-    print(get_most_recent_file_groups(DLDIR))
 
 def dirs_up_to_root(current_path: str, root_dir: str ) -> list[str]:
     """
@@ -1526,3 +1534,117 @@ def find_git_directory(start_path):
         current = parent
 
 
+import os
+import re
+from pathlib import Path
+
+def find_filenames_in_directory(root: str, pattern: str, flags: int = 0) -> list[str]:
+    """
+    Recursively return full paths of files under `root` whose filenames match
+    the regex `pattern` (via re.search). Directories are skipped.
+    """
+    raise Exception('todo: certain directories should be ignored.')
+    rx = re.compile(pattern, flags)
+    base = Path(root).expanduser()
+    results: list[str] = []
+    for dirpath, _, filenames in os.walk(base, followlinks=False):
+        for name in filenames:
+            if rx.search(name):
+                results.append(os.path.join(dirpath, name))
+    results.sort()
+    return results
+
+# if __name__ == '__main__':
+#     print(find_filenames_in_directory('~/projects/webdev/fs-view/', 'test\.'))
+
+def zipread(src_path, dst_path=None) -> list[str]:
+    """
+    items will be extracted into the same directory as the src if dst_path
+    is not provided
+
+    a list of paths (the extracted files) will be returned
+    """
+    src_path = os.path.expanduser(src_path)
+    dst_path = (
+        os.path.expanduser(dst_path) if dst_path else os.path.dirname(src_path)
+    )
+
+    assert has_valid_existing_parent(
+        dst_path
+    ), f"{dst_path} no ancestor in dst_path exists"
+    assert_file(src_path)
+
+    store = []
+    import zipfile
+
+    with zipfile.ZipFile(src_path, "r") as zf:
+        items = zf.infolist()
+        for item in items:
+            store.append(os.path.join(dst_path, item.filename))
+
+        zf.extractall(dst_path)
+
+        return store
+
+def get_most_common_file_extension(dir, recursive=False):
+    current_dir = os.path.expanduser(dir)
+    extensions = []
+    
+    def add(entry):
+        _, extension = os.path.splitext(entry.name)
+        if extension:  # Only add if there's an extension
+            extensions.append(extension.lower())
+    
+    if recursive:
+        for root, dirs, files in os.walk(current_dir):
+            with os.scandir(root) as entries:
+                for entry in entries:
+                    if entry.is_file():
+                        add(entry)
+    else:
+        with os.scandir(current_dir) as entries:
+            for entry in entries:
+                if entry.is_file():
+                    add(entry)
+    
+    if not extensions:
+        return None
+    
+    from collections import Counter
+    extension_counts = Counter(extensions)
+    most_common = extension_counts.most_common(1)
+    return most_common[0][0][1:] if most_common else None
+
+def zip_view(src_path) -> str:
+    src_path = os.path.expanduser(src_path)
+    store = []
+    import zipfile
+
+    with zipfile.ZipFile(src_path, "r") as zf:
+        items = zf.infolist()
+        for item in items:
+            store.append(item.orig_filename)
+
+        return fancy_file_tree(store)
+
+def get_directory_size(path):
+    import subprocess
+    result = subprocess.run(
+        ['du', '-sb', path],  # -s for summary, -b for bytes
+        capture_output=True,
+        text=True
+    )
+    size = int(result.stdout.split()[0])
+    return size
+
+
+def foo():
+    file = '/home/kdog3682/.local/share/fish/fish_history'
+    print(get_extension(file))
+
+
+if __name__ == '__main__':
+    foo()
+
+# if __name__ == '__main__':
+#     print(get_most_recent_file_groups(DLDIR))
