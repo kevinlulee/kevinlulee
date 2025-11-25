@@ -144,7 +144,7 @@ def _fancy_filetree_from_list(custom_files: Iterable[str]) -> str:
     return body
 
 
-def fancy_file_tree(root_dir_or_list: Union[str, Iterable[str]], truncate: bool = False, max_leaves = 20) -> str:
+def fancy_file_tree(root_dir_or_list: Union[str, Iterable[str]], truncate: bool = False, max_leaves = 20, ignore = None) -> str:
     """
     If given a directory path (string), walk the filesystem and produce a tree,
     honoring .gitignore via create_gitignore_matcher. If given a list/tuple of
@@ -158,7 +158,7 @@ def fancy_file_tree(root_dir_or_list: Union[str, Iterable[str]], truncate: bool 
     if not os.path.isdir(root_dir):
         return ""
 
-    ignore = create_gitignore_matcher(root_dir)
+    ignore = ignore or create_gitignore_matcher(root_dir)
     # header = os.path.basename(os.path.normpath(root_dir)) + "/"
     header = remove_ending_slash(root_dir) + '/'
 

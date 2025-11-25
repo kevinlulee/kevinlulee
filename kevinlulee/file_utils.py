@@ -467,7 +467,7 @@ def comment(text, filepath, as_documentation = False):
 
 def writefile(filepath: str, data: Any, debug = False, verbose = False, strict = True, ensure_ascii = False) -> str:
 
-    if strict: assert data, "Data must be existant. Empty strings or None are not allowed."
+    if strict: assert data, "Data for writefile must be existant. Empty strings or None are not allowed."
     assert get_extension(filepath), f"Filepath must have an extension: {filepath}"
 
     path = os.path.expanduser(filepath)
@@ -1085,7 +1085,10 @@ def mvdir(a, b, verbose = False):
     a = remove_ending_slash(os.path.expanduser(str(a)))
     b = remove_ending_slash(os.path.expanduser(str(b)))
     if os.path.basename(b) == os.path.basename(a):
-        a = os.path.dirname(a)
+        if os.path.dirname(b) == os.path.dirname(a):
+            a = os.path.dirname(a)
+        else:
+            pass
     assert_directory(a)
     shutil.move(a, b)
     if verbose:
@@ -1644,7 +1647,8 @@ def foo():
 
 
 if __name__ == '__main__':
-    foo()
+    # foo()
+    mvdir('~/documents/blueprints', '~/documents/fsv/blueprints', verbose = True)
 
 # if __name__ == '__main__':
 #     print(get_most_recent_file_groups(DLDIR))

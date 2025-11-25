@@ -16,4 +16,4 @@ def vitest(cwd):
 
 
 if __name__ == '__main__':
-    kx.clip(vitest(cwd = '~/projects/webdev/fs-view'))
+    kx.clip(vitest(cwd = '~/projects/webdev/fs-view/frontend'))

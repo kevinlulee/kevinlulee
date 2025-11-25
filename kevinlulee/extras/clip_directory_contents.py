@@ -12,7 +12,7 @@ def clip_directory_contents(
     option: with_file_tree: true
     """
 
-    files = kx.fd(dir, ignore_file="~/.ignore", **kwargs)
+    files = kx.fd(dir, ignore_file=None, **kwargs)
     ignored_files = [
         "index.html",
         "package.json",
@@ -46,3 +46,7 @@ def clip_directory_contents(
         else None
     )
     return kx.join_text(b, a)
+
+
+if __name__ == "__main__":
+    kx.clip(clip_directory_contents('~/.cache/typst/packages/preview/cetz/0.3.3/'))

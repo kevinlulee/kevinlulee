@@ -71,7 +71,7 @@ def is_integer_float(value):
 
 
 def is_word(s):
-    return re.search("^[a-zA-Z]+$", s)
+    return bool(re.search("^[a-zA-Z]+$", s))
 
 
 def looks_like_number(s):
@@ -334,3 +334,5 @@ def is_math(x):
 
 def is_hash_color(color):
     return isinstance(color, str) and color.startswith('#')
+def is_capitalized(x):
+    return x[0].upper() == x[0]

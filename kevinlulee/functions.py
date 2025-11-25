@@ -43,7 +43,13 @@ def infer_lang(value):
         if kx.test(value, '#let|#import|\) *= *{'):
             return 'typst'
 
-        return "python"
+        if kx.test(value, '^ *(?:function \w+|const +\w+ *=)', flags = kx.re.M):
+            return 'typescript'
+
+        if kx.test(value, '^ *def +\w+\(', flags = kx.re.M):
+            return "python"
+
+        raise Exception('unable to infer a language')
 
     return "json"
 
