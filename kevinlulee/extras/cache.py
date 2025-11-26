@@ -34,3 +34,60 @@ def mtime_cache(cache_path: str) -> Callable[[Callable], Callable]:
     return decorator
 
 
+def get_name(obj):
+    """
+    Try several ways to extract a 'name' value from arbitrary objects:
+    - attribute: obj.name
+    - method: obj.name() or obj.get_name()
+    - dict-style: obj["name"]
+    - mapping: obj.get("name")
+    """
+    # 1. attribute
+    if hasattr(obj, "name"):
+        val = getattr(obj, "name")
+        if callable(val):
+            return val()
+        return val
+
+    # 2. get_name() method
+    if hasattr(obj, "get_name") and callable(obj.get_name):
+        return obj.get_name()
+
+    # 3. dict indexing
+    try:
+        return obj["name"]
+    except Exception:
+        pass
+
+    # 4. mapping .get()
+    try:
+        return obj.get("name")
+    except Exception:
+        pass
+
+    return None
+
+
+def cache_to_file(cache_path: str, key: Callable[..., Any] = get_name):
+    """Decorator that caches function results to a file using a key function."""
+
+    def decorator(fn):
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            # compute cache key for this call
+            cache_key = key(*args, **kwargs) if callable(key) else key
+
+            index = kx.readfile(cache_path) or {}
+            if cache_key in index:
+                return index[cache_key]
+
+            result = fn(*args, **kwargs)
+            index[cache_key] = result
+            kx.writefile(cache_path, index)
+            return result
+
+        return wrapper
+
+    return decorator
+
+

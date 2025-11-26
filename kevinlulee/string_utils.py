@@ -128,9 +128,9 @@ def snake_case(s):
 
 def trimdent(text: str) -> str:
     """Smart trim and dedent: removes common indentation and trailing whitespace."""
-    if not text:
+    if text is None or text == '':
         return ''
-    lines = text.splitlines()
+    lines = str(text).splitlines()
     
     # Remove leading blank lines
     while lines and not lines[0].strip():
@@ -296,8 +296,16 @@ def parens(s, key = '()', newline = False, ind = 4, leading_newline = False):
         "({})": ("({", "})"),
         "([])": ("([", "])"),
     }
-    if isinstance(key, str) and test(key, '^[=-]{3,}'):
-        return f'{key}\n{str(s)}\n{key}'
+    if isinstance(key, str):
+        if test(key, '^[=-]{3,}'):
+            return f'{key}\n{str(s)}\n{key}'
+        if test(key, '^<'):
+            ckey = key.replace('<', '</')
+            if newline:
+                return f'{key}\n{str(s)}\n{ckey}'
+            else:
+                return f'{key}{str(s)}{ckey}'
+            
         
     
     a, b = key if isinstance(key, (list, tuple)) else (brackets.get(key) or split_in_half(key))

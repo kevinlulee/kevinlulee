@@ -46,9 +46,10 @@ def infer_lang(value):
         if kx.test(value, '^ *(?:function \w+|const +\w+ *=)', flags = kx.re.M):
             return 'typescript'
 
-        if kx.test(value, '^ *def +\w+\(', flags = kx.re.M):
+        if kx.test(value, '^ *def +\w+\(|TypedDict|^from ', flags = kx.re.M):
             return "python"
 
+        return 'python'
         raise Exception('unable to infer a language')
 
     return "json"
@@ -769,4 +770,22 @@ def split_chunks(arr, n=2):
     size = (len(arr) + n - 1) // n
     return [arr[i:i+size] for i in range(0, len(arr), size)]
 
+
+
+def regex_boundary(key):
+    return f'\\b{key}\\b'
+
+
+
+def bullet_list(s):
+    def bullet(s):
+        lines = "- " + kx.trimdent(s)
+        lines = lines.split("\n")
+        return "\n".join(
+            [lines[0]] + kx.map(lines[1:], lambda line: kx.indent(line, 2))
+        )
+    
+
+    bullets = kx.map(s, bullet)
+    return kx.join_text(bullets)
 

@@ -1646,6 +1646,24 @@ def foo():
     print(get_extension(file))
 
 
+import shutil
+from pathlib import Path
+
+def move_directory_contents(src_dir, dst_dir):
+    """ moves all contents from the src_dir to the dst_dir """
+    
+    src_path = Path(src_dir).expanduser()
+    dst_path = Path(dst_dir).expanduser()
+
+    dst_path.mkdir(parents=True, exist_ok=True)
+
+    for item in src_path.iterdir():
+        target = dst_path / item.name
+        shutil.move(str(item), str(target))
+
+# move_dir_contents(p, '~/projects/python/fsv/docs')
+
+
 if __name__ == '__main__':
     # foo()
     mvdir('~/documents/blueprints', '~/documents/fsv/blueprints', verbose = True)
