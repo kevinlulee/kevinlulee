@@ -311,7 +311,7 @@ def clip(s, ext = 'txt'):
     if not s:
         return 
 
-    if isinstance(s, str) and s.startswith('<'):
+    if isinstance(s, str) and s.startswith('<!DOCTYPE html>') and s.endswith('>'):
         ext = 'html'
     file = os.path.expanduser('~/.kdog3682/scratch/clip.' + ext)
     writefile(file, s, ensure_ascii=False)
@@ -1301,28 +1301,33 @@ import os
 import re
 
 def get_paths(
-    dir,
-    exts=None,
-    start=None,
-    end=None,
-    depth=1,
+    dir, # root directory from which to collect the paths
+    exts: list[FiletypeExtension]=[],
+    start: Optional[TimeWindowPredicateSelector]=None, 
+    end: Optional[TimeWindowPredicateSelector]=None,
+    depth=1,              # use 0 for full recursion through the directory
     collect="files",      # 'files' | 'dirs' | 'both'
-    include=None,         # str or compiled re, matched against basename via kx.matchstr
-    exclude=None,         # str or compiled re, matched against basename via kx.matchstr
-    validators = [],
+    include: Optional[str | re.Pattern]=None,
+    exclude: Optional[str | re.Pattern]=None,
+    validators: list[callable] = [],
 ) -> list[str]:
+    """
+        given an input directory, returns a list of paths.
+    """
+    
+    
     base = os.path.expanduser(dir)
-    exts = [] if exts is None else exts
+    exts =map(lambda x: x.lstrip('.'), exts) if exts else []
     collect = collect.lower()
     want_files = collect in ("files", "both")
     want_dirs  = collect in ("dirs", "both")
 
     predicate = make_time_window_predicate(start, end)
 
-    def name_allowed(path: str) -> bool:
-        if include is not None and not matchstr(path, include):
+    def name_allowed(name: str) -> bool:
+        if include is not None and not matchstr(name, include):
             return False
-        if exclude is not None and matchstr(path, exclude):
+        if exclude is not None and matchstr(name, exclude):
             return False
         return True
 
@@ -1666,7 +1671,8 @@ def move_directory_contents(src_dir, dst_dir):
 
 if __name__ == '__main__':
     # foo()
-    mvdir('~/documents/blueprints', '~/documents/fsv/blueprints', verbose = True)
+    get_paths('/home/kdog3682/projects/python/kevinlulee/kevinlulee')
+    # mvdir('~/documents/blueprints', '~/documents/fsv/blueprints', verbose = True)
 
 # if __name__ == '__main__':
 #     print(get_most_recent_file_groups(DLDIR))

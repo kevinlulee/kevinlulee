@@ -213,6 +213,11 @@ IPHONE_ALARM_ALIASES = {
 HAMMY_DIR = '~/projects/hammymathclass/'
 
 DLDIR = '/mnt/chromeos/MyFiles/Downloads/'
+
+
+LOCAL_CLIP_FILE = "/home/kdog3682/scratch/scratch.txt"
 MYFILES_DIR = '/mnt/chromeos/MyFiles/'
 
 RANDOM_IDX = '__RANDOM_IDX__'
+
+CACHE_DIRECTORY = '~/data/cache'

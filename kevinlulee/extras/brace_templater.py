@@ -16,16 +16,16 @@ TEMPLATER_PATTERN = re.compile(
 )
 
 
-def class_templater(template, cls):
-    scope = dict(self=cls, kx=kx)
-
-    def wrapper(s):
+def default_templater_wrapper(s):
         if kx.is_array(s):
             return kx.bullet_list(s)
         if kx.is_string(s):
             return kx.trimdent(s)
 
         return kx.serialize_data(s)
+
+def class_templater(template, cls):
+    scope = dict(self=cls, kx=kx)
 
     def get(key):
         if "." not in key:
@@ -44,7 +44,7 @@ def class_templater(template, cls):
         g = get(expr)
         if g == "" or g is None:
             return "<EMPTY>"
-        payload = wrapper(g)
+        payload = default_templater_wrapper(g)
         return kx.newline_indent(payload, ind) if newline else payload
 
     s = re.sub(TEMPLATER_PATTERN, replacer, template)

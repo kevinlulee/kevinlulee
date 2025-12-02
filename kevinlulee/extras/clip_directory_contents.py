@@ -12,7 +12,7 @@ def clip_directory_contents(
     option: with_file_tree: true
     """
 
-    files = kx.fd(dir, ignore_file=None, **kwargs)
+    files = kx.fd(dir, ignore_file=None, **kwargs) if kx.is_string(dir) else dir
     ignored_files = [
         "index.html",
         "package.json",
@@ -24,7 +24,7 @@ def clip_directory_contents(
     "tailwind.config.ts",
     "tsconfig.node.json",
     ]
-    files = kx.filtered(files, lambda x: kx.os.path.basename(x) not in ignored_files)
+    cfiles = kx.filtered(files, lambda x: kx.os.path.basename(x) not in ignored_files)
 
     def runner(file):
         text = kx.serialize_data(kx.readfile(file, raw=True))
@@ -39,7 +39,7 @@ def clip_directory_contents(
         header = kx.comment(h, file)
         return header, text
 
-    a = kx.mapfilter(files, runner)
+    a = kx.mapfilter(cfiles, runner)
     b = (
         kx.comment(kx.fancy_file_tree(files), files[0])
         if with_file_tree

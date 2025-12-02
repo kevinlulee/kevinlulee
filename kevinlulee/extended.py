@@ -208,10 +208,6 @@ def sort_files_by_date(files, reverse=True):
     
     return sorted(files, key=os.path.getmtime, reverse=reverse)
 
-def sort_by_date(files, reverse=True):
-    return sorted(files, key=os.path.getmtime, reverse=reverse)
-
-
 def looks_like_path(x):
     return test(x, "^(?:[/~])|\./")
 

@@ -177,7 +177,7 @@ def fdfind(
         cmd.extend(["--exclude", ignore])
 
     for ext in exts:
-        cmd.extend(["--extension", ext])
+        cmd.extend(["--extension", ext.lstrip('.')])
 
     if ignore_file:
         cmd.extend(["--ignore-file", os.path.expanduser(ignore_file)])
@@ -216,7 +216,7 @@ def fd(
     exclude_dirs: List[str] = [],
     include_dirs: List[str] = [],
     respect_gitignore: bool = False,
-    respect_ignore: bool = False,
+    respect_ignore: bool = True,
     show_hidden_files: bool = True,
     only_directories: bool = False,
     only_files: bool = True,

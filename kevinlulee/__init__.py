@@ -41,6 +41,7 @@ import kevinlulee.env as env
 import kevinlulee.math_ops as math_ops
 import kevinlulee.debug_ops as debug_ops
 from .extended import *
+from kevinlulee.extras.helpers import *
 from .ddo import LiveDict, LiveArray
 from .text import StringBuilder
 # from .extensions import *
@@ -145,6 +146,8 @@ def slice_quotes(template):
     return re.sub(r'^[\'"]|[\'"]$', '', template)
 
 
+basename = kx.os.path.basename
+expanduser = kx.os.path.expanduser
 
 def auto_cast(s):
     try:

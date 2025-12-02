@@ -778,6 +778,7 @@ def regex_boundary(key):
 
 
 def bullet_list(s):
+    
     def bullet(s):
         lines = "- " + kx.trimdent(s)
         lines = lines.split("\n")
@@ -789,3 +790,17 @@ def bullet_list(s):
     bullets = kx.map(s, bullet)
     return kx.join_text(bullets)
 
+
+
+def sort_by_date(files, reverse=True):
+    """
+    the most recent dates come first
+    """
+    
+    return sorted(files, key=kx.to_datetime, reverse=reverse)
+
+
+def get_cache_path(name: str, key="misc") -> str:
+    """Get cache file path for directory."""
+    dir_hash = str(abs(hash(name)))
+    return os.path.join(kx.CACHE_DIRECTORY, key, f"{dir_hash}.json")

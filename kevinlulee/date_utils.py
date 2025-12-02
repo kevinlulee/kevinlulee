@@ -46,6 +46,7 @@ def datetime_from_str(s: str) -> datetime:
             "%Y-%m-%d %H:%M:%S.%f",
             "%Y-%m-%dT%H:%M",
             "%Y-%m-%dT%H:%M:%S",
+            "%m/%d/%Y %I:%M:%S %p",
             "%Y-%m-%dT%H:%M:%S.%f",
             "%m/%d/%Y",
             "%m/%d/%Y %H:%M",
@@ -81,6 +82,8 @@ def rough_unit_from_digits(ts: int | str) -> Literal["s", "ms", "us", "ns"]:
 
 
 def to_datetime(x=None):
+    if isinstance(x, datetime):
+        return x
     if isinstance(x, datetime):
         return x
     if x is None:
@@ -143,8 +146,6 @@ def strftime(source=None, mode="iso8601"):
     return to_datetime(source).strftime(templates.get(mode, mode))
 
 
-def timestamp():
-    return datetime.now().timestamp()
 
 
 def resolve_timedelta2(
@@ -707,6 +708,12 @@ def is_recentf2(distant=None, recent=None):
 
     return yes
 
+
+def timestamp(path = None):
+    if path:
+        return int(os.path.getmtime(path))
+    else:
+        return int(datetime.now().timestamp())
 from datetime import datetime
 
 def part_of_day(time_str: str) -> str:
