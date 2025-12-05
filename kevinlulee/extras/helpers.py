@@ -93,7 +93,10 @@ def txflow(text: str) -> str:
         parent = stack[-1]
 
         # If this line declares an element: "name:" or "name: some text"
-        m_colon = re.match(r"^([^\s:]+):(?:\s*(.*))?$", content)
+        # m_colon = re.match(r"^([^\s:]+):(?:\s*(.*))?$", content)
+
+        # If this line declares an element: "name:" or "name: some text"
+        m_colon = re.match(r"^::([^\s:]+)::(?:\s*(.*))?$", content)
         if m_colon:
             name = m_colon.group(1)
             inline_text = m_colon.group(2) if m_colon.group(2) is not None and m_colon.group(2) != "" else None
@@ -207,7 +210,7 @@ sample = """react:
 from kevinlulee import kx
 
 
-def to_xml(tag, content:dict | list | str = '', indentation = None, **attributes):
+def to_xml(tag, content:dict | list | str = '', indentation = 1, **attributes):
     """
     Recursively builds XML strings with smart formatting.
     
@@ -219,7 +222,7 @@ def to_xml(tag, content:dict | list | str = '', indentation = None, **attributes
     # Build attribute string
     attrs = ""
     if attributes:
-        attrs = " " + " ".join(f'{k}={v!r}' for k, v in attributes.items())
+        attrs = " " + " ".join(f'{k}={v}' for k, v in attributes.items())
     
     # Handle list content
     if isinstance(content, list):
@@ -234,7 +237,9 @@ def to_xml(tag, content:dict | list | str = '', indentation = None, **attributes
     # Check if content has newlines
     if not indentation:
         return f"<{tag}{attrs}>{content}</{tag}>"
-    elif isinstance(content, str) and "\n" in content:
+
+    indentation = kx.to_spaces(indentation)
+    if isinstance(content, str) and "\n" in content:
         indented = "\n".join(f"{indentation}{line}" for line in content.split("\n"))
         return f"<{tag}{attrs}>\n{indented}\n</{tag}>"
     else:

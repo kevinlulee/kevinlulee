@@ -206,7 +206,8 @@ def sort_files_by_date(files, reverse=True):
     most recent files comes first
     """
     
-    return sorted(files, key=os.path.getmtime, reverse=reverse)
+    key = os.path.getmtime if isinstance(files[0], str) else lambda x: x.stat().st_mtime
+    return sorted(files, key=key, reverse=reverse)
 
 def looks_like_path(x):
     return test(x, "^(?:[/~])|\./")

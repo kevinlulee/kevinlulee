@@ -145,6 +145,7 @@ def coerce_argument(x):
             return x
         if x == 'false' or x == 'False': return False
         if x == 'true' or x == 'True': return True
+        if x == 'none' or x == 'None': return None
         if x.startswith("\"") or x.startswith("'"):
             return x[1:1]
         if re.search('^\d+\.?\d*$', x):

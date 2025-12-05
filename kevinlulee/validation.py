@@ -336,3 +336,9 @@ def is_hash_color(color):
     return isinstance(color, str) and color.startswith('#')
 def is_capitalized(x):
     return x[0].upper() == x[0]
+
+
+def is_json_parsable(s):
+    return (s.startswith("[") and s.endswith("]")) or (
+        s.startswith("{") and s.endswith("}")
+    )

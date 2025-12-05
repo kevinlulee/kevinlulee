@@ -1,3 +1,4 @@
+''' hi '''
 from os.path import isdir
 from pathlib import Path
 import pathlib
@@ -60,6 +61,11 @@ def get_modname_from_directory(path):
 
 def get_modname_from_file(file):
     file = str(file)
+    m = matchstr(file, 'site-packages/(.+)')
+    if m:
+        return remove_extension(m).replace('/', '.')
+        
+# print(kx.get_module("/home/kdog3682/.local/lib/python3.11/site-packages/anthropic/types/beta/beta_usage.py"))
     if not file.endswith(".py"):
         return 
         if '.' in file:
@@ -70,7 +76,13 @@ def get_modname_from_file(file):
     return _get_modname(file)
 
 
-def get_file_from_modname(modname):
+def get_file_from_modname(
+
+modname) -> str:
+    """
+    get_file_from_modname
+    """
+    
     if not modname:
         return
 
@@ -160,13 +172,14 @@ def get_module(file_name: str, reload = False, from_anywhere = False):
     if not file_name:
         return 
 
-    module_name = get_modname_from_file(file_name)
+    if is_string(file_name):
+        module_name = get_modname_from_file(file_name)
 
-    if not module_name:
-        if re.search('^\w+(?:\.\w+)*$', file_name):
-            module_name = file_name
-        else:
-            return 
+        if not module_name:
+            if re.search('^\w+(?:\.\w+)*$', file_name):
+                module_name = file_name
+            else:
+                return 
 
     if reload and module_name in sys.modules:
         del sys.modules[module_name]

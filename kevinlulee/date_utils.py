@@ -3,6 +3,7 @@ import re
 import calendar
 from typing import Optional, TypedDict, Union, Literal
 import os
+from pathlib import Path
 
 from kevinlulee.base import identity, yes
 from kevinlulee.class_introspection_ops import collect_class_property_names
@@ -82,6 +83,8 @@ def rough_unit_from_digits(ts: int | str) -> Literal["s", "ms", "us", "ns"]:
 
 
 def to_datetime(x=None):
+    if isinstance(x, Path):
+        return datetime.fromtimestamp(x.stat().st_mtime)
     if isinstance(x, datetime):
         return x
     if isinstance(x, datetime):

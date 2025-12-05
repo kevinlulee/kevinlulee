@@ -192,6 +192,20 @@ def find_project_root(start_path):
         current_dir = parent_dir
     return None
 
+def find_parent_directory(path, segment):
+    root = os.path.expanduser("~/")
+    path = os.path.expanduser(path)
+
+    count = 0
+    while count < 10:
+        count += 1
+        if os.path.exists(os.path.join(path, segment)):
+            return path
+        new_path = os.path.dirname(path)
+        if new_path in (root, path):
+            return 
+        path = new_path
+    return None
 def find_git_directory(path):
     root = os.path.expanduser("~/")
     path = os.path.expanduser(path)

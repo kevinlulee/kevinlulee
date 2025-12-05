@@ -126,7 +126,7 @@ def brace_templater(s, ref, cls=None, wrap_func=None):
         ref = kx.array_to_dict(ref)
 
     elif not kx.is_dict(ref):
-        ref = {"1": ref}
+        ref = {"1": ref, "arg": ref}
 
     if cls:
         ref["self"] = cls
