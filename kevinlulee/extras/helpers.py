@@ -1,7 +1,6 @@
 from __future__ import annotations
 import kevinlulee as kx
 
-from codefmt.typst import typstfmt
 from codefmt.lua import luafmt
 from codefmt.yaml import yamlfmt
 from codefmt.python import pythonfmt

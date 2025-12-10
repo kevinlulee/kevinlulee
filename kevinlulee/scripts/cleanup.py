@@ -111,12 +111,18 @@ def cleanup(target_dir):
             print(f"  {f.name} ({f.stat().st_size} bytes)")
 
 
-    delete_files_by_extension(target_dir)
+    kx.pretty_print(delete_files_by_extension(target_dir))
 
 
-def delete_files_by_extension(target_dir, exts = ['png', 'py', 'js', 'ts', 'tsx', 'deb']):
-    paths = kx.get_paths(target_dir, exts=exts)
+def delete_files_by_extension(target_dir, exts = ['py', 'js', 'ts', 'tsx', 'deb']):
+    paths = kx.get_paths(target_dir, exts=exts, depth = 1)
+    # return kx.pretty_print(paths)
+    # return 
     for path in paths:
         kx.os.unlink(path)
 
     return paths
+
+
+if __name__ == '__main__':
+    print(delete_files_by_extension(kx.DLDIR, exts = ['py']))

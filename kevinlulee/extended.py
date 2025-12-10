@@ -51,6 +51,8 @@ def pycall(*args, **kwargs):
 def hashify(key):
     import hashlib
 
+    if not isinstance(key, str):
+        key = json.dumps(key)
     return hashlib.md5(key.encode()).hexdigest()
 
 

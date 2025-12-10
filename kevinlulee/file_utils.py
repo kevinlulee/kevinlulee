@@ -292,8 +292,8 @@ def get_most_recent_file(path_or_files: Union[str, os.PathLike, Iterable[Union[s
     return max(candidates, key=os.path.getmtime)
 
 
-def get_most_recently_downloaded_file():
-    return get_most_recent_file(DLDIR)
+def get_most_recently_downloaded_file(pattern = '*'):
+    return get_most_recent_file(DLDIR, pattern=pattern)
 
 def get_most_recent_file_groups(dir, pattern = '.', minutes=3):
     files = get_paths(dir, include = pattern)
@@ -436,7 +436,7 @@ def cpfile(source, dest, debug=False, soft = False, mkdir = False, verbose = Fal
 
 
 
-def comment(text, filepath, as_documentation = False):
+def comment(text, filepath = 'python', as_documentation = False):
     if text is None:
         return ''
     def hash_comment(t):
@@ -1331,7 +1331,7 @@ def get_paths(
     
     
     base = os.path.expanduser(dir)
-    exts =map(lambda x: x.lstrip('.'), exts) if exts else []
+    exts = [x.lstrip('.') for x in exts] if exts else []
     collect = collect.lower()
     want_files = collect in ("files", "both")
     want_dirs  = collect in ("dirs", "both")
@@ -1685,8 +1685,11 @@ def move_directory_contents(src_dir, dst_dir):
 
 if __name__ == '__main__':
     # foo()
-    get_paths('/home/kdog3682/projects/python/kevinlulee/kevinlulee')
+    # get_paths('/home/kdog3682/projects/python/kevinlulee/kevinlulee')
     # mvdir('~/documents/blueprints', '~/documents/fsv/blueprints', verbose = True)
+    pass
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
+    a = '~/projects/python/codeform/'
+    # mvdir(a, '~/deprecated', verbose=True)
 #     print(get_most_recent_file_groups(DLDIR))

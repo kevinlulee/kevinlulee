@@ -55,8 +55,10 @@ class LiveObject:
             return fallback or self._default_fallback()
         return self._loader(raw_data)
 
+    def serialize(self):
+        return self._dumper(self._data)
     def save(self):
-        kx.writefile(self._data_path, self._dumper(self._data), strict=False)
+        kx.writefile(self._data_path, self.serialize(), strict=False)
         # falsy at strictness means empty objects can be passed in.
 
     def _save(self):

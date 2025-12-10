@@ -752,6 +752,14 @@ def part_of_day(time_str: str) -> str:
     return "late night"
 
 
+def created_at(x = None, mode = str):
+    s = strftime(x, mode = 'detailed')
+    if mode == str:
+        return f'created_at: {s}'
+
+    if mode == dict:
+        return dict(created_at = s)
+    
 if __name__ == '__main__':
     monday = get_upcoming_days('sunday', 4)
     print(monday)
