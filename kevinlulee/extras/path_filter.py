@@ -1,7 +1,5 @@
-from __future__ import annotations
-import kevinlulee as kx
-
 import os
+import kevinlulee as kx
 import re
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -106,49 +104,105 @@ def check_path_segments(path: Path, segments: List[str]) -> bool:
     return False
 
 
-def check_basename_match(path: Path, basename_config: Dict, match_type: str) -> bool:
+def evaluate_basename_criteria(path: Path, basename_config: Dict) -> Dict[str, bool]:
     """
-    Check basename matching rules.
-    match_type: 'include' (any match) or 'includes' (all match)
+    Evaluate all basename criteria and return individual results.
+    Returns a dict with each criterion type and whether it matched.
     """
-    
     basename = path.name
-    stem = path.stem
     ext = path.suffix.lstrip('.')
     
-    matches = []
+    results = {}
     
     # Extensions
     if 'extensions' in basename_config:
-        ext_match = ext.lower() in [e.lower() for e in basename_config['extensions']]
-        matches.append(ext_match)
+        results['extensions'] = ext.lower() in [e.lower() for e in basename_config['extensions']]
     
     # Keywords
     if 'keywords' in basename_config:
-        keyword_match = any(kw.lower() in basename.lower() for kw in basename_config['keywords'])
-        matches.append(keyword_match)
+        results['keywords'] = any(kw.lower() in basename.lower() for kw in basename_config['keywords'])
     
-    # Patterns
+    # Patterns (plural)
     if 'patterns' in basename_config:
-        pattern_match = any(re.search(pat, basename) for pat in basename_config['patterns'])
-        matches.append(pattern_match)
+        results['patterns'] = any(re.search(pat, basename) for pat in basename_config['patterns'])
     
     # Pattern (singular)
     if 'pattern' in basename_config:
-        pattern_match = bool(re.search(basename_config['pattern'], basename))
-        matches.append(pattern_match)
+        results['pattern'] = bool(re.search(basename_config['pattern'], basename))
     
     # Exact
     if 'exact' in basename_config:
-        exact_match = basename in basename_config['exact']
-        matches.append(exact_match)
+        results['exact'] = basename in basename_config['exact']
     
-    if not matches:
-        return match_type == 'include'
+    return results
+
+
+def check_basename_include(path: Path, basename_config: Dict) -> bool:
+    """
+    Check if basename passes include rules (ANY criterion must match).
+    Returns True if any criterion matches, False otherwise.
+    """
+    if not basename_config:
+        return True
     
-    return matches
-    # 'includes' means ALL must match, 'include' means ANY must match
-    return all(matches) if match_type == 'includes' else any(matches)
+    results = evaluate_basename_criteria(path, basename_config)
+    
+    if not results:
+        return True
+    
+    # Any criterion matching is sufficient
+    return any(results.values())
+
+
+def check_basename_includes(path: Path, basename_config: Dict) -> bool:
+    """
+    Check if basename passes includes rules (ALL criteria must match).
+    Returns True only if all criteria match, False otherwise.
+    """
+    if not basename_config:
+        return False
+    
+    results = evaluate_basename_criteria(path, basename_config)
+    
+    if not results:
+        return False
+    
+    # All criteria must match
+    return all(results.values())
+
+
+def check_basename_exclude(path: Path, basename_config: Dict) -> bool:
+    """
+    Check if basename should be excluded (ANY criterion matches).
+    Returns True if any criterion matches (should exclude), False otherwise.
+    """
+    if not basename_config:
+        return False
+    
+    results = evaluate_basename_criteria(path, basename_config)
+    
+    if not results:
+        return False
+    
+    # Any criterion matching means exclude
+    return any(results.values())
+
+
+def check_basename_excludes(path: Path, basename_config: Dict) -> bool:
+    """
+    Check if basename should be excluded (ALL criteria must match).
+    Returns True only if all criteria match (should exclude), False otherwise.
+    """
+    if not basename_config:
+        return False
+    
+    results = evaluate_basename_criteria(path, basename_config)
+    
+    if not results:
+        return False
+    
+    # All criteria must match to exclude
+    return all(results.values())
 
 
 def should_collect(path: Path, config: Dict) -> bool:
@@ -156,10 +210,10 @@ def should_collect(path: Path, config: Dict) -> bool:
     
     # Check collection type
     collection_type = config.get('collection_type', 'files')
-    if collection_type == 'files' and not path.is_file():
-        return False
     if collection_type == 'dirs' and not path.is_dir():
         return False
+    # if collection_type == 'files' and not path.is_file():
+    #     return False
     
     # Size check
     if 'size' in config:
@@ -203,23 +257,23 @@ def should_collect(path: Path, config: Dict) -> bool:
                     return False
     
     # Basename excludes (plural - all must match to exclude)
-    if 'basename' in config and 'excludes' in config['basename'
-        if check_basename_match(path, config['basename']['excludes'], 'includes'):
+    if 'basename' in config and 'excludes' in config['basename']:
+        if check_basename_excludes(path, config['basename']['excludes']):
             return False
     
     # Basename exclude (singular - any match = exclude)
     if 'basename' in config and 'exclude' in config['basename']:
-        if check_basename_match(path, config['basename']['exclude'], 'include'):
+        if check_basename_exclude(path, config['basename']['exclude']):
             return False
     
     # Basename includes (plural - all must match to include)
     if 'basename' in config and 'includes' in config['basename']:
-        if not check_basename_match(path, config['basename']['includes'], 'includes'):
+        if not check_basename_includes(path, config['basename']['includes']):
             return False
     
     # Basename include (singular - any match = include)
     if 'basename' in config and 'include' in config['basename']:
-        if not check_basename_match(path, config['basename']['include'], 'include'):
+        if not check_basename_include(path, config['basename']['include']):
             return False
     
     return True
@@ -240,7 +294,7 @@ def collect_paths(source: Union[str, List[str]], config: Dict) -> List[str]:
     
     # Determine if source is a directory or list of paths
     if isinstance(source, str):
-        source_path = Path(source).expanduser()
+        source_path = Path(source).expanduser().resolve()
         if not source_path.exists():
             return []
         
@@ -255,17 +309,15 @@ def collect_paths(source: Union[str, List[str]], config: Dict) -> List[str]:
             all_paths = [source_path]
     else:
         # Source is a list of paths
-        all_paths = [Path(p).expanduser() for p in source]
+        all_paths = [Path(p).expanduser().resolve() for p in source]
     
     # Filter paths based on config
     collected = []
     for path in all_paths:
-        if path.exists() and should_collect(path, config):
+        if should_collect(path, config):
             collected.append(str(path))
     
     return collected
-
-
 s = """
 
 config:
@@ -300,6 +352,7 @@ def fn(x, k):
 config = kx.walk(kx.yamload(s), fn)
 
 
-files = collect_paths(kx.DLDIR, config)
+files = collect_paths(['~/yeye.js'], config)
+print(files)
 import nvim
-nvim.fs.clip(files)
+# nvim.fs.clip(files)

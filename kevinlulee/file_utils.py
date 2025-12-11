@@ -500,6 +500,15 @@ def writefile(filepath: str, data: Any, debug = False, verbose = False, strict =
     return path
 
 def appendfile(path, data, debug = False, verbose = False):
+    path = os.path.expanduser(path)
+    if path.endswith('.jsonl'):
+        ensure_directory_exists(path)
+        mode = 'a'
+        with open(path, mode) as f:
+            f.write(json.dumps(data))
+
+        return path
+        
     if path.endswith('yml.txt'):
         return yb.append_file(path, data)
 
@@ -1672,16 +1681,102 @@ def move_directory_contents(src_dir, dst_dir):
     """ moves all contents from the src_dir to the dst_dir """
     
     src_path = Path(src_dir).expanduser()
-    dst_path = Path(dst_dir).expanduser()
-
-    dst_path.mkdir(parents=True, exist_ok=True)
+    temp = Path('~/scratch/__temp__').expanduser()
+    temp.mkdir(parents=True, exist_ok=True)
 
     for item in src_path.iterdir():
-        target = dst_path / item.name
+        # if str(item) == dst_path
+        target = temp / item.name
         shutil.move(str(item), str(target))
+
+    dst = Path(dst_dir).expanduser()
+    dst.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(temp), str(dst))
 
 # move_dir_contents(p, '~/projects/python/fsv/docs')
 
+
+def get_paths(
+    dir,  # root directory OR list of file paths from which to collect/filter
+    exts: list[FiletypeExtension]=[],
+    start: Optional[TimeWindowPredicateSelector]=None,
+    end: Optional[TimeWindowPredicateSelector]=None,
+    depth=1,              # use 0 for full recursion through the directory
+    collect="files",      # 'files' | 'dirs' | 'both'
+    include: Optional[str | re.Pattern]=None,
+    exclude: Optional[str | re.Pattern]=None,
+    validators: list[callable] = [],
+) -> list[str]:
+    """
+        given an input directory or list of file paths, returns a list of paths.
+    """
+    exts = [x.lstrip('.') for x in exts] if exts else []
+    collect = collect.lower()
+    want_files = collect in ("files", "both")
+    want_dirs  = collect in ("dirs", "both")
+    predicate = make_time_window_predicate(start, end)
+    
+    def name_allowed(name: str) -> bool:
+        if include is not None and not matchstr(name, include):
+            return False
+        if exclude is not None and matchstr(name, exclude):
+            return False
+        return True
+    
+    def should_include_path(path: Path) -> bool:
+        """Check if a path passes all filters."""
+        if exts and get_extension(path.name) not in exts:
+            return False
+        if not name_allowed(path.name):
+            return False
+        mtime = path.stat().st_mtime
+        return predicate(mtime)
+    
+    # Handle list input
+    if isinstance(dir, (list, tuple)):
+        result = []
+        for path_str in dir:
+            path = Path(path_str).expanduser()
+            if should_include_path(path):
+                result.append(str(path))
+        return result
+    
+    # Handle directory traversal
+    base = os.path.expanduser(dir)
+    store: list[str] = []
+    
+    def walk(current_dir: str, level: int) -> None:
+        entries = list(os.scandir(current_dir))
+        public_children = [e for e in entries if e.is_dir() and is_public_directory(e.name)]
+        
+        # Files at this level
+        if want_files:
+            for e in entries:
+                if e.is_file():
+                    if exts and get_extension(e.name) not in exts:
+                        continue
+                    if not name_allowed(e.name):
+                        continue
+                    if validators and not all(v(e) for v in validators):
+                        continue
+                    s = e.stat().st_mtime
+                    if predicate(s):
+                        store.append(e.path)
+        
+        # Determine whether current_dir is a LEAF dir
+        can_descend = (depth == 0) or (level < depth)
+        descend_children = public_children if can_descend else []
+        
+        if want_dirs and not descend_children:
+            if name_allowed(os.path.basename(remove_ending_slash(current_dir))) and predicate(current_dir):
+                store.append(current_dir)
+        
+        # Recurse into eligible children
+        for child in descend_children:
+            walk(child.path, level + 1)
+    
+    walk(base, 0)
+    return store
 
 if __name__ == '__main__':
     # foo()
@@ -1691,5 +1786,6 @@ if __name__ == '__main__':
 
 if __name__ == '__main__':
     a = '~/projects/python/codeform/'
+
     # mvdir(a, '~/deprecated', verbose=True)
 #     print(get_most_recent_file_groups(DLDIR))

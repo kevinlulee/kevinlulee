@@ -19,7 +19,38 @@ import os
 
 from kevinlulee.validation import is_string, is_word
 
+import importlib
+import sys
+from pathlib import Path
 
+def import_module_from_path(path: str):
+    """
+    Import a Python module from a file path.
+    
+    Args:
+        path: String path to the .py file
+        
+    Returns:
+        The imported module object
+    """
+    path = Path(path).resolve()
+    
+    if not path.exists():
+        raise FileNotFoundError(f"Module file not found: {path}")
+    
+    if not path.suffix == '.py':
+        raise ValueError(f"File must be a .py file: {path}")
+    
+    # Get module name from filename
+    module_name = path.stem
+    
+    # Import using importlib
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    
+    return module
 
 def collect_python_paths():
     home = os.path.expanduser("~/")
@@ -401,3 +432,5 @@ file_from_modname = get_file_from_modname
 
 if __name__ == "__main__":
     kx.pretty_print(path_join('~/asdf', 'pdf'))
+    a = import_module_from_path("/home/kdog3682/projects/python/maelstrom/lib/nvim/playground.py")
+    print(a)
