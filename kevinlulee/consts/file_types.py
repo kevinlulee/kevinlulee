@@ -241,6 +241,10 @@ EXT_TOKENS = [
     "glb",
     "gltf",
     "stl",
+    "template",
+    "log",
+    "note",
+    "skill",
     'jsonl'
 ]
 

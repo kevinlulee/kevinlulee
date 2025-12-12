@@ -1,4 +1,3 @@
-''' hi '''
 from os.path import isdir
 from pathlib import Path
 import pathlib
@@ -11,7 +10,15 @@ import importlib
 
 from kevinlulee.ao import filtered, flat, not_in, unique
 from kevinlulee.base import noop
-from kevinlulee.file_utils import EXTENSIONS, add_extension_if_not_present, get_extension, is_dir, looks_like_file, readfile, remove_extension
+from kevinlulee.file_utils import (
+    EXTENSIONS,
+    add_extension_if_not_present,
+    get_extension,
+    is_dir,
+    looks_like_file,
+    readfile,
+    remove_extension,
+)
 from kevinlulee.string_utils import matchstr, remove_ending_slash
 
 from pathlib import Path
@@ -23,34 +30,26 @@ import importlib
 import sys
 from pathlib import Path
 
+
 def import_module_from_path(path: str):
-    """
-    Import a Python module from a file path.
-    
-    Args:
-        path: String path to the .py file
-        
-    Returns:
-        The imported module object
-    """
     path = Path(path).resolve()
-    
+
     if not path.exists():
         raise FileNotFoundError(f"Module file not found: {path}")
-    
-    if not path.suffix == '.py':
+
+    if not path.suffix == ".py":
         raise ValueError(f"File must be a .py file: {path}")
-    
-    # Get module name from filename
+
     module_name = path.stem
-    
-    # Import using importlib
     spec = importlib.util.spec_from_file_location(module_name, path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    
-    return module
+    try:
+        spec.loader.exec_module(module)
+        return module
+    except Exception as e:
+        print(e)
+
 
 def collect_python_paths():
     home = os.path.expanduser("~/")
@@ -60,19 +59,18 @@ def collect_python_paths():
     for path in paths:
         if path not in store and home in path and not re.search(exclude, path):
             store.append(re.sub("/$", "", path))
-    return sorted(store, key = len, reverse = True)
+    return sorted(store, key=len, reverse=True)
     return store
 
 
 PYTHON_MODULE_PATHS = collect_python_paths()
 
 
-
 def _get_modname(file):
     path = os.path.expanduser(file)
     path = remove_ending_slash(path)
     for root in PYTHON_MODULE_PATHS:
-        m = path.replace(root + '/', "")
+        m = path.replace(root + "/", "")
         if len(m) < len(path):
             b = m
             b = b[1:] if b[0] == "/" else b
@@ -84,36 +82,36 @@ def _get_modname(file):
                 return b[len(a) + 1 :]
             return b
 
+
 def get_modname_from_directory(path):
     if not is_dir(path):
-        return 
-    
+        return
+
     return _get_modname(path)
+
 
 def get_modname_from_file(file):
     file = str(file)
-    m = matchstr(file, 'site-packages/(.+)')
+    m = matchstr(file, "site-packages/(.+)")
     if m:
-        return remove_extension(m).replace('/', '.')
-        
-# print(kx.get_module("/home/kdog3682/.local/lib/python3.11/site-packages/anthropic/types/beta/beta_usage.py"))
+        return remove_extension(m).replace("/", ".")
+
+    # print(kx.get_module("/home/kdog3682/.local/lib/python3.11/site-packages/anthropic/types/beta/beta_usage.py"))
     if not file.endswith(".py"):
-        return 
-        if '.' in file:
+        return
+        if "." in file:
             return file
         else:
-            return 
+            return
 
     return _get_modname(file)
 
 
-def get_file_from_modname(
-
-modname) -> str:
+def get_file_from_modname(modname) -> str:
     """
     get_file_from_modname
     """
-    
+
     if not modname:
         return
 
@@ -148,8 +146,6 @@ def get_modname(x: Union["path", "package_name"]):
     )
 
 
-
-
 def load_module(key, reload=False):
     key = get_modname_from_file(key)
 
@@ -159,58 +155,61 @@ def load_module(key, reload=False):
     return __import__(key, fromlist=(key.split(".")))
 
 
-def load_func(module, func=None, reload = True):
+def load_func(module, func=None, reload=True):
     if not func:
         if isinstance(module, str) and "." in module:
             func = module.split(".")[-1]
         else:
             raise Exception("func is needed")
-    return getattr(get_module(module, reload = reload), func, None)
+    return getattr(get_module(module, reload=reload), func, None)
 
 
 def get_module_func_from_string(s):
     # private
-    parts = s.split('.')
+    parts = s.split(".")
     fname = parts.pop()
-    modname = '.'.join(parts)
-    module = get_module(modname, reload = True)
-    func = getattr(module, fname,None)
+    modname = ".".join(parts)
+    module = get_module(modname, reload=True)
+    func = getattr(module, fname, None)
     return func
 
-def get_implicit_module_func(s, strict = False):
-    parts = s.split('.')
+
+def get_implicit_module_func(s, strict=False):
+    parts = s.split(".")
     fname = parts[-1]
-    modname = '.'.join(parts)
-    module = get_module(modname, reload = True)
-    func = getattr(module, fname,None)
+    modname = ".".join(parts)
+    module = get_module(modname, reload=True)
+    func = getattr(module, fname, None)
     if strict and not func:
         raise Exception("was unable to retrieve the func", fname)
     return func
 
-def run_module_func(s, *args, reload = True, **kwargs):
+
+def run_module_func(s, *args, reload=True, **kwargs):
     func = get_module_func_from_string(s)
     return func(*args, **kwargs)
 
 
 def use(s, *args):
-    key = f'kevinlulee.lib.{s}.{s}'
-    return run_module_func(key, *args, reload = False)
+    key = f"kevinlulee.lib.{s}.{s}"
+    return run_module_func(key, *args, reload=False)
 
-def get_module(file_name: str, reload = False, from_anywhere = False):
+
+def get_module(file_name: str, reload=False, from_anywhere=False):
     """
     if from_anywhere, gets a module from anywhere. does not need to be on path
     """
     if not file_name:
-        return 
+        return
 
     if is_string(file_name):
         module_name = get_modname_from_file(file_name)
 
         if not module_name:
-            if re.search('^\w+(?:\.\w+)*$', file_name):
+            if re.search("^\w+(?:\.\w+)*$", file_name):
                 module_name = file_name
             else:
-                return 
+                return
 
     if reload and module_name in sys.modules:
         del sys.modules[module_name]
@@ -222,23 +221,28 @@ def get_module(file_name: str, reload = False, from_anywhere = False):
         return module
 
     return __import__(module_name, fromlist=(module_name.split(".")))
-        
 
-def get_modules(*names, reload = True, on_error = None):
+
+def get_modules(*names, reload=True, on_error=None):
     store = []
     for key in names:
         if not key:
             continue
         try:
             mod = get_module(key, reload=reload)
-            if mod: store.append(mod)
+            if mod:
+                store.append(mod)
         except Exception as e:
             if on_error:
                 return on_error(e, key)
 
     return store
+
+
 def tempfunc():
-    print('hi')
+    print("hi")
+
+
 if __name__ == "__main__":
     # this is super cool
     #
@@ -249,18 +253,22 @@ if __name__ == "__main__":
 
 
 def reload_module(key):
-    get_module(key, reload = True)
+    get_module(key, reload=True)
 
-def reload_modules(*keys, on_error = None):
-    return get_modules(flat(keys), reload = True, on_error=on_error)
+
+def reload_modules(*keys, on_error=None):
+    return get_modules(flat(keys), reload=True, on_error=on_error)
+
 
 def get_module_directory(modname) -> Path:
     module = importlib.import_module(modname)
     return Path(os.path.dirname(inspect.getabsfile(module)))
 
-def get_root_directory_via_python_paths(key):
 
-    assert is_word(key), f"the provided key '{key}' ... must be something like 'yoya'"
+def get_root_directory_via_python_paths(key):
+    assert is_word(
+        key
+    ), f"the provided key '{key}' ... must be something like 'yoya'"
 
     for path in PYTHON_MODULE_PATHS:
         j = os.path.join(path, key)
@@ -278,21 +286,25 @@ def get_root_directory_from_path(path):
         if directory in PYTHON_MODULE_PATHS:
             return os.path.join(directory, part.name)
 
+
 def path_unexpand(path):
     """
     this is a more robust implementation than the previous nvim.pathfix.
     nothing is hardcoded. the directories are retrieved from python path.
     """
-        
+
     path = os.path.expanduser(path)
-    if '/scratch/' in path:
+    if "/scratch/" in path:
         name = os.path.basename(path)
-        return f'@scratch/{name}'
+        return f"@scratch/{name}"
     root = get_root_directory_from_path(path)
     if root:
-        return path.replace(root, '@' + remove_ending_slash(os.path.basename(root)))
+        return path.replace(
+            root, "@" + remove_ending_slash(os.path.basename(root))
+        )
     else:
-        return path.replace(os.path.expanduser('~/'), '')
+        return path.replace(os.path.expanduser("~/"), "")
+
 
 def path_expand(path):
     """
@@ -302,27 +314,29 @@ def path_expand(path):
     if isinstance(path, Path):
         return str(path.expanduser())
 
-    crostini_str = 'file:///media/fuse/crostini_25bd1ae3ef71bac8d459747ce670faa67d509f14_termina_penguin/'
+    crostini_str = "file:///media/fuse/crostini_25bd1ae3ef71bac8d459747ce670faa67d509f14_termina_penguin/"
     if path.startswith(crostini_str):
-        return os.path.expanduser(path.replace(crostini_str, '~/'))
-    if path.startswith('@') and re.search('^@\w+(?:/|$)', path):
+        return os.path.expanduser(path.replace(crostini_str, "~/"))
+    if path.startswith("@") and re.search("^@\w+(?:/|$)", path):
+
         def replacer(x):
             key = x.group(1)
-            c = os.path.join(os.path.expanduser('~/projects'), key)
+            c = os.path.join(os.path.expanduser("~/projects"), key)
             if is_dir(c):
                 return c
             root = get_root_directory_via_python_paths(key)
             assert root, f"unable to determine a root for '{key}'"
             return root
 
-        return re.sub('^@(\w+)', replacer, path)
+        return re.sub("^@(\w+)", replacer, path)
 
-    if path.startswith('~'):
+    if path.startswith("~"):
         return os.path.expanduser(path)
 
-    if path.startswith('./'):
+    if path.startswith("./"):
         raise Exception('do not know how to handle "./" yet.')
     return path
+
 
 def get_directory_from_modname(modname):
     suffix = modname.replace(".", "/")
@@ -330,6 +344,8 @@ def get_directory_from_modname(modname):
         candidate = os.path.join(root, suffix)
         if os.path.isdir(candidate):
             return candidate
+
+
 def path_join(*args):
     assert len(args) > 1, "path_join requires at least 2 arguments"
     a, *rest, last = args
@@ -345,8 +361,9 @@ def path_join(*args):
     else:
         rest.append(last)
     return os.path.join(path_expand(a), *rest)
-        
-if __name__ == '__main__':
+
+
+if __name__ == "__main__":
     # print(path_join('@hammymathclass', 'a', 'typ'))
     # pprint(PYTHON_MODULE_PATHS)
     # print(path_expand('@yoya/utils/foobar.py'))
@@ -362,27 +379,27 @@ if __name__ == '__main__':
 
 
 def collect_shallow_python_imports(file):
-    
     src = readfile(file)
-    r1 = '^from (\w+(?:\.\w+)*) import'
-    r2 = '^import (\w+)'
+    r1 = "^from (\w+(?:\.\w+)*) import"
+    r2 = "^import (\w+)"
 
-    a = re.findall(r1, src, flags = re.M)
+    a = re.findall(r1, src, flags=re.M)
     # b = re.findall(r2, src, flags = re.M)
     # print(a)
     # print(b)
     ignore = [
-        '__future__',
-        'kevinlulee',
+        "__future__",
+        "kevinlulee",
     ]
     a = unique(filtered(a, not_in(ignore)))
     return a
+
 
 def get_module_functions(module):
     if is_string(module):
         module = get_module(module)
 
-    all = getattr(module, '__all__')
+    all = getattr(module, "__all__")
     assert all, "'__all__' must be defined in order to use get_module_functions"
 
     return [getattr(module, key) for key in all]
@@ -392,17 +409,18 @@ import os
 import kevinlulee as kx
 
 project_directories = [
-    '~/projects/',
-    '~/projects/webdev',
-    '~/projects/python',
+    "~/projects/",
+    "~/projects/webdev",
+    "~/projects/python",
 ]
+
 
 def get_modname_from_project_name(x):
     path = os.path.expanduser(x)
 
     # Case 1: x is a path under one of the project directories — extract the leaf name.
     for base in project_directories:
-        r = os.path.join(os.path.expanduser(base), r'([\w-]+)$')
+        r = os.path.join(os.path.expanduser(base), r"([\w-]+)$")
         m = kx.matchstr(path, r)
         if m:
             return m
@@ -412,6 +430,7 @@ def get_modname_from_project_name(x):
         p = path_join(base, x)
         if is_dir(p):
             return os.path.basename(os.path.expanduser(p))
+
 
 def get_directory_from_project_name(x):
     xp = os.path.expanduser(x)
@@ -427,10 +446,11 @@ def get_directory_from_project_name(x):
         p = path_join(base, x)
         if is_dir(p):
             return p
+
+
 file_from_modname = get_file_from_modname
 
 
 if __name__ == "__main__":
-    kx.pretty_print(path_join('~/asdf', 'pdf'))
-    a = import_module_from_path("/home/kdog3682/projects/python/maelstrom/lib/nvim/playground.py")
-    print(a)
+    kx.pretty_print(path_join("~/asdf", "pdf"))
+    # a = import_module_from_path("/home/kdog3682/projects/python/maelstrom/lib/nvim/playground.py")

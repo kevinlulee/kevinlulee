@@ -505,7 +505,7 @@ def appendfile(path, data, debug = False, verbose = False):
         ensure_directory_exists(path)
         mode = 'a'
         with open(path, mode) as f:
-            f.write(json.dumps(data))
+            f.write("\n" + json.dumps(data))
 
         return path
         

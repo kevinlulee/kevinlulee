@@ -328,5 +328,11 @@ if __name__ == '__main__':
     root = "/home/kdog3682/projects/python/treebloom/corpus"
     root = '~/projects/python/kevinlulee'
     print(fd('/home/kdog3682/projects/python/treebloom/', ignore_file='~/.ignore'))
+    # '/home/kdog3682/projects/python/treebloom/'
     # a = grep_defs_fast(root)
     # nvim.fs.clip(a)
+
+
+INSTRUCTIONS = """
+
+"""

@@ -297,6 +297,9 @@ def parens(s, key = '()', newline = False, ind = 4, leading_newline = False):
         "([])": ("([", "])"),
     }
     if isinstance(key, str):
+        if key.startswith('\n'):
+            return f'{key}{s}{key}'
+            
         if test(key, '^[=-]{3,}'):
             return f'{key}\n{str(s)}\n{key}'
         if test(key, '^<'):
@@ -458,9 +461,12 @@ def remove_commented_lines(s, filetype=None):
     return re.sub(r, "", s, flags=re.M)
 
 
+def remove_markdown_comments(s):
+    r = r'^ *(?:\<\!--|//+) +\S.*\n*'
+    return re.sub(r, '', s, flags=re.M)
 
 def remove_comments(s):
-    r = r'(^|\S) *(?:[#/]+) +\S.*$'
+    r = r'(^|\S) *(?:<!--|[#/]+) +\S.*$'
     return re.sub(r, r'\1', s, flags=re.M)
 def match_case(original, replacement):
         if original.isupper():

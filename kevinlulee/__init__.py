@@ -3,7 +3,7 @@ import os
 
 from collections import defaultdict
 from typing import *
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 
 from .base import *
@@ -50,12 +50,18 @@ from pprint import pprint
 
 get_caller = introspect.get_caller
 
+def is_dataclass(obj) -> bool:
+    cls = type(obj)
+    return hasattr(cls, '__dataclass_fields__')
+
 def pretty_print(*args):
     for arg in args:
         if arg is None:
             continue
         if isinstance(arg, (float, int, complex, str, bool)):
             print(arg)
+        elif is_dataclass(arg):
+            pprint(asdict(arg))
         elif hasattr(arg, 'render'):
             print(str(arg))
         else:
@@ -157,3 +163,5 @@ def auto_cast(s):
             return float(s)
         except Exception:
             return s
+
+import kevinlulee.v2 as v2
