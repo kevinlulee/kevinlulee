@@ -1,4 +1,8 @@
 from __future__ import annotations
+
+import zipfile
+import shutil
+from pathlib import Path
 import inspect
 import os
 import webbrowser
@@ -1459,10 +1463,12 @@ def readdir(dir, delimiter = ''):
 
 def resolve_dotted_path2(s, dir):
     if s.startswith("../"):
+        dir = remove_ending_slash(dir)
         path, m = mget(s, "^(?:../)+")
         upwards = len(m) // 3
-        parts = dir.split("/")[: -upwards - 1]
-        return os.path.join(*parts, path)
+        parts = dir.split("/")[: -upwards]
+        prefix = '/' if len(parts) >= 2 and parts[0] == '' and parts[1] == 'home' else ''
+        return prefix +  os.path.join(*parts, path)
 
     if s.startswith("./"):
         path = s[2:]
@@ -1789,3 +1795,95 @@ if __name__ == '__main__':
 
     # mvdir(a, '~/deprecated', verbose=True)
 #     print(get_most_recent_file_groups(DLDIR))
+def _find_content_prefix(members: list[str]) -> str:
+    """
+    Find the prefix to strip if zip contents are wrapped in single folders.
+    
+    Drills through nested single-folder structures until finding actual content.
+    
+    Returns:
+        The prefix to strip (e.g., 'wrapper/inner/') or empty string if no stripping needed
+    """
+    prefix = ""
+    
+    while True:
+        # Get items at current level (directly under prefix)
+        items_at_level = set()
+        for member in members:
+            if not member.startswith(prefix):
+                continue
+            
+            remainder = member[len(prefix):]
+            if not remainder:
+                continue
+            
+            # Get the first path component
+            if '/' in remainder:
+                first_component = remainder.split('/')[0] + '/'
+            else:
+                first_component = remainder
+            
+            items_at_level.add(first_component)
+        
+        # Check if we have exactly one folder at this level
+        if len(items_at_level) == 1:
+            item = items_at_level.pop()
+            if item.endswith('/'):
+                # It's a single folder, drill deeper
+                prefix += item
+                continue
+        
+        # Either multiple items, a single file, or no items - stop drilling
+        break
+    
+    return prefix
+def extract_zip(src: str | Path, dst: str | Path) -> Path:
+    """
+    Extract a zip file to destination, drilling through single-folder wrappers.
+    
+    If the zip contains only a single folder at the top level, this function
+    will drill inward until it finds either multiple items or actual files,
+    then extract those contents directly to dst.
+    
+    Args:
+        src: Path to the zip file
+        dst: Destination directory for extraction
+        
+    Returns:
+        Path to the destination directory
+    """
+    src = Path(src).expanduser()
+    dst = Path(dst).expanduser()
+    dst.mkdir(parents=True, exist_ok=True)
+    
+    with zipfile.ZipFile(src, 'r') as zf:
+        # Get all members and find the effective root
+        members = zf.namelist()
+        prefix = _find_content_prefix(members)
+        
+        if prefix:
+            # Extract with prefix stripped
+            for member in members:
+                if member == prefix or member.startswith(prefix):
+                    # Calculate the new path without the prefix
+                    relative_path = member[len(prefix):]
+                    if not relative_path:
+                        continue
+                    
+                    target_path = dst / relative_path
+                    
+                    if member.endswith('/'):
+                        target_path.mkdir(parents=True, exist_ok=True)
+                    else:
+                        target_path.parent.mkdir(parents=True, exist_ok=True)
+                        with zf.open(member) as source, open(target_path, 'wb') as target:
+                            shutil.copyfileobj(source, target)
+        else:
+            # No wrapper folder, extract normally
+            zf.extractall(dst)
+    
+    return dst
+
+if __name__ == '__main__':
+    s = '../foobar/asdf.py'
+    print(resolve_dotted_path2(s, "/home/kdog3682/projects/python/kevinlulee/abc/"))

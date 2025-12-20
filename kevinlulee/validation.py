@@ -55,7 +55,12 @@ def is_none(value):
 def is_function(value):
     return callable(value)
 
+import types
 
+
+def is_function(obj) -> bool:
+    """Check if obj is a function (not just any callable)."""
+    return isinstance(obj, (types.FunctionType, types.BuiltinFunctionType))
 
 def is_primitive(el):
     return el is None or isinstance(el, (str, int, float, bool))
@@ -342,3 +347,11 @@ def is_json_parsable(s):
     return (s.startswith("[") and s.endswith("]")) or (
         s.startswith("{") and s.endswith("}")
     )
+
+
+
+def is_dataclass(obj) -> bool:
+    cls = type(obj)
+    return hasattr(cls, '__dataclass_fields__')
+
+

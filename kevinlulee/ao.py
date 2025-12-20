@@ -850,3 +850,8 @@ def intersperse(items: Iterable[T], sep: Union[S, Iterable[S]]) -> List[Union[T,
         started = True
     return out
 
+
+
+
+def exclude_seen(base, seen):
+    return list(set(base) - set(seen))

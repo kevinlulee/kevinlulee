@@ -128,6 +128,10 @@ def snake_case(s):
 
 def trimdent(text: str) -> str:
     """Smart trim and dedent: removes common indentation and trailing whitespace."""
+
+    if not isinstance(text, str):
+        return text
+
     if text is None or text == '':
         return ''
     lines = str(text).splitlines()

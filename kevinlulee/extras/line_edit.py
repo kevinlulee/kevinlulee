@@ -1,7 +1,47 @@
-import re
-import kevinlulee as kx
+"""
+LineEdit - A line-oriented text manipulation library for agents.
 
-class _NullLine:
+API SUMMARY
+-----------
+le = LineEdit(text)           # Create editor from string
+le.get_line(3)                # Get line by number (1-indexed, negative ok)
+le.get_line(r"pattern")       # Get first line matching regex
+le.findall(r"pattern")        # Get all lines matching regex
+le.capture(start, end)        # Capture region between patterns
+le.captures(start, end)       # Capture all such regions
+str(le)                       # Render final text
+
+Line methods:
+  line.text                   # Get line content
+  line.match(r"pat")          # Check if line matches pattern
+  line.has_text()             # Check if line has non-whitespace
+  line.set(text)              # Replace line content
+  line.delete()               # Mark line for deletion
+  line.insert_before(text)    # Insert text before this line
+  line.insert_after(text)     # Insert text after this line
+  line.prev() / line.next()   # Navigate to adjacent lines
+  line.seek_above(r"pat")     # Find first matching line above
+  line.seek_below(r"pat")     # Find first matching line below
+
+Region methods:
+  region.text                 # Get region content
+  region.delete()             # Delete entire region
+  bool(region)                # False if NullRegion
+"""
+
+import re
+
+__all__ = [
+    "LineEdit",
+    "Line",
+    "NullLine",
+    "Region",
+    "NullRegion",
+]
+
+
+class NullLine:
+    """Sentinel returned when no line is found."""
     __slots__ = ("_parent",)
 
     def __init__(self, parent):
@@ -11,6 +51,12 @@ class _NullLine:
         return self
 
     def next(self):
+        return self
+
+    def seek_above(self, pattern: str):
+        return self
+
+    def seek_below(self, pattern: str):
         return self
 
     def match(self, pattern: str) -> bool:
@@ -35,11 +81,15 @@ class _NullLine:
     def text(self) -> str:
         return ""
 
+    def __bool__(self):
+        return False
+
     def __repr__(self):
         return "<NullLine>"
 
 
-class _Line:
+class Line:
+    """Represents a single line in the editor."""
     __slots__ = ("_parent", "_idx", "_deleted")
 
     def __init__(self, parent, idx: int):
@@ -50,6 +100,11 @@ class _Line:
     @property
     def text(self) -> str:
         return self._parent._lines[self._idx]
+
+    @property
+    def lnum(self) -> int:
+        """1-indexed line number."""
+        return self._idx + 1
 
     def _stripped(self) -> str:
         return self.text.rstrip("\r\n").strip()
@@ -83,7 +138,28 @@ class _Line:
     def delete(self):
         self._deleted = True
 
+    def _seek(self, pattern: str, direction: int):
+        """Internal seek in given direction (-1=above, +1=below)."""
+        j = self._idx + direction
+        objs = self._parent._objs
+        n = len(objs)
+        while 0 <= j < n:
+            candidate = objs[j]
+            if not candidate._deleted and candidate.match(pattern):
+                return candidate
+            j += direction
+        return self._parent._null
+
+    def seek_above(self, pattern: str):
+        """Find first line above matching pattern."""
+        return self._seek(pattern, -1)
+
+    def seek_below(self, pattern: str):
+        """Find first line below matching pattern."""
+        return self._seek(pattern, +1)
+
     def prev(self):
+        """Get previous non-deleted line."""
         j = self._idx - 1
         while j >= 0:
             candidate = self._parent._objs[j]
@@ -93,6 +169,7 @@ class _Line:
         return self._parent._null
 
     def next(self):
+        """Get next non-deleted line."""
         j = self._idx + 1
         n = len(self._parent._objs)
         while j < n:
@@ -103,6 +180,7 @@ class _Line:
         return self._parent._null
 
     def set(self, text: str):
+        """Replace this line's content."""
         segs = self._normalize_segments(text)
         self._parent._lines[self._idx] = segs[0]
         if len(segs) > 1:
@@ -111,21 +189,27 @@ class _Line:
             bucket.extend(tail)
 
     def insert_before(self, text: str):
+        """Insert text before this line."""
         segs = self._normalize_segments(text)
         bucket = self._parent._inserts_before.setdefault(self._idx, [])
         bucket.extend(segs)
 
     def insert_after(self, text: str):
+        """Insert text after this line."""
         segs = self._normalize_segments(text)
         bucket = self._parent._inserts_after.setdefault(self._idx, [])
         bucket.extend(segs)
 
+    def __bool__(self):
+        return True
+
     def __repr__(self):
         state = "deleted" if self._deleted else "alive"
-        return f"<Line {self._idx} {state}: {self._stripped()!r}>"
+        return f"<Line {self._idx} {state}: {self.text!r}>"
 
 
-class _NullRegion:
+class NullRegion:
+    """Sentinel returned when no region is captured."""
     __slots__ = ("_parent",)
 
     def __init__(self, parent):
@@ -145,7 +229,8 @@ class _NullRegion:
         return "<NullRegion>"
 
 
-class _Region:
+class Region:
+    """A contiguous range of lines."""
     __slots__ = ("_parent", "_start", "_end")
 
     def __init__(self, parent, start_idx: int, end_idx: int):
@@ -154,23 +239,41 @@ class _Region:
         self._end = end_idx
 
     def delete(self):
+        """Delete all lines in this region."""
         for i in range(self._start, self._end + 1):
             self._parent._objs[i]._deleted = True
 
     @property
     def text(self) -> str:
-        return "".join(self._parent._lines[self._start:self._end + 1])
+        return "".join(self._parent._lines[self._start : self._end + 1])
+
+    @property
+    def start_line(self):
+        """First line of region."""
+        return self._parent._objs[self._start]
+
+    @property
+    def end_line(self):
+        """Last line of region."""
+        return self._parent._objs[self._end]
 
     def __bool__(self):
         return True
 
     def __repr__(self):
-        return f"<Region {self._start}:{self._end}>"
+        return f"<Region lines {self._start}-{self._end}>"
 
 
 class LineEdit:
-    __slots__ = ("_original", "_lines", "_objs", "_null",
-                 "_inserts_before", "_inserts_after")
+    """Line-oriented text editor."""
+    __slots__ = (
+        "_original",
+        "_lines",
+        "_objs",
+        "_null",
+        "_inserts_before",
+        "_inserts_after",
+    )
 
     def __init__(self, s: str):
         s = s.strip()
@@ -178,22 +281,46 @@ class LineEdit:
         self._lines = s.splitlines(keepends=True)
         if len(self._lines) == 0:
             self._lines = [""]
-        self._objs = [_Line(self, i) for i in range(len(self._lines))]
-        self._null = _NullLine(self)
+        self._objs = [Line(self, i) for i in range(len(self._lines))]
+        self._null = NullLine(self)
         self._inserts_before = {}
         self._inserts_after = {}
 
+    def get_line(self, key):
+        """
+        Get a line by number or pattern.
+        
+        Args:
+            key: int (1-indexed, negative ok) or str (regex pattern)
+        
+        Returns:
+            Line or NullLine
+        """
+        if isinstance(key, int):
+            n = len(self._objs)
+            if key == 0:
+                return self._null
+            if key > 0:
+                idx = key - 1
+            else:
+                idx = n + key
+            if 0 <= idx < n and not self._objs[idx]._deleted:
+                return self._objs[idx]
+            return self._null
+        else:
+            for obj in self._objs:
+                if not obj._deleted and obj.match(key):
+                    return obj
+            return self._null
+
     def findall(self, pattern: str):
+        """Find all lines matching pattern."""
         out = []
         for obj in self._objs:
             if obj._deleted:
                 continue
-            if pattern == "":
-                if obj.match(""):
-                    out.append(obj)
-            else:
-                if obj.match(pattern):
-                    out.append(obj)
+            if obj.match(pattern):
+                out.append(obj)
         return out
 
     def _is_blank_idx(self, idx: int) -> bool:
@@ -224,13 +351,16 @@ class LineEdit:
         skip_blank_after_end: bool = True,
     ):
         """
-        Capture region beginning at the first line >= start_from that matches `start`,
-        and ending at the (optionally greedy) match(es) of `end`.
-        If no end is found, extends to EOF.
-        start_from may be None, an int index, or a _Line.
+        Capture a region from start pattern to end pattern.
+        
+        Args:
+            start: Regex for region start
+            end: Regex for region end
+            start_from: None, int index, or Line
+            greedy_end: Extend to last consecutive end match
+            skip_blank_after_end: Allow blank lines between end matches
         """
         n = len(self._objs)
-
         if start_from is None:
             from_idx = 0
         elif isinstance(start_from, int):
@@ -240,7 +370,7 @@ class LineEdit:
 
         start_idx = self._first_start_from(start, from_idx)
         if start_idx == -1:
-            return _NullRegion(self)
+            return NullRegion(self)
 
         end_idx = -1
         j = start_idx
@@ -248,7 +378,6 @@ class LineEdit:
             obj = self._objs[j]
             if not obj._deleted and re.search(end, obj.text) is not None:
                 end_idx = j
-
                 if greedy_end:
                     k = j + 1
                     last_good = j
@@ -272,7 +401,7 @@ class LineEdit:
         if end_idx == -1:
             end_idx = n - 1
 
-        return _Region(self, start_idx, end_idx)
+        return Region(self, start_idx, end_idx)
 
     def captures(
         self,
@@ -283,14 +412,9 @@ class LineEdit:
         greedy_end: bool = True,
         skip_blank_after_end: bool = True,
     ):
-        """
-        Iterate capture() left-to-right, using each region's end line + 1
-        as the next search start line.
-        Returns a list of _Region objects (may be empty).
-        """
+        """Capture all non-overlapping regions matching start/end."""
         regions = []
         n = len(self._objs)
-
         if start_from is None:
             from_idx = 0
         elif isinstance(start_from, int):
@@ -312,6 +436,14 @@ class LineEdit:
             from_idx = r._end + 1
         return regions
 
+    def __len__(self):
+        return sum(1 for o in self._objs if not o._deleted)
+
+    def __iter__(self):
+        for obj in self._objs:
+            if not obj._deleted:
+                yield obj
+
     def __str__(self) -> str:
         parts = []
         for idx, seg in enumerate(self._lines):
@@ -324,26 +456,61 @@ class LineEdit:
         return "".join(parts)
 
 
-# ---------- single example ----------
+# ---------- Sample calls ----------
+if __name__ == "__main__":
+    sample_text = (
+        "header line\n"
+        "header line\n"
+        "header line\n"
+        "abc123 start of block A\n"
+        "some content A1\n"
+        "❯ node_modules/.pnpm\n"
+        "❯ node_modules/.pnpm\n"
+        "\n"
+        "\n"
+        "\n"
+        "❯ node_modules/.pnpm\n"
+        "❯ node_modules/.pnpm\n"
+        "\n"
+        "abcXYZ start of block B\n"
+        "content B1\n"
+        "❯ node_modules/.pnpm\n"
+        "tail line\n"
+    )
 
-sample_text = (
-    "header line\n"
-    "header line\n"
-    "header line\n"
-    "abc123 start of block A\n"
-    "some content A1\n"
-    "❯ node_modules/.pnpm\n"
-    "❯ node_modules/.pnpm\n"
-    "\n"
-    "\n"
-    "\n"
-    "❯ node_modules/.pnpm\n"
-    "❯ node_modules/.pnpm\n"
-    "\n"
-    "abcXYZ start of block B\n"
-    "content B1\n"
-    "❯ node_modules/.pnpm\n"
-    "tail line\n"
-)
+    le = LineEdit(sample_text)
 
+    print(le)
+    # get_line by number
+    print("=== get_line by number ===")
+    print(f"Line 1: {le.get_line(1)}")
+    print(f"Line 4: {le.get_line(4)}")
+    print(f"Line -1 (last): {le.get_line(-1)}")
+    print(f"Line -2: {le.get_line(-2)}")
+    print(f"Line 0 (invalid): {le.get_line(0)}")
+    print(f"Line 100 (out of bounds): {le.get_line(100)}")
 
+    # get_line by pattern
+    print("\n=== get_line by pattern ===")
+    print(f"First 'abc': {le.get_line(r'abc')}")
+    print(f"First 'block B': {le.get_line(r'block B')}")
+    print(f"No match: {le.get_line(r'NOTFOUND')}")
+
+    # seek_above / seek_below
+    print("\n=== seek_above / seek_below ===")
+    line_b = le.get_line(r"block B")
+    print(f"Starting at: {line_b}")
+    print(f"seek_above('header'): {line_b.seek_above(r'header')}")
+    print(f"seek_above('abc123'): {line_b.seek_above(r'abc123')}")
+    print(f"seek_below('tail'): {line_b.seek_below(r'tail')}")
+    print(f"seek_below('NOTFOUND'): {line_b.seek_below(r'NOTFOUND')}")
+
+    # chained seeking
+    print("\n=== chained seeking ===")
+    result = le.get_line(r"content A1").seek_below(r"node_modules").seek_below(r"block B")
+    print(f"Chained seek result: {result}")
+
+    # NullLine is falsy, Line is truthy
+    print("\n=== truthiness ===")
+    print(f"bool(le.get_line(1)): {bool(le.get_line(1))}")
+    print(f"bool(le.get_line(r'NOTFOUND')): {bool(le.get_line(r'NOTFOUND'))}")

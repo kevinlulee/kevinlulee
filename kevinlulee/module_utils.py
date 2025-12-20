@@ -19,7 +19,7 @@ from kevinlulee.file_utils import (
     readfile,
     remove_extension,
 )
-from kevinlulee.string_utils import matchstr, remove_ending_slash
+from kevinlulee.string_utils import matchstr, remove_ending_slash, pascal_case, dash_case
 
 from pathlib import Path
 import os
@@ -31,7 +31,7 @@ import sys
 from pathlib import Path
 
 
-def import_module_from_path(path: str):
+def import_module_from_path(path: str, module_name = None):
     path = Path(path).resolve()
 
     if not path.exists():
@@ -40,14 +40,18 @@ def import_module_from_path(path: str):
     if not path.suffix == ".py":
         raise ValueError(f"File must be a .py file: {path}")
 
-    module_name = path.stem
+    module_name = module_name or get_modname_from_file(str(path)) or path.stem
     spec = importlib.util.spec_from_file_location(module_name, path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
     try:
         spec.loader.exec_module(module)
         return module
     except Exception as e:
+        raise e
+        raise Exception(e)
         print(e)
 
 
@@ -451,6 +455,22 @@ def get_directory_from_project_name(x):
 file_from_modname = get_file_from_modname
 
 
+
+import importlib
+
+def reload_and_retrieve(module_path: str, class_name: str | None = None):
+    module = importlib.import_module(module_path)
+    importlib.reload(module)
+
+    if class_name is None:
+        last_segment = dash_case(module_path.split(".")[-1])
+        class_name = getattr(module, last_segment, None) or getattr(
+            module, pascal_case(last_segment), None
+        )
+
+    return getattr(module, class_name)
+
 if __name__ == "__main__":
     kx.pretty_print(path_join("~/asdf", "pdf"))
     # a = import_module_from_path("/home/kdog3682/projects/python/maelstrom/lib/nvim/playground.py")
+    # kx.pretty_print(import_module_from_path('/home/kdog3682/scratch/scratch.py'))

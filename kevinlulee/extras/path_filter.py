@@ -279,7 +279,7 @@ def should_collect(path: Path, config: Dict) -> bool:
     return True
 
 
-def collect_paths(source: Union[str, List[str]], config: Dict) -> List[str]:
+def path_filter(source: Union[str, List[str]], config: Dict) -> List[str]:
     """
     Collect paths from a directory or list of paths based on config.
     
@@ -349,10 +349,8 @@ def fn(x, k):
             return kx.split(x)
     return x
 
-config = kx.walk(kx.yamload(s), fn)
+# config = kx.walk(kx.yamload(s), fn)
 
 
-files = collect_paths(['~/yeye.js'], config)
-print(files)
-import nvim
-# nvim.fs.clip(files)
+# files = path_filter(['~/yeye.js'], config)
+# print(files)

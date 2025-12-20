@@ -12,7 +12,7 @@ def _absdir(dir):
 
 
 def _get_extension(path):
-    return os.path.splitext(path).lstrip(".").lower()
+    return os.path.splitext(path)[1].lstrip(".").lower()
 
 
 def _is_dir(path):
@@ -94,8 +94,11 @@ def _copy_or_move(src_path, dst_path, mode = 'copy'):
                 if path == dst:
                     continue
                 func(path, dst)
-
             return
+        else:
+            if mode == 'copy':
+                shutil.copytree(src, dst)
+                return 
 
     func(src, dst)
 

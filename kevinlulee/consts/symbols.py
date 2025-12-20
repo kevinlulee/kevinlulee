@@ -1,0 +1,4 @@
+
+DIVIDE_SYMBOL = "÷"
+TIMES_SYMBOL = "×"
+SPACE_SYMBOL = ' '

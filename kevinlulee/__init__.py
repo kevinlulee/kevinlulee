@@ -50,23 +50,6 @@ from pprint import pprint
 
 get_caller = introspect.get_caller
 
-def is_dataclass(obj) -> bool:
-    cls = type(obj)
-    return hasattr(cls, '__dataclass_fields__')
-
-def pretty_print(*args):
-    for arg in args:
-        if arg is None:
-            continue
-        if isinstance(arg, (float, int, complex, str, bool)):
-            print(arg)
-        elif is_dataclass(arg):
-            pprint(asdict(arg))
-        elif hasattr(arg, 'render'):
-            print(str(arg))
-        else:
-            pprint(arg)
-
 
 def fparse(input, *args, **kwargs):
     if not is_primitive(input) and callable(input):

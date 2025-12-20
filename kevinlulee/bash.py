@@ -156,6 +156,9 @@ def chmod(x):
     assert_file(x)
     return bash("sudo", "chmod", "755", x)
 
+def chmod(x):
+    assert_file(x)
+    bash_nvim('chmod', 'u+x', x)
 
 def bash_nvim(*args, cwd=None, on_error=identity, as_list = False, ignore_stderr = lambda x: False):
     cwd = os.path.expanduser(cwd) if cwd else None

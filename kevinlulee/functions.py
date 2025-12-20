@@ -1,16 +1,19 @@
 from copy import deepcopy
 import re
 from _collections_abc import dict_values, dict_keys, dict_items
+from dataclasses import asdict
 import shutil
 import kevinlulee as kx
 import functools
 
 from kevinlulee.ao import reduce2
 from kevinlulee.base import identity
-from kevinlulee.validation import existant, exists
+from kevinlulee.validation import existant, exists, is_dataclass
 from typing import List, Tuple, Optional
 
 
+from contextlib import contextmanager
+from typing import Iterator
 
 
 
@@ -616,8 +619,8 @@ def hit(funcs, *args, **kwargs):
 
     
 
-def check(value, validator):
-    assert validator(value), f"{value} does not meet validation requirements."
+def check(value, validator, message = None):
+    assert validator(value), message or f"{value} does not meet validation requirements." 
     return value
 
 
@@ -711,10 +714,25 @@ def wrap_with_dollar_signs(base):
     return s
 
 
+from pprint import pprint
+def pretty_print(*args):
+    for arg in args:
+        if arg is None:
+            continue
+        if not arg: continue
+
+        if isinstance(arg, (float, int, complex, str, bool)):
+            print(arg)
+        elif is_dataclass(arg):
+            pprint(asdict(arg))
+        elif hasattr(arg, 'render'):
+            print(str(arg))
+        else:
+            pprint(arg)
 def stop(*args):
     if args:
         for arg in args:
-            kx.pretty_print(arg)
+            pretty_print(arg)
 
     raise Exception("__EXIT__")
 
@@ -804,3 +822,40 @@ def get_cache_path(name: str, key="misc") -> str:
     """Get cache file path for directory."""
     dir_hash = str(abs(hash(name)))
     return os.path.join(kx.CACHE_DIRECTORY, key, f"{dir_hash}.json")
+
+
+@contextmanager
+def tempzip(zip_path: str) -> Iterator[list[str]]:
+    dst_path = os.path.expanduser('~/scratch/extracted_zipfiles')
+    files = kx.zipread(zip_path, dst_path)
+    try:
+        yield files
+    finally:
+        kx.rmdir(actual_dst)
+
+def func_split(args):
+    result = []
+    current = []
+
+    for item in args:
+        if callable(item):
+            if current:  # close previous chunk
+                result.append(current)
+            current = [item, []]  # start new one
+        else:
+            current[1].append(item)
+
+    if current:
+        result.append(current)
+
+    return result
+
+
+
+def typecheck(value, expected_type: type) -> None:
+    if not isinstance(value, expected_type):
+        raise TypeError(f"Expected {expected_type.__name__}, got {type(value).__name__}")
+
+# def check(value, predicate) -> None:
+#     if not predicate(value):
+#         raise ValueError(f"Value {value!r} failed predicate check")
