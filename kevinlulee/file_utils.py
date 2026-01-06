@@ -31,19 +31,14 @@ from kevinlulee.text_tools import join_text
 import kevinlulee.yb as yb
 from kevinlulee.date_utils import make_time_window_predicate, strftime, resolve_timedelta, to_seconds
 from kevinlulee.string_utils import matchstr, mget, prefix_join, remove_ending_slash, split, split_once, remove_starting_slash
+from kevinlulee.ao import split_dict
 
 def yb_parse(kwargs):
-            assert isinstance(kwargs, dict), "yb data must be in the form of a dict"
-            bar = '---'
-            pairs = list(kwargs.items())
-            if 'date' not in kwargs:
-                pairs.insert(0, ('date', strftime()))
-
-            s = bar + "\n" 
-            for k,v in pairs:
-                s+= f'{k}: {v}\n'
-        
-            return s
+    from codefmt.yaml import yamlfmt
+    # inc, exc = split_dict(kwargs, {'body'})
+    data = kwargs.copy()
+    body = data.pop('body',None)
+    return yamlfmt.format(data) + "\n\n" + body
 
 
 import os
@@ -151,14 +146,43 @@ def readfile(path: str, raw = False) -> Any:
     with open(expanded_path, mode) as f:
         if raw:
             return f.read()
+            try:
+                return f.read()
+            except Exception as e:
+                return ''
+                print(e)
         if extension == "md":
             return f.read()
         if extension == "json":
             return json.load(f)
         if extension == "yb":
-            import yb
-            return yb.load(f)
+            def load2(s):
+                from kevinlulee.extras.extract_frontmatter import extract_frontmatter
+                def runner(s):
+                    text, fm = extract_frontmatter(s)
+                    if fm.get('status') in ('suspended', 'inactive'):
+                        return
+                    if text:
+                        fm['body'] = text
+                    return fm
+            
+                # long_delims = re.findall("^-{3,}", s, flags=re.M)
+                # n = len(max(long_delims))
+                n = 60
+                items = split(s, f"^-{{{n}}}", flags=re.M)
+                return [runner(item) for item in items]
+            return load2(f.read())
         elif extension in ("yaml", "yml"):
+            if 'dict.yml' in path:
+                p = yaml.safe_load_all(f)
+                if isinstance(p, str):  # wasnt able to parse the input
+                    raise Exception('couldnt do it')
+
+                def get_key(v):
+                    return v.get('id') or v.get('key') or v.get('name') or panic()
+                return {
+                    get_key(v): v for v in list(p) if v is not None and v.get('skip') != True
+                }
             p = yaml.safe_load(f)
             if isinstance(p, str):  # wasnt able to parse the input
                 return None
@@ -203,13 +227,29 @@ def find_parent_directory(path, segment):
     count = 0
     while count < 10:
         count += 1
-        if os.path.exists(os.path.join(path, segment)):
+        if callable(segment):
+            candidate = segment(path)
+            if candidate:
+                return path
+        elif os.path.exists(os.path.join(path, segment)):
             return path
         new_path = os.path.dirname(path)
         if new_path in (root, path):
             return 
         path = new_path
     return None
+
+def determine_project_directory(path):
+    def visitor(path: Path):
+        candidates = ['.git', 'python', 'typst', 'frontend', 'backend', 'src']
+        # this needs to change a bit
+        for candidate in candidates:
+            git_path = path / '.git'
+            if git_path.exists():
+                return True
+
+    return find_parent_directory(path, visitor)
+
 def find_git_directory(path):
     root = os.path.expanduser("~/")
     path = os.path.expanduser(path)
@@ -329,6 +369,9 @@ def clip(s, ext = 'txt'):
     if not s:
         return 
 
+    if is_file(s):
+        webbrowser.open(s)
+        return 
     if isinstance(s, str) and s.startswith('<!DOCTYPE html>') and s.endswith('>'):
         ext = 'html'
     file = os.path.expanduser('~/.kdog3682/scratch/clip.' + ext)
@@ -490,6 +533,8 @@ def writefile(filepath: str, data: Any, debug = False, verbose = False, strict =
 
     path = os.path.expanduser(filepath)
     value = serialize_data(data, path, ensure_ascii = ensure_ascii)
+    if path.endswith('.yb'):
+        return write_yb(path, data)
 
     if debug: 
         return debug_print(path, value, debug)
@@ -503,13 +548,80 @@ def writefile(filepath: str, data: Any, debug = False, verbose = False, strict =
 
     return path
 
+from pathlib import Path
+
+def write_yb(path, data):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    bar = "-" * 60
+    separator = f"\n\n{bar}\n"
+
+    # normalize input to a list
+    if isinstance(data, (list, tuple)):
+        items = [yb_parse(el) for el in data]
+    else:
+        items = [yb_parse(data)]
+
+    # check if file already has content
+    with path.open("w", encoding="utf-8") as f:
+        for i, item in enumerate(items):
+            f.write(separator)
+            f.write(item)
+
+        f.write(separator)
+    return str(path)
+def append_yb(path, data):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    bar = "-" * 60
+    separator = f"\n\n{bar}\n"
+
+    # normalize input to a list
+    if isinstance(data, (list, tuple)):
+        items = [yb_parse(el) for el in data]
+    else:
+        items = [yb_parse(data)]
+
+    # check if file already has content
+    file_exists = path.exists()
+    has_content = file_exists and path.stat().st_size > 0
+
+    with path.open("a", encoding="utf-8") as f:
+        for i, item in enumerate(items):
+            if has_content or i > 0:
+                f.write(separator)
+            f.write(item)
+            has_content = True
+
+    return str(path)
+
 def appendfile(path, data, debug = False, verbose = False):
     path = os.path.expanduser(path)
+
+    if path.endswith('.yb'):
+        return append_yb(path, data)
+        ensure_directory_exists(path)
+        mode = 'a'
+        bar = '-' * 60
+        barr = "\n\n" + bar + "\n"
+        with open(path, mode) as f:
+            if isinstance(data, (tuple, list)):
+                items = [yb_parse(el) for el in data]
+                s = barr.join(items)
+                f.write(s)
+
+            else:
+                f.write(barr + yb_parse(data))
+
+        return path
+
     if path.endswith('.jsonl'):
         ensure_directory_exists(path)
         mode = 'a'
         with open(path, mode) as f:
-            f.write("\n" + json.dumps(data))
+            f.write("\n" + data if isinstance(data, str) else json.dumps(data))
 
         return path
         

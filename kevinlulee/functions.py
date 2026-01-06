@@ -516,7 +516,7 @@ class PNPM:
 
 
     def cmd(self, parts):
-        r = bash_shell(parts, cwd=self.cwd)
+        r = kx.bash_nvim(*parts, cwd=self.cwd)
         if self.verbose:
             print(r)
         return r
@@ -529,6 +529,11 @@ class PNPM:
 
     def dev(self):
         return self._run("dev")
+
+    def run(self, key):
+        return self._run(key)
+    def build(self):
+        return self._run("build")
 
     def publish(self):
         return self._run("publish")
@@ -850,6 +855,8 @@ def func_split(args):
 
     return result
 
+def line_count(text: str) -> int:
+    return len(text.splitlines())
 
 
 def typecheck(value, expected_type: type) -> None:

@@ -112,6 +112,11 @@ dict(
 )
 """
 
+sample_input = """
+if the time is cool
+lets go
+"""
+
 if __name__ == '__main__':
     blocks = split_python_code_and_markup(sample_input)
     for block in blocks:

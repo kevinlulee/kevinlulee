@@ -1,6 +1,0 @@
-
-
-
-
-def log = Logger()
-    

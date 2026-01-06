@@ -51,7 +51,7 @@ def class_templater(template, cls):
     return remove_empty_placeholders(s)
 
 
-base_re = re.compile("^(?:\d+|[a-zA-Z]\w*(?:\.\w+(?:\(.*?\))?)*)$")
+base_re = re.compile("^(?:\d+|[a-zA-Z]\w*(?:(?:\.\w+)?(?:\(.*?\))?)*)$")
 logic_re = re.compile(" (and|or|not) ")
 
 TEMPLATER_PATTERN2 = re.compile(
@@ -131,6 +131,8 @@ def brace_templater(s, ref, cls=None, wrap_func=None):
     if cls:
         ref["self"] = cls
 
+    ref['xml'] = kx.to_xml
+
     def get(expr):
         if kx.test(expr, " (and|or|not) "):
             # logic based evaluation
@@ -139,14 +141,15 @@ def brace_templater(s, ref, cls=None, wrap_func=None):
             value = eval(expr, scope)
             return value or None
 
-        if kx.test(expr, r"\bself\b"):
-            s = eval(expr, ref)
-            return s
+        a = ref.get(expr)
+        if a is not None:
+            return a
 
-        if kx.test(expr, r"\w+\("):
-            s = eval(expr)
-            return s
-        return ref.get(expr)
+        try:
+            v = eval(expr, ref)
+            return v
+        except Exception as e:
+            return '<EMPTY>' 
 
     def replacer(match):
         newline, ind, bullet_marker, expr = match.groups()
@@ -154,8 +157,11 @@ def brace_templater(s, ref, cls=None, wrap_func=None):
             # undoes the {asd: 1} that are part of the actual text
             pass
         else:
+            # print(match, expr)
+            # print([match.group(1)])
             return match.group(0)
 
+        # print([expr])
         g = get(expr)
         if g is None or g == "":
             return "<EMPTY>"
@@ -210,6 +216,53 @@ class Foo:
         return "abcfoo\nbye"
 
 
+
+class Replacer:
+    def __init__(self, funcs):
+        self.reset()
+        self.funcs = {k: self.wrap(v) for k,v in funcs.items()}
+
+    def to_str(self):
+        return kx.join_text(self.store)
+        
+    def reset(self):
+        self.store = []
+
+    def wrap(self, func):
+        def wrapper(*args, **kwargs):
+            result = func(*args, **kwargs)
+            if result is not None:
+                self.store.append(result)
+
+        return wrapper
+        
+
+
+def double_brace_templater(s):
+    def display(s):
+        return s
+    r = Replacer(dict(display = display))
+    def replacer(x):
+        code = kx.trimdent(x.group(1))
+        exec(code, r.funcs)
+        s = r.to_str()
+        r.reset()
+        return s
+        
+    return re.sub("{{([\w\W]+?)}}", replacer, s)
+
+s = """
+hi
+
+
+{{
+    a = 1
+    display(a)
+    display(a)
+    display(a)
+}}
+"""
+
 if __name__ == "__main__":
-    kx.pretty_print(class_templater("{foo}", Foo()))
-    # kx.pretty_print(brace_templater(s, dict(a=[1, 2, 3])))
+    # kx.pretty_print(class_templater("{foo}", Foo()))
+    kx.pretty_print(double_brace_templater(s))

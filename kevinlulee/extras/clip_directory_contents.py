@@ -14,11 +14,11 @@ def clip_directory_contents(
 
     files = kx.fd(dir, ignore_file=None, **kwargs) if kx.is_string(dir) else dir
     ignored_files = [
-        "index.html",
-        "package.json",
+        # "index.html",
+        # "package.json",
         "pnpm-lock.yaml",
         "tsconfig.json",
-        "vite.config.ts",
+        # "vite.config.ts",
             ".prettierrc",
     "postcss.config.js",
     "tailwind.config.ts",

@@ -1,5 +1,5 @@
 """
-LineEdit - A line-oriented text manipulation library for agents.
+LineEdit - A line-oriented text manipulation library
 
 API SUMMARY
 -----------
@@ -33,10 +33,6 @@ import re
 
 __all__ = [
     "LineEdit",
-    "Line",
-    "NullLine",
-    "Region",
-    "NullRegion",
 ]
 
 
@@ -456,61 +452,3 @@ class LineEdit:
         return "".join(parts)
 
 
-# ---------- Sample calls ----------
-if __name__ == "__main__":
-    sample_text = (
-        "header line\n"
-        "header line\n"
-        "header line\n"
-        "abc123 start of block A\n"
-        "some content A1\n"
-        "❯ node_modules/.pnpm\n"
-        "❯ node_modules/.pnpm\n"
-        "\n"
-        "\n"
-        "\n"
-        "❯ node_modules/.pnpm\n"
-        "❯ node_modules/.pnpm\n"
-        "\n"
-        "abcXYZ start of block B\n"
-        "content B1\n"
-        "❯ node_modules/.pnpm\n"
-        "tail line\n"
-    )
-
-    le = LineEdit(sample_text)
-
-    print(le)
-    # get_line by number
-    print("=== get_line by number ===")
-    print(f"Line 1: {le.get_line(1)}")
-    print(f"Line 4: {le.get_line(4)}")
-    print(f"Line -1 (last): {le.get_line(-1)}")
-    print(f"Line -2: {le.get_line(-2)}")
-    print(f"Line 0 (invalid): {le.get_line(0)}")
-    print(f"Line 100 (out of bounds): {le.get_line(100)}")
-
-    # get_line by pattern
-    print("\n=== get_line by pattern ===")
-    print(f"First 'abc': {le.get_line(r'abc')}")
-    print(f"First 'block B': {le.get_line(r'block B')}")
-    print(f"No match: {le.get_line(r'NOTFOUND')}")
-
-    # seek_above / seek_below
-    print("\n=== seek_above / seek_below ===")
-    line_b = le.get_line(r"block B")
-    print(f"Starting at: {line_b}")
-    print(f"seek_above('header'): {line_b.seek_above(r'header')}")
-    print(f"seek_above('abc123'): {line_b.seek_above(r'abc123')}")
-    print(f"seek_below('tail'): {line_b.seek_below(r'tail')}")
-    print(f"seek_below('NOTFOUND'): {line_b.seek_below(r'NOTFOUND')}")
-
-    # chained seeking
-    print("\n=== chained seeking ===")
-    result = le.get_line(r"content A1").seek_below(r"node_modules").seek_below(r"block B")
-    print(f"Chained seek result: {result}")
-
-    # NullLine is falsy, Line is truthy
-    print("\n=== truthiness ===")
-    print(f"bool(le.get_line(1)): {bool(le.get_line(1))}")
-    print(f"bool(le.get_line(r'NOTFOUND')): {bool(le.get_line(r'NOTFOUND'))}")

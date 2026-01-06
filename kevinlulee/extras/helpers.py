@@ -221,7 +221,7 @@ def to_xml(tag, content:dict | list | str = '', indentation = 1, **attributes):
     # Build attribute string
     attrs = ""
     if attributes:
-        attrs = " " + " ".join(f'{k}={v}' for k, v in attributes.items())
+        attrs = " " + " ".join(f'{k}={v}' for k, v in kx.filter_none(attributes).items())
     
     # Handle list content
     if isinstance(content, list):
@@ -252,5 +252,6 @@ def compile_requests():
         if kx.test(s, '^[\w-]+:'):
             return txflow(s)
         return s
-    items = kx.map(kx.split(text, '^(?:###)'), callback)
+    items = kx.map(kx.split(text, '^(?:###).*'), callback)
     return kx.serialize_data(items)
+
