@@ -183,6 +183,7 @@ def get_paths(
 
 
 def path_to_module(file_path: Path, root: Path) -> str:
+    root = root.parent
     rel = file_path.relative_to(root)
     parts = list(rel.parts[:-1]) + [rel.stem]
     return ".".join(parts)
