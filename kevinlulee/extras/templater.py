@@ -130,10 +130,12 @@ class Templater:
             return kx.trimdent(v)
         
         if kx.is_array(v):
+            if isinstance(v, set):
+                v = list(v)
             if marker:
                 return "\n".join(self._format_list(v, marker))
             if v and isinstance(v[0], str):
-                return kx.join_text(v)
+                return kx.json.dumps(v)
         
         return kx.serialize_data(v)
 
@@ -208,6 +210,7 @@ class Templater:
         s = re.sub(self.COMBINED, self._replacer, template)
         s = remove_empty_placeholders(s)
         s = re.sub("\n{3,}", '\n\n', s)
+        s = s.strip()
         return s
 
 def templater(template, ref=None, recursive=False, max_depth=10):
@@ -240,7 +243,7 @@ if __name__ == "__main__":
         Lettered:
             A. {items}
         """,
-        ref=dict(name="World", items=["apple", "banana", "cherry"])
+        ref=dict(name="World", items={"apple", "banana", "cherry"})
     )
     print("=== Basic ===")
     print(result)
@@ -283,11 +286,11 @@ if __name__ == "__main__":
         Notes:
             - {notes}
         """,
-        ref=dict(notes=[
+        ref=dict(notes={
             "First note",
             "Second note\nwith multiple\nlines",
             "Third note"
-        ])
+        })
     )
     print("\n=== Multiline items ===")
     print(result)

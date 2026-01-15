@@ -20,7 +20,7 @@ def extract_frontmatter(text: str) -> tuple[str, dict]:
     text = text.strip()
     le = LineEdit(text)
     
-    line = le.get_line(1)
+    line = le.get_line(0)
     if not line:
         return text, {}
     

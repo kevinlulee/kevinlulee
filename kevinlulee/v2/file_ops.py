@@ -109,47 +109,149 @@ def cp(a, b):
 def mv(a, b):
     return _copy_or_move(a, b, 'move')
 
-def _find_parent_path(input_path, callback: Callable[Path, Path]) -> Path:
-    """
-    Traverses up the directory tree from input_path until callback returns a path
-    """
+from pathlib import Path
+from typing import Callable, Optional, TypeVar
 
-    path = Path(input_path).expanduser()
+T = TypeVar("T")
+
+
+def find_ancestor(
+    start_path: Path | str,
+    callback: Callable[[Path, str], Optional[T]],
+) -> Optional[str]:
+    path = Path(start_path).expanduser().absolute()
+    current = path if path.is_dir() else path.parent
     home = Path.home()
-    count = 0
-    max_iterations = 10
 
-    if path.is_file():
-        path = path.parent
+    while True:
+        parent = current.parent
 
-    while path != home and count < max_iterations:
-        result = callback(path)
-        if result:
-            return result
+        result = callback(current, parent)
+        if result is not None:
+            return str(result)
 
-        parent = path.parent
-        if parent == path:  # Reached root directory
-            break
-        path = parent
-        count += 1
+        # stop at home directory (no match)
+        if current == home:
+            return None
 
-    return None
+        # stop at filesystem root
+        if parent == current:
+            return None
 
-def find_parent_branch_directory(path, directory_name) -> str:
+        current = parent
+
+
+from pathlib import Path
+from typing import Iterable
+
+
+STRUCTURAL_DIRS = {"frontend", "packages", "python", "typst"}
+
+PYTHON_MARKERS = {
+    "pyproject.toml",
+    "setup.py",
+    "requirements.txt",
+}
+
+WEBDEV_MARKERS = {
+    "package.json",
+    "vite.config.ts",
+    "next.config.js",
+    "astro.config.mjs",
+}
+
+TYPST_MARKERS = {
+    "typst.toml",
+}
+
+
+WEBDEV_FILETYPES = {"react", "typescript", "javascript"}
+
+
+def has_any(directory: Path, markers: Iterable[str]) -> bool:
+    return any((directory / m).exists() for m in markers)
+
+
+def find_project_directory(path: Path, filetype: str) -> Path | None:
     """
-    finds parent directories like ~/projects/maelstrom/.git
-    the directory_name in this case would be '.git'
-    """
-    
-    def callback(path: Path):
-        candidate = path / directory_name
-        if candidate._is_dir():
-            return candidate
+    Find the nearest *project directory* containing `path`.
 
-    return str(_find_parent_path(path, callback))
+    A project directory is the smallest directory that explicitly declares
+    itself as a project for the given filetype (via marker files).
+
+    In a monorepo, this typically resolves to a leaf project rather than the
+    workspace root.
+
+    Returns None if no matching project is found.
+    """
+    start = path if path.is_dir() else path.parent
+
+    def callback(current: Path, prev: Path):
+        if current.name in STRUCTURAL_DIRS:
+            return prev
+
+        if filetype == "python":
+            if has_any(current, PYTHON_MARKERS):
+                return current
+
+        elif filetype == "typst":
+            if has_any(current, TYPST_MARKERS):
+                return current
+
+        elif filetype in WEBDEV_FILETYPES:
+            if has_any(current, WEBDEV_MARKERS):
+                return current
+
+        return
+
+    return find_ancestor(start, callback)
+
+
+def find_project_root_directory(
+    path: Path,
+    *,
+    candidates: Iterable[Path],
+) -> Path | None:
+    """
+    Find the *project root directory* containing `path`.
+
+    A project root directory is a higher-level workspace boundary, typically
+    used to group multiple projects (e.g. a monorepo or personal projects
+    directory).
+
+    Unlike `find_project_directory`, the result here is expected to be broader
+    in scope and may sit above several independent project directories.
+    """
+    expanded = {c.expanduser().resolve() for c in candidates}
+
+    def callback(current: Path, prev: Path):
+        if current.resolve() in expanded:
+            return current
+        return
+
+    return find_ancestor(start, callback)
+
+from pathlib import Path
+
+
+def find_git_directory(path: Path) -> Path | None:
+    """
+    Find the nearest Git repository directory containing `path`.
+
+    A Git directory is defined as the closest ancestor directory that contains
+    a `.git` entry (directory or file).
+    """
+
+    def callback(current: Path, prev: Path):
+        if (current / ".git").exists():
+            return current
+
+    return find_ancestor(path, callback)
 
 __all__ = [
     "cp",
     "mv",
-    "find_parent_branch_directory"
+    "find_project_directory",
+    "find_project_root_directory",
+    "find_git_directory"
 ]

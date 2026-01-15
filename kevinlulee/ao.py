@@ -571,15 +571,12 @@ def edit_dict(dct, key, editor: dict):
         else:
             return v(base)
 
-    if isinstance(editor, dict):
-        for k, v in editor.items():
-            to_be_edited = section.get(k)
-            if to_be_edited is not None:
-                new_value = apply(to_be_edited, v)
-                if new_value is not None:
-                    section[k] = new_value
-    else:
-        raise Exception("todo")
+    for k, v in editor.items():
+        to_be_edited = section.get(k)
+        if to_be_edited is not None:
+            new_value = apply(to_be_edited, v)
+            if new_value is not None:
+                section[k] = new_value
 
     return dct
 

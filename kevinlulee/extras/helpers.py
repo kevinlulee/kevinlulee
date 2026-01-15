@@ -209,7 +209,7 @@ sample = """react:
 from kevinlulee import kx
 
 
-def to_xml(tag, content:dict | list | str = '', indentation = 1, **attributes):
+def to_xml(tag, content:dict | list | str = '', indentation = 0, **attributes):
     """
     Recursively builds XML strings with smart formatting.
     
@@ -221,7 +221,7 @@ def to_xml(tag, content:dict | list | str = '', indentation = 1, **attributes):
     # Build attribute string
     attrs = ""
     if attributes:
-        attrs = " " + " ".join(f'{k}={v}' for k, v in kx.filter_none(attributes).items())
+        attrs = " " + " ".join(f'{k}="{v}"' for k, v in kx.filter_none(attributes).items())
     
     # Handle list content
     if isinstance(content, list):
@@ -234,8 +234,8 @@ def to_xml(tag, content:dict | list | str = '', indentation = 1, **attributes):
         return f"<{tag}{attrs}/>"
     
     # Check if content has newlines
-    if not indentation:
-        return f"<{tag}{attrs}>{content}</{tag}>"
+    # if not indentation:
+    #     return f"<{tag}{attrs}>{content}</{tag}>"
 
     indentation = kx.to_spaces(indentation)
     if isinstance(content, str) and "\n" in content:

@@ -111,23 +111,43 @@ def get_modname_from_file(file):
     return _get_modname(file)
 
 
-def get_file_from_modname(modname) -> str:
+def get_file_from_modname(modname, strict=True) -> str:
     """
-    get_file_from_modname
+    Resolve a module name to its file path.
+    
+    Args:
+        modname: Module name (e.g., 'os.path') or path to a .py file.
+        strict: If True, search all PYTHON_MODULE_PATHS for the full module path.
+                If False, only check if the first part of the module name resolves
+                to a valid path in PYTHON_MODULE_PATHS, then return the candidate
+                path without verifying it exists.
+    
+    Returns:
+        Path to the module file or directory, or None if not found.
     """
-
     if not modname:
         return
-
     if modname.endswith(".py") and os.path.exists(os.path.expanduser(modname)):
         return os.path.expanduser(modname)
+    
+    parts = modname.split(".")
+    suffix = "/".join(parts)
+    
+    if not strict:
+        if modname.endswith(".py"):
+            return modname
 
-    suffix = modname.replace(".", "/")
+        first_part = parts[0]
+        for root in PYTHON_MODULE_PATHS:
+            first_candidate = os.path.join(root, first_part)
+            if os.path.isdir(first_candidate) or os.path.isfile(kx.add_extension_if_not_present(first_candidate, 'py')):
+                return os.path.join(root, kx.add_extension_if_not_present(suffix, 'py'))
+        return
+    
     for root in PYTHON_MODULE_PATHS:
         candidate = os.path.join(root, suffix + ".py")
         if os.path.isfile(candidate):
             return candidate
-
         candidate = os.path.join(root, suffix)
         if os.path.isdir(candidate):
             p = os.path.join(candidate, "__init__.py")
@@ -135,7 +155,6 @@ def get_file_from_modname(modname) -> str:
                 return p
             else:
                 return candidate
-
 
 def delete_module(key):
     key = get_modname_from_file(key)

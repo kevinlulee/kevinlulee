@@ -4,15 +4,15 @@ LineEdit - A line-oriented text manipulation library
 API SUMMARY
 -----------
 le = LineEdit(text)           # Create editor from string
-le.get_line(3)                # Get line by number (1-indexed, negative ok)
-le.get_line(r"pattern")       # Get first line matching regex
+le[3]                         # Get line by index (0-indexed, negative ok)
+le.find(r"pattern")           # Get first line matching regex
 le.findall(r"pattern")        # Get all lines matching regex
-le.capture(start, end)        # Capture region between patterns
-le.captures(start, end)       # Capture all such regions
+le.split(r"pattern")          # Split into regions by delimiter
 str(le)                       # Render final text
 
 Line methods:
   line.text                   # Get line content
+  line.idx                    # Get 0-indexed position
   line.match(r"pat")          # Check if line matches pattern
   line.has_text()             # Check if line has non-whitespace
   line.set(text)              # Replace line content
@@ -24,68 +24,47 @@ Line methods:
   line.seek_below(r"pat")     # Find first matching line below
 
 Region methods:
+  region[0]                   # Get line by index within region
   region.text                 # Get region content
+  region.start / region.end   # First/last line of region
   region.delete()             # Delete entire region
+  region.find(r"pat")         # Find first matching line in region
+  region.findall(r"pat")      # Find all matching lines in region
+  region.prepend(text)        # Insert text before region
+  region.append(text)         # Insert text after region
   bool(region)                # False if NullRegion
 """
 
 import re
 
-__all__ = [
-    "LineEdit",
-]
+__all__ = ["LineEdit"]
 
 
 class NullLine:
-    """Sentinel returned when no line is found."""
     __slots__ = ("_parent",)
 
     def __init__(self, parent):
         self._parent = parent
 
-    def prev(self):
-        return self
-
-    def next(self):
-        return self
-
-    def seek_above(self, pattern: str):
-        return self
-
-    def seek_below(self, pattern: str):
-        return self
-
-    def match(self, pattern: str) -> bool:
-        return False
-
-    def has_text(self) -> bool:
-        return False
-
-    def delete(self):
-        return None
-
-    def set(self, text: str):
-        return None
-
-    def insert_before(self, text: str):
-        return None
-
-    def insert_after(self, text: str):
-        return None
-
+    def prev(self): return self
+    def next(self): return self
+    def seek_above(self, pattern: str): return self
+    def seek_below(self, pattern: str): return self
+    def match(self, pattern: str) -> bool: return False
+    def has_text(self) -> bool: return False
+    def delete(self): return None
+    def set(self, text: str): return None
+    def insert_before(self, text: str): return None
+    def insert_after(self, text: str): return None
     @property
-    def text(self) -> str:
-        return ""
-
-    def __bool__(self):
-        return False
-
-    def __repr__(self):
-        return "<NullLine>"
+    def text(self) -> str: return ""
+    @property
+    def idx(self) -> int: return -1
+    def __bool__(self): return False
+    def __repr__(self): return "<NullLine>"
 
 
 class Line:
-    """Represents a single line in the editor."""
     __slots__ = ("_parent", "_idx", "_deleted")
 
     def __init__(self, parent, idx: int):
@@ -98,9 +77,8 @@ class Line:
         return self._parent._lines[self._idx]
 
     @property
-    def lnum(self) -> int:
-        """1-indexed line number."""
-        return self._idx + 1
+    def idx(self) -> int:
+        return self._idx
 
     def _stripped(self) -> str:
         return self.text.rstrip("\r\n").strip()
@@ -135,7 +113,6 @@ class Line:
         self._deleted = True
 
     def _seek(self, pattern: str, direction: int):
-        """Internal seek in given direction (-1=above, +1=below)."""
         j = self._idx + direction
         objs = self._parent._objs
         n = len(objs)
@@ -147,15 +124,12 @@ class Line:
         return self._parent._null
 
     def seek_above(self, pattern: str):
-        """Find first line above matching pattern."""
         return self._seek(pattern, -1)
 
     def seek_below(self, pattern: str):
-        """Find first line below matching pattern."""
         return self._seek(pattern, +1)
 
     def prev(self):
-        """Get previous non-deleted line."""
         j = self._idx - 1
         while j >= 0:
             candidate = self._parent._objs[j]
@@ -165,7 +139,6 @@ class Line:
         return self._parent._null
 
     def next(self):
-        """Get next non-deleted line."""
         j = self._idx + 1
         n = len(self._parent._objs)
         while j < n:
@@ -176,66 +149,80 @@ class Line:
         return self._parent._null
 
     def set(self, text: str):
-        """Replace this line's content."""
         segs = self._normalize_segments(text)
         self._parent._lines[self._idx] = segs[0]
         if len(segs) > 1:
-            tail = segs[1:]
             bucket = self._parent._inserts_after.setdefault(self._idx, [])
-            bucket.extend(tail)
+            bucket.extend(segs[1:])
 
     def insert_before(self, text: str):
-        """Insert text before this line."""
         segs = self._normalize_segments(text)
         bucket = self._parent._inserts_before.setdefault(self._idx, [])
         bucket.extend(segs)
 
     def insert_after(self, text: str):
-        """Insert text after this line."""
         segs = self._normalize_segments(text)
         bucket = self._parent._inserts_after.setdefault(self._idx, [])
         bucket.extend(segs)
 
-    def __bool__(self):
-        return True
-
+    def __bool__(self): return True
     def __repr__(self):
         state = "deleted" if self._deleted else "alive"
         return f"<Line {self._idx} {state}: {self.text!r}>"
 
 
 class NullRegion:
-    """Sentinel returned when no region is captured."""
     __slots__ = ("_parent",)
 
     def __init__(self, parent):
         self._parent = parent
 
-    def delete(self):
-        return None
-
+    def delete(self): return None
+    def find(self, pattern: str): return self._parent._null
+    def findall(self, pattern: str): return []
     @property
-    def text(self) -> str:
-        return ""
-
-    def __bool__(self):
-        return False
-
-    def __repr__(self):
-        return "<NullRegion>"
+    def text(self) -> str: return ""
+    @property
+    def start(self): return self._parent._null
+    @property
+    def end(self): return self._parent._null
+    def __bool__(self): return False
+    def __iter__(self): return iter([])
+    def __getitem__(self, key): return self._parent._null
+    def __len__(self): return 0
+    def __repr__(self): return "<NullRegion>"
 
 
 class Region:
-    """A contiguous range of lines."""
-    __slots__ = ("_parent", "_start", "_end")
+    __slots__ = ("_parent", "_start", "_end", "_indices")
 
     def __init__(self, parent, start_idx: int, end_idx: int):
         self._parent = parent
         self._start = start_idx
         self._end = end_idx
+        self._indices = None
+
+    def _get_indices(self):
+        if self._indices is None:
+            self._indices = [
+                i for i in range(self._start, self._end + 1)
+                if not self._parent._objs[i]._deleted
+            ]
+        return self._indices
+
+    def __getitem__(self, key: int):
+        indices = self._get_indices()
+        n = len(indices)
+        if key < 0:
+            key = n + key
+        if 0 <= key < n:
+            return self._parent._objs[indices[key]]
+        return self._parent._null
+
+    def __len__(self):
+        return len(self._get_indices())
 
     def delete(self):
-        """Delete all lines in this region."""
         for i in range(self._start, self._end + 1):
             self._parent._objs[i]._deleted = True
 
@@ -244,31 +231,45 @@ class Region:
         return "".join(self._parent._lines[self._start : self._end + 1])
 
     @property
-    def start_line(self):
-        """First line of region."""
+    def start(self):
         return self._parent._objs[self._start]
 
     @property
-    def end_line(self):
-        """Last line of region."""
+    def end(self):
         return self._parent._objs[self._end]
 
-    def __bool__(self):
-        return True
+    def __iter__(self):
+        for i in range(self._start, self._end + 1):
+            obj = self._parent._objs[i]
+            if not obj._deleted:
+                yield obj
 
-    def __repr__(self):
-        return f"<Region lines {self._start}-{self._end}>"
+    def find(self, pattern: str):
+        for line in self:
+            if line.match(pattern):
+                return line
+        return self._parent._null
+
+    def findall(self, pattern: str):
+        return [line for line in self if line.match(pattern)]
+
+    def prepend(self, text: str):
+        """Insert text before the first line of the region."""
+        self._parent._objs[self._start].insert_before(text)
+
+    def append(self, text: str):
+        """Insert text after the last line of the region."""
+        last = self._parent._objs[self._end]
+        last.insert_after(text)
+
+    def __bool__(self): return True
+    def __repr__(self): return f"<Region lines {self._start}-{self._end}>"
 
 
 class LineEdit:
-    """Line-oriented text editor."""
     __slots__ = (
-        "_original",
-        "_lines",
-        "_objs",
-        "_null",
-        "_inserts_before",
-        "_inserts_after",
+        "_original", "_lines", "_objs", "_null",
+        "_inserts_before", "_inserts_after",
     )
 
     def __init__(self, s: str):
@@ -282,154 +283,49 @@ class LineEdit:
         self._inserts_before = {}
         self._inserts_after = {}
 
-    def get_line(self, key):
-        """
-        Get a line by number or pattern.
-        
-        Args:
-            key: int (1-indexed, negative ok) or str (regex pattern)
-        
-        Returns:
-            Line or NullLine
-        """
-        if isinstance(key, int):
-            n = len(self._objs)
-            if key == 0:
-                return self._null
-            if key > 0:
-                idx = key - 1
-            else:
-                idx = n + key
-            if 0 <= idx < n and not self._objs[idx]._deleted:
-                return self._objs[idx]
-            return self._null
-        else:
-            for obj in self._objs:
-                if not obj._deleted and obj.match(key):
-                    return obj
-            return self._null
+    def __getitem__(self, key: int):
+        n = len(self._objs)
+        if key < 0:
+            key = n + key
+        if 0 <= key < n and not self._objs[key]._deleted:
+            return self._objs[key]
+        return self._null
+
+    def get_line(self, idx: int):
+        """Get line by 0-indexed position."""
+        return self[idx]
+
+    def find(self, pattern: str):
+        for obj in self._objs:
+            if not obj._deleted and obj.match(pattern):
+                return obj
+        return self._null
 
     def findall(self, pattern: str):
-        """Find all lines matching pattern."""
-        out = []
-        for obj in self._objs:
-            if obj._deleted:
-                continue
-            if obj.match(pattern):
-                out.append(obj)
-        return out
+        return [obj for obj in self._objs if not obj._deleted and obj.match(pattern)]
 
-    def _is_blank_idx(self, idx: int) -> bool:
-        if idx < 0 or idx >= len(self._objs):
-            return False
-        if self._objs[idx]._deleted:
-            return False
-        seg = self._lines[idx]
-        return seg.rstrip("\r\n").strip() == ""
-
-    def _first_start_from(self, start_pat: str, from_idx: int) -> int:
-        n = len(self._objs)
-        i = from_idx
-        while i < n:
-            o = self._objs[i]
-            if not o._deleted and re.search(start_pat, o.text) is not None:
-                return i
-            i += 1
-        return -1
-
-    def capture(
-        self,
-        start: str,
-        end: str,
-        *,
-        start_from=None,
-        greedy_end: bool = True,
-        skip_blank_after_end: bool = True,
-    ):
-        """
-        Capture a region from start pattern to end pattern.
+    def split(self, pattern: str):
+        """Split into regions by delimiter pattern. Returns regions BETWEEN delimiters."""
+        delimiters = [obj._idx for obj in self._objs if not obj._deleted and obj.match(pattern)]
         
-        Args:
-            start: Regex for region start
-            end: Regex for region end
-            start_from: None, int index, or Line
-            greedy_end: Extend to last consecutive end match
-            skip_blank_after_end: Allow blank lines between end matches
-        """
-        n = len(self._objs)
-        if start_from is None:
-            from_idx = 0
-        elif isinstance(start_from, int):
-            from_idx = max(0, min(start_from, n))
-        else:
-            from_idx = start_from._idx
-
-        start_idx = self._first_start_from(start, from_idx)
-        if start_idx == -1:
-            return NullRegion(self)
-
-        end_idx = -1
-        j = start_idx
-        while j < n:
-            obj = self._objs[j]
-            if not obj._deleted and re.search(end, obj.text) is not None:
-                end_idx = j
-                if greedy_end:
-                    k = j + 1
-                    last_good = j
-                    while k < n:
-                        if self._objs[k]._deleted:
-                            k += 1
-                            continue
-                        text_matches = re.search(end, self._objs[k].text) is not None
-                        if text_matches:
-                            last_good = k
-                            k += 1
-                            continue
-                        if skip_blank_after_end and self._is_blank_idx(k):
-                            k += 1
-                            continue
-                        break
-                    end_idx = last_good
-                break
-            j += 1
-
-        if end_idx == -1:
-            end_idx = n - 1
-
-        return Region(self, start_idx, end_idx)
-
-    def captures(
-        self,
-        start: str,
-        end: str,
-        *,
-        start_from=None,
-        greedy_end: bool = True,
-        skip_blank_after_end: bool = True,
-    ):
-        """Capture all non-overlapping regions matching start/end."""
+        if not delimiters:
+            return [Region(self, 0, len(self._objs) - 1)]
+        
         regions = []
-        n = len(self._objs)
-        if start_from is None:
-            from_idx = 0
-        elif isinstance(start_from, int):
-            from_idx = max(0, min(start_from, n))
-        else:
-            from_idx = start_from._idx
-
-        while from_idx < n:
-            r = self.capture(
-                start,
-                end,
-                start_from=from_idx,
-                greedy_end=greedy_end,
-                skip_blank_after_end=skip_blank_after_end,
-            )
-            if not r:
-                break
-            regions.append(r)
-            from_idx = r._end + 1
+        for i, delim_idx in enumerate(delimiters):
+            if i + 1 < len(delimiters):
+                # Region between this delimiter and next
+                start = delim_idx + 1
+                end = delimiters[i + 1] - 1
+                if start <= end:
+                    regions.append(Region(self, start, end))
+            else:
+                # Region after last delimiter to EOF
+                start = delim_idx + 1
+                end = len(self._objs) - 1
+                if start <= end:
+                    regions.append(Region(self, start, end))
+        
         return regions
 
     def __len__(self):
@@ -450,5 +346,3 @@ class LineEdit:
             if idx in self._inserts_after:
                 parts.extend(self._inserts_after[idx])
         return "".join(parts)
-
-

@@ -36,7 +36,6 @@ def yamload(x, strict = False):
         return m
         
     except Exception as e:
-        print(e)
         if strict:
             raise e
         return {}
