@@ -1,52 +1,136 @@
+import re
 import kevinlulee as kx
+from kevinlulee.extras.collect_files import collect_files
 
+
+# ---------------------------
+# Exclusion sources (intent)
+# ---------------------------
+
+EXCLUDE_EXTS = {
+    # media / binary
+    "png", "svg", "pdf", "jpg", "jpeg", "gif", "ico", "webp",
+    "mp3", "mp4", "wav",
+    "woff", "ttf", "eot", "otf",
+}
+
+EXCLUDE_NAMES = {
+    # vcs / os
+    ".gitignore",
+    ".gitattributes",
+    ".DS_Store",
+
+    # env / tooling
+    ".env",
+    ".python-version",
+    ".nvmrc",
+    ".npmrc",
+    ".dockerignore",
+    ".editorconfig",
+
+    # package managers
+    "uv.lock",
+    "poetry.lock",
+    "Cargo.lock",
+    "Gemfile.lock",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+
+    # frontend config
+    "tsconfig.json",
+    "tsconfig.node.json",
+}
+
+EXCLUDE_PATTERNS = [
+    r"\.git/",
+    r"postcss\.config\.",
+    r"tailwind\.config\.",
+    r"vite\.config\.",
+    r"webpack\.config\.",
+]
+
+
+# ---------------------------
+# Helpers → regex
+# ---------------------------
+
+def _exts_to_patterns(exts):
+    return [rf"\.{re.escape(ext)}$" for ext in exts]
+
+
+def _names_to_patterns(names):
+    return [rf"{re.escape(name)}$" for name in names]
+
+
+def build_exclude_patterns(*, exts=None, names=None, exclude=None):
+    return (
+        EXCLUDE_PATTERNS
+        + _exts_to_patterns(EXCLUDE_EXTS | set(exts or []))
+        + _names_to_patterns(EXCLUDE_NAMES | set(names or []))
+        + (exclude or [])
+    )
+
+
+# ---------------------------
+# Public API
+# ---------------------------
 
 def clip_directory_contents(
-    dir, with_header=True, with_file_tree=True, with_date = False, **kwargs
+    paths,
+    *,
+    header=True,
+    tree=True,
+    date=False,
+    min_chars=100,
+    exts=None,
+    names=None,
+    exclude=None,
+    **kwargs,
 ):
-    """
-    finds all files in a directory via fd
-    reads them and joins them together
+    files = collect_files(
+        paths,
+        exclude=build_exclude_patterns(
+            exts=exts,
+            names=names,
+            exclude=exclude,
+        ),
+        **kwargs,
+    )
 
-    option: with_header: true
-    option: with_file_tree: true
-    """
-
-    files = kx.fd(dir, ignore_file=None, **kwargs) if kx.is_string(dir) else dir
-    ignored_files = [
-        # "index.html",
-        # "package.json",
-        "pnpm-lock.yaml",
-        "tsconfig.json",
-        # "vite.config.ts",
-            ".prettierrc",
-    "postcss.config.js",
-    "tailwind.config.ts",
-    "tsconfig.node.json",
-    ]
-    cfiles = kx.filtered(files, lambda x: kx.os.path.basename(x) not in ignored_files)
-
-    def runner(file):
+    def render(file):
         text = kx.serialize_data(kx.readfile(file, raw=True))
-        if len(text) < 100:
-            return
+        if len(text) < min_chars:
+            return None
 
-        if with_header == False:
+        if not header:
             return text
 
-        inner = kx.join_text(file, kx.strftime(file, mode="detailed")) if with_date else file
-        h = kx.parens(inner, "-" * 60)
-        header = kx.comment(h, file)
-        return header, text
+        label = (
+            kx.join_text(file, kx.strftime(file, mode="detailed"))
+            if date
+            else file
+        )
+        return kx.comment(kx.parens(label, "-" * 60), file), text
 
-    a = kx.mapfilter(cfiles, runner)
-    b = (
+    body = kx.mapfilter(files, render)
+    tree_block = (
         kx.comment(kx.fancy_file_tree(files), files[0])
-        if with_file_tree
+        if tree and files
         else None
     )
-    return kx.join_text(b, a)
 
+    return kx.join_text(tree_block, body)
+
+
+# ---------------------------
+# CLI
+# ---------------------------
 
 if __name__ == "__main__":
-    kx.clip(clip_directory_contents('~/.cache/typst/packages/preview/cetz/0.3.3/'))
+    kx.clip(
+        clip_directory_contents(
+            "~/.cache/typst/packages/preview/cetz/0.3.3/"
+        )
+    )
+

@@ -194,8 +194,3 @@ def fancy_file_tree(root_dir_or_list: Union[str, Iterable[str]], truncate: bool 
         return header
 
     return header + "\n" + body
-
-
-if __name__ == '__main__':
-    import kevinlulee as kx
-    nvim.fs.print(fancy_file_tree(kx.get_paths('~/scratch/2025/', depth = 0)))
