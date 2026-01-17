@@ -695,6 +695,7 @@ def run_script(key, *args, **kwargs):
 
     places = [
         'nvim.scripts',
+        'kevinlulee.extras'
         'kevinlulee.scripts'
     ]
     for place in places:
