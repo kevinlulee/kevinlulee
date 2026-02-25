@@ -8,12 +8,7 @@ SYMBOL_PATTERNS = {
     "python": [
         r"^(?:async\s+)?def\s+(\w+)",
         r"^class\s+(\w+)",
-        # r"^(\w+)\s+=",
-    ],
-    "javascript": [
-        r"^(?:async\s+)?function\s+(\w+)",
-        r"^(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function|\(|=>)",
-        r"^class\s+(\w+)",
+        r"^(\w+)\s+=",
     ],
     "typescript": [
         r"^(?:async\s+)?function\s+(\w+)",

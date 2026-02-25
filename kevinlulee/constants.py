@@ -213,6 +213,7 @@ IPHONE_ALARM_ALIASES = {
 HAMMY_DIR = '~/projects/hammymathclass/'
 
 DLDIR = '/mnt/chromeos/MyFiles/Downloads/'
+DLDIR = '/home/kdog3682/scratch/lua_events'
 
 
 LOCAL_CLIP_FILE = "/home/kdog3682/scratch/scratch.txt"
