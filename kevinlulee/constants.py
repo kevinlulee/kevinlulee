@@ -212,8 +212,12 @@ IPHONE_ALARM_ALIASES = {
 
 HAMMY_DIR = '~/projects/hammymathclass/'
 
-DLDIR = '/mnt/chromeos/MyFiles/Downloads/'
 DLDIR = '/home/kdog3682/scratch/lua_events'
+DLDIR = '/home/kdog3682/downloads'
+DLDIR = '/mnt/chromeos/MyFiles/Downloads/'
+USBDIR = '/mnt/chromeos/removable/USB Drive'
+DLDIR = '/mnt/chromeos/MyFiles/Downloads/'
+DRIVEDIR = '/mnt/chromeos/GoogleDrive/MyDrive'
 
 
 LOCAL_CLIP_FILE = "/home/kdog3682/scratch/scratch.txt"
@@ -222,3 +226,4 @@ MYFILES_DIR = '/mnt/chromeos/MyFiles/'
 RANDOM_IDX = '__RANDOM_IDX__'
 
 CACHE_DIRECTORY = '~/data/cache'
+~/.bashrc
